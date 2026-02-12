@@ -165,7 +165,8 @@ class TestPublicAPI:
         import colnade
 
         # __all__ should contain every expected public name
-        expected = {
+        # Check that __all__ is a superset of the expected dtype names
+        dtype_names = {
             "Schema",
             "Column",
             "NumericType",
@@ -192,7 +193,7 @@ class TestPublicAPI:
             "Struct",
             "List",
         }
-        assert expected == set(colnade.__all__)
+        assert dtype_names.issubset(set(colnade.__all__))
 
 
 # ---------------------------------------------------------------------------

@@ -3,15 +3,25 @@
 Defines the foundational layer that makes column references statically verifiable:
 - ``SchemaMeta`` — metaclass that creates Column descriptors from annotations
 - ``Schema`` — base class for user-defined schemas (extends Protocol)
-- ``Column[DType, SchemaType]`` — typed column descriptor
+- ``Column[DType, SchemaType]`` — typed column descriptor with expression building
 """
 
 from __future__ import annotations
 
 import typing
-from typing import Any, Generic, Protocol, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, Protocol, TypeVar
 
 from colnade._types import DType
+
+if TYPE_CHECKING:
+    from colnade.expr import (
+        Agg,
+        AliasedExpr,
+        BinOp,
+        Expr,
+        FunctionCall,
+        SortExpr,
+    )
 
 # ---------------------------------------------------------------------------
 # Schema-bound TypeVars (must live here because they reference Schema)
@@ -45,7 +55,8 @@ class Column(Generic[DType, SchemaType]):
     this column holds ``UInt8`` data and belongs to the ``Users`` schema.
 
     At runtime: stores the column ``name``, ``dtype`` annotation, and owning
-    ``schema`` class. Expression-building methods are wired in issue #4.
+    ``schema`` class. All operator overloads and methods produce expression
+    tree nodes (AST) for backend translation.
     """
 
     __slots__ = ("name", "dtype", "schema")
@@ -57,6 +68,266 @@ class Column(Generic[DType, SchemaType]):
 
     def __repr__(self) -> str:
         return f"Column({self.name!r}, dtype={self.dtype}, schema={self.schema.__name__})"
+
+    # --- Internal helpers ---
+
+    def _ref(self) -> Any:
+        """Create a ColumnRef for this column."""
+        from colnade.expr import ColumnRef
+
+        return ColumnRef(column=self)
+
+    def _binop(self, other: Any, op: str) -> BinOp[Any]:
+        """Create a BinOp with this column as the left operand."""
+        from colnade.expr import BinOp, ColumnRef, Literal
+        from colnade.expr import Expr as _Expr
+
+        left = ColumnRef(column=self)
+        if isinstance(other, _Expr):
+            right = other
+        elif isinstance(other, Column):
+            right = ColumnRef(column=other)
+        else:
+            right = Literal(value=other)
+        return BinOp(left=left, right=right, op=op)
+
+    def _rbinop(self, other: Any, op: str) -> BinOp[Any]:
+        """Create a BinOp with this column as the right operand (reverse ops)."""
+        from colnade.expr import BinOp, ColumnRef, Literal
+
+        return BinOp(left=Literal(value=other), right=ColumnRef(column=self), op=op)
+
+    # --- Comparison operators → Expr[Bool] ---
+
+    def __gt__(self, other: Any) -> Expr[Any]:
+        return self._binop(other, ">")
+
+    def __lt__(self, other: Any) -> Expr[Any]:
+        return self._binop(other, "<")
+
+    def __ge__(self, other: Any) -> Expr[Any]:
+        return self._binop(other, ">=")
+
+    def __le__(self, other: Any) -> Expr[Any]:
+        return self._binop(other, "<=")
+
+    def __eq__(self, other: Any) -> Expr[Any]:  # type: ignore[override]
+        return self._binop(other, "==")
+
+    def __ne__(self, other: Any) -> Expr[Any]:  # type: ignore[override]
+        return self._binop(other, "!=")
+
+    # --- Arithmetic operators ---
+
+    def __add__(self, other: Any) -> Expr[Any]:
+        return self._binop(other, "+")
+
+    def __radd__(self, other: Any) -> Expr[Any]:
+        return self._rbinop(other, "+")
+
+    def __sub__(self, other: Any) -> Expr[Any]:
+        return self._binop(other, "-")
+
+    def __rsub__(self, other: Any) -> Expr[Any]:
+        return self._rbinop(other, "-")
+
+    def __mul__(self, other: Any) -> Expr[Any]:
+        return self._binop(other, "*")
+
+    def __rmul__(self, other: Any) -> Expr[Any]:
+        return self._rbinop(other, "*")
+
+    def __truediv__(self, other: Any) -> Expr[Any]:
+        return self._binop(other, "/")
+
+    def __rtruediv__(self, other: Any) -> Expr[Any]:
+        return self._rbinop(other, "/")
+
+    def __mod__(self, other: Any) -> Expr[Any]:
+        return self._binop(other, "%")
+
+    def __rmod__(self, other: Any) -> Expr[Any]:
+        return self._rbinop(other, "%")
+
+    def __neg__(self) -> Expr[Any]:
+        from colnade.expr import ColumnRef, UnaryOp
+
+        return UnaryOp(operand=ColumnRef(column=self), op="-")
+
+    # --- Aggregation methods → Agg[ResultType] ---
+
+    def _agg(self, agg_type: str) -> Agg[Any]:
+        from colnade.expr import Agg, ColumnRef
+
+        return Agg(source=ColumnRef(column=self), agg_type=agg_type)
+
+    def sum(self) -> Agg[Any]:
+        return self._agg("sum")
+
+    def mean(self) -> Agg[Any]:
+        return self._agg("mean")
+
+    def min(self) -> Agg[Any]:
+        return self._agg("min")
+
+    def max(self) -> Agg[Any]:
+        return self._agg("max")
+
+    def count(self) -> Agg[Any]:
+        return self._agg("count")
+
+    def std(self) -> Agg[Any]:
+        return self._agg("std")
+
+    def var(self) -> Agg[Any]:
+        return self._agg("var")
+
+    def first(self) -> Agg[Any]:
+        return self._agg("first")
+
+    def last(self) -> Agg[Any]:
+        return self._agg("last")
+
+    def n_unique(self) -> Agg[Any]:
+        return self._agg("n_unique")
+
+    # --- String methods (Utf8 only at type level) ---
+
+    def _str_fn(self, name: str, *args: Any) -> FunctionCall[Any]:
+        from colnade.expr import ColumnRef, FunctionCall
+
+        return FunctionCall(name=name, args=(ColumnRef(column=self), *args))
+
+    def str_contains(self, pattern: str) -> Expr[Any]:
+        return self._str_fn("str_contains", pattern)
+
+    def str_starts_with(self, prefix: str) -> Expr[Any]:
+        return self._str_fn("str_starts_with", prefix)
+
+    def str_ends_with(self, suffix: str) -> Expr[Any]:
+        return self._str_fn("str_ends_with", suffix)
+
+    def str_len(self) -> Expr[Any]:
+        return self._str_fn("str_len")
+
+    def str_to_lowercase(self) -> Expr[Any]:
+        return self._str_fn("str_to_lowercase")
+
+    def str_to_uppercase(self) -> Expr[Any]:
+        return self._str_fn("str_to_uppercase")
+
+    def str_strip(self) -> Expr[Any]:
+        return self._str_fn("str_strip")
+
+    def str_replace(self, pattern: str, replacement: str) -> Expr[Any]:
+        return self._str_fn("str_replace", pattern, replacement)
+
+    # --- Temporal methods (Datetime only at type level) ---
+
+    def _dt_fn(self, name: str) -> FunctionCall[Any]:
+        from colnade.expr import ColumnRef, FunctionCall
+
+        return FunctionCall(name=name, args=(ColumnRef(column=self),))
+
+    def dt_year(self) -> Expr[Any]:
+        return self._dt_fn("dt_year")
+
+    def dt_month(self) -> Expr[Any]:
+        return self._dt_fn("dt_month")
+
+    def dt_day(self) -> Expr[Any]:
+        return self._dt_fn("dt_day")
+
+    def dt_hour(self) -> Expr[Any]:
+        return self._dt_fn("dt_hour")
+
+    def dt_minute(self) -> Expr[Any]:
+        return self._dt_fn("dt_minute")
+
+    def dt_second(self) -> Expr[Any]:
+        return self._dt_fn("dt_second")
+
+    def dt_truncate(self, interval: str) -> Expr[Any]:
+        from colnade.expr import ColumnRef, FunctionCall
+
+        return FunctionCall(name="dt_truncate", args=(ColumnRef(column=self), interval))
+
+    # --- Null handling ---
+
+    def is_null(self) -> Expr[Any]:
+        from colnade.expr import ColumnRef, UnaryOp
+
+        return UnaryOp(operand=ColumnRef(column=self), op="is_null")
+
+    def is_not_null(self) -> Expr[Any]:
+        from colnade.expr import ColumnRef, UnaryOp
+
+        return UnaryOp(operand=ColumnRef(column=self), op="is_not_null")
+
+    def fill_null(self, value: Any) -> Expr[Any]:
+        from colnade.expr import ColumnRef, FunctionCall
+        from colnade.expr import Expr as _Expr
+
+        if isinstance(value, _Expr):
+            fill_arg = value
+        else:
+            from colnade.expr import Literal
+
+            fill_arg = Literal(value=value)
+        return FunctionCall(name="fill_null", args=(ColumnRef(column=self), fill_arg))
+
+    def assert_non_null(self) -> Expr[Any]:
+        from colnade.expr import ColumnRef, FunctionCall
+
+        return FunctionCall(name="assert_non_null", args=(ColumnRef(column=self),))
+
+    # --- NaN handling (Float32/Float64 only at type level) ---
+
+    def is_nan(self) -> Expr[Any]:
+        from colnade.expr import ColumnRef, UnaryOp
+
+        return UnaryOp(operand=ColumnRef(column=self), op="is_nan")
+
+    def fill_nan(self, value: Any) -> Expr[Any]:
+        from colnade.expr import ColumnRef, FunctionCall, Literal
+
+        fill_arg = value if isinstance(value, Literal) else Literal(value=value)
+        return FunctionCall(name="fill_nan", args=(ColumnRef(column=self), fill_arg))
+
+    # --- General ---
+
+    def cast(self, new_dtype: type) -> Expr[Any]:
+        from colnade.expr import ColumnRef, FunctionCall
+
+        return FunctionCall(
+            name="cast", args=(ColumnRef(column=self),), kwargs={"dtype": new_dtype}
+        )
+
+    def alias(self, target: Column[Any, Any]) -> AliasedExpr[Any]:
+        from colnade.expr import AliasedExpr, ColumnRef
+
+        return AliasedExpr(expr=ColumnRef(column=self), target=target)
+
+    def as_column(self, target: Column[Any, Any]) -> AliasedExpr[Any]:
+        return self.alias(target)
+
+    def over(self, *partition_by: Column[Any, Any]) -> Expr[Any]:
+        from colnade.expr import ColumnRef, FunctionCall
+
+        return FunctionCall(
+            name="over",
+            args=(ColumnRef(column=self), *[ColumnRef(column=c) for c in partition_by]),
+        )
+
+    def desc(self) -> SortExpr:
+        from colnade.expr import ColumnRef, SortExpr
+
+        return SortExpr(expr=ColumnRef(column=self), descending=True)
+
+    def asc(self) -> SortExpr:
+        from colnade.expr import ColumnRef, SortExpr
+
+        return SortExpr(expr=ColumnRef(column=self), descending=False)
 
 
 # ---------------------------------------------------------------------------
