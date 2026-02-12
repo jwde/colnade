@@ -184,6 +184,36 @@ The `Column[DType]` pattern (inspired by SQLAlchemy 2.0's `Mapped[T]`) makes the
 
 **Trade-off:** Column uses a single generic parameter (`Column[DType]`). The schema binding (`SchemaType`) was dropped from the type-level signature since Python 3.10 lacks TypeVar defaults (PEP 696), making partial parameterization `Column[UInt8]` invalid for two-parameter generics. The schema is still stored as a runtime attribute (`Column.schema`). Schema-level type safety for column-DataFrame binding will be addressed through other mechanisms.
 
+### Self Narrowing Limitation (PR #17)
+
+The spec (§4.3) envisions dtype-conditional method availability using `self` type narrowing:
+
+```python
+# Ideal — .field() only available on Struct columns, .list only on List columns:
+def field(self: Column[Struct[S2]], col: Column[T]) -> StructFieldAccess[T]: ...
+
+@property
+def list(self: Column[List[T]]) -> ListAccessor[T]: ...
+```
+
+ty does not yet support `self` narrowing on non-Protocol generic classes, so these methods are available on all `Column` instances at the type level. This also means the element type `T` cannot be extracted from `List[T]`, causing `ListAccessor` to use `Any` for element-type-dependent return types.
+
+**What works today:**
+- `.field()` preserves the field column's dtype via TypeVar (`field(col: Column[T]) -> StructFieldAccess[T]`)
+- `ListAccessor.len()` → `ListOp[UInt32]` and `.contains()` → `ListOp[Bool]` (fixed return types)
+
+**What returns `Any` (improvable with self narrowing):**
+- `.list` property → `ListAccessor[Any]` (should be `ListAccessor[T]`)
+- `.get()`, `.sum()`, `.mean()`, `.min()`, `.max()` → `ListOp[Any]` (should be `ListOp[T | None]`, `ListOp[T]`, etc.)
+- `.contains(value: Any)` → value param (should be `value: T`)
+
+**What would become static errors (not currently caught):**
+- `Users.name.field(Address.city)` — `.field()` on non-Struct column
+- `Users.name.list.len()` — `.list` on non-List column
+- `Users.tags.list.sum()` — `.sum()` on non-numeric list (needs `self: ListAccessor[NumericType]`)
+
+When ty adds self narrowing support, all of the above can be tightened without changing runtime behavior. The relevant code locations are marked with comments referencing this limitation.
+
 ---
 
 ## Workflow
