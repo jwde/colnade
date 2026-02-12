@@ -25,8 +25,12 @@ from colnade.dtypes import (
     UInt64,
     Utf8,
 )
+from colnade.schema import Column, Schema
 
 __all__ = [
+    # Schema layer
+    "Schema",
+    "Column",
     # Type categories
     "NumericType",
     "IntegerType",

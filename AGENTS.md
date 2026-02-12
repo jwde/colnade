@@ -13,7 +13,7 @@ Full specification: [`spec.md`](spec.md)
 Each issue (#2–#9) carries its own rigorous test requirements:
 
 - **Unit tests** for all new runtime behavior, with specific test cases enumerated in the issue
-- **Static type tests** (`tests/typing/`) for all new public API surface — verified by mypy and pyright
+- **Static type tests** (`tests/typing/`) for all new public API surface — verified by ty
 - **CI must be green** before any PR merges
 
 Issues #10 and #11 cover **cross-cutting concerns only** — multi-layer type checking scenarios, end-to-end pipelines, and coverage analysis. They do not carry the burden of basic module-level testing; that's already done.
@@ -55,7 +55,7 @@ Tasks are ordered by dependency. Each task is implemented as an independent bran
 | | |
 |---|---|
 | **Scope** | Monorepo structure (`colnade/` + `colnade-polars/`), `pyproject.toml` for both packages, CI pipeline (GitHub Actions), dev tooling (ruff, pytest), `py.typed` marker |
-| **Tests** | CI infrastructure: smoke test for imports, mypy/pyright baseline on empty typing test, ruff passing |
+| **Tests** | CI infrastructure: smoke test for imports, ty check baseline on empty typing test, ruff passing |
 | **Blocked by** | — |
 | **Spec sections** | §3.2 Package Structure, §3.3 Dependency Policy |
 
@@ -64,7 +64,7 @@ Tasks are ordered by dependency. Each task is implemented as an independent bran
 | | |
 |---|---|
 | **Scope** | `dtypes.py`: all dtype sentinels (Bool, UInt8, ..., Float64, Utf8, Datetime, Struct, List). `_types.py`: type category unions (NumericType, TemporalType), core TypeVars |
-| **Tests** | Unit: class identity, generic parameterization, type categories. Static: valid dtype usage accepted, generics accepted. mypy + pyright pass. |
+| **Tests** | Unit: class identity, generic parameterization, type categories. Static: valid dtype usage accepted, generics accepted. ty check passes. |
 | **Blocked by** | #1 |
 | **Spec sections** | §3.2, §4.8, §5.3, §15.1 |
 
@@ -73,7 +73,7 @@ Tasks are ordered by dependency. Each task is implemented as an independent bran
 | | |
 |---|---|
 | **Scope** | `schema.py`: `SchemaMeta` metaclass, `Schema` base class (extends Protocol), `Column[DType, SchemaType]` descriptor, schema inheritance/composition, nullable column annotations |
-| **Tests** | Unit: schema creation, Column properties, inheritance, trait composition, nullable columns, edge cases. Static: `Users.age` accepted, `Users.agee` rejected, structural subtyping with bounded TypeVar. mypy + pyright pass. |
+| **Tests** | Unit: schema creation, Column properties, inheritance, trait composition, nullable columns, edge cases. Static: `Users.age` accepted, `Users.agee` rejected, structural subtyping with bounded TypeVar. ty check passes. |
 | **Blocked by** | #2 |
 | **Spec sections** | §4.1–4.5, §4.7.1 |
 
@@ -82,7 +82,7 @@ Tasks are ordered by dependency. Each task is implemented as an independent bran
 | | |
 |---|---|
 | **Scope** | `expr.py`: all AST nodes (Expr, ColumnRef, BinOp, UnaryOp, Literal, FunctionCall, Agg, AliasedExpr, SortExpr). Column operator overloads (comparison, arithmetic, logical). Aggregation methods. String/temporal/null/NaN methods with type-conditional availability via `self` narrowing. Null propagation through expression types. `lit()` helper |
-| **Tests** | Unit: every AST node construction, every operator overload, every Column method (agg, string, temporal, null, NaN, general), expression chaining. Static: method availability by dtype (sum on numeric OK, sum on Utf8 rejected), null propagation types, expression type correctness, AliasedExpr type matching. mypy + pyright pass. |
+| **Tests** | Unit: every AST node construction, every operator overload, every Column method (agg, string, temporal, null, NaN, general), expression chaining. Static: method availability by dtype (sum on numeric OK, sum on Utf8 rejected), null propagation types, expression type correctness, AliasedExpr type matching. ty check passes. |
 | **Blocked by** | #3 |
 | **Spec sections** | §5.1–5.3, §4.3, §4.7.2–4.7.4, §15.4 |
 
@@ -91,7 +91,7 @@ Tasks are ordered by dependency. Each task is implemented as an independent bran
 | | |
 |---|---|
 | **Scope** | `Struct[S]` and `List[T]` as column types. `.field()` method (only on Struct columns, schema-constrained). `ListAccessor` class with `.list` property (only on List columns). `StructFieldAccess` and `ListOp` AST nodes. Nested nullability propagation |
-| **Tests** | Unit: Struct/List in schemas, .field() AST, .list.* AST, chained operations, nested nullability. Static: .field() only on Struct, .list only on List, schema constraints on .field(), numeric-only ListAccessor methods, nullable struct propagation. mypy + pyright pass. |
+| **Tests** | Unit: Struct/List in schemas, .field() AST, .list.* AST, chained operations, nested nullability. Static: .field() only on Struct, .list only on List, schema constraints on .field(), numeric-only ListAccessor methods, nullable struct propagation. ty check passes. |
 | **Blocked by** | #4 |
 | **Spec sections** | §4.8.1–4.8.4, §5.1, §8.3 |
 
@@ -100,7 +100,7 @@ Tasks are ordered by dependency. Each task is implemented as an independent bran
 | | |
 |---|---|
 | **Scope** | `dataframe.py`: `DataFrame[S]`, `LazyFrame[S]` with all schema-preserving ops (filter, sort, limit, head, tail, sample, unique, drop_nulls, with_columns). Select overloads (arities 1–10). `GroupBy[S]` / `LazyGroupBy[S]`. `.lazy()` / `.collect()` conversions. `UntypedDataFrame` / `UntypedLazyFrame` escape hatch |
-| **Tests** | Unit: construction, return types for all ops, GroupBy, conversions, LazyFrame restrictions (no head/tail/sample). Static: schema preservation, select rejects wrong-schema columns, sort/group_by column validation, lazy vs eager distinction (LazyFrame not assignable to DataFrame), untyped escape. mypy + pyright pass. |
+| **Tests** | Unit: construction, return types for all ops, GroupBy, conversions, LazyFrame restrictions (no head/tail/sample). Static: schema preservation, select rejects wrong-schema columns, sort/group_by column validation, lazy vs eager distinction (LazyFrame not assignable to DataFrame), untyped escape. ty check passes. |
 | **Blocked by** | #4, #5 |
 | **Spec sections** | §6.1–6.3, §6.6, §6.7, §12.3, §15.3 |
 
@@ -109,7 +109,7 @@ Tasks are ordered by dependency. Each task is implemented as an independent bran
 | | |
 |---|---|
 | **Scope** | `JoinCondition` class. `Column.__eq__` overload (same schema → `Expr[Bool]`, different schema → `JoinCondition`). `JoinedDataFrame[S, S2]` and `JoinedLazyFrame[S, S2]` with select overloads accepting `Column[Any, S] \| Column[Any, S2]`. `.join()` method on DataFrame/LazyFrame |
-| **Tests** | Unit: JoinCondition creation, == dispatch (same vs different schema), JoinedDataFrame ops, conversions, join how variants. Static: joined select accepts both schemas, rejects third schema, JoinedDataFrame not assignable to DataFrame, join return types. mypy + pyright pass. |
+| **Tests** | Unit: JoinCondition creation, == dispatch (same vs different schema), JoinedDataFrame ops, conversions, join how variants. Static: joined select accepts both schemas, rejects third schema, JoinedDataFrame not assignable to DataFrame, join return types. ty check passes. |
 | **Blocked by** | #6 |
 | **Spec sections** | §6.1, §6.5 |
 
@@ -118,7 +118,7 @@ Tasks are ordered by dependency. Each task is implemented as an independent bran
 | | |
 |---|---|
 | **Scope** | `cast_schema()` on all four frame types. `mapped_from()` field modifier. Name resolution (mapping → mapped_from → name match). `SchemaError` exception. Runtime validation (columns, types, nullability). `extra="drop"/"forbid"`. Nullability enforcement at cast boundaries |
-| **Tests** | Unit: mapped_from storage, cast_schema name matching, mapped_from resolution, explicit mapping, resolution precedence, SchemaError fields (missing/extra/type mismatch/null violations), nullability enforcement, cast on JoinedDataFrame. Static: return types, mapped_from type mismatch rejected, nullability narrowing rejected. mypy + pyright pass. |
+| **Tests** | Unit: mapped_from storage, cast_schema name matching, mapped_from resolution, explicit mapping, resolution precedence, SchemaError fields (missing/extra/type mismatch/null violations), nullability enforcement, cast on JoinedDataFrame. Static: return types, mapped_from type mismatch rejected, nullability narrowing rejected. ty check passes. |
 | **Blocked by** | #7 |
 | **Spec sections** | §4.6, §4.7.5, §6.4, §6.5, §12.1–12.2 |
 
@@ -136,7 +136,7 @@ Tasks are ordered by dependency. Each task is implemented as an independent bran
 | | |
 |---|---|
 | **Scope** | Multi-layer type checking scenarios: full pipeline type flow, generic function patterns (§7), systematic §10 coverage matrix verification, error message documentation |
-| **Tests** | Static: pipeline types across layers, passthrough/constrained/column-parameterized generics, all ✅ rows in §10 matrix, error message capture. mypy + pyright pass on all `tests/typing/` files. |
+| **Tests** | Static: pipeline types across layers, passthrough/constrained/column-parameterized generics, all ✅ rows in §10 matrix, error message capture. ty check passes on all `tests/typing/` files. |
 | **Blocked by** | #9 |
 | **Spec sections** | §7, §10, §11.1–11.6, §14.2 |
 
@@ -154,7 +154,7 @@ Tasks are ordered by dependency. Each task is implemented as an independent bran
 | | |
 |---|---|
 | **Scope** | README.md (overview, install, quick start, features, comparison). API reference. Example files (basic usage, null handling, joins, generics, nested types, full pipeline). Type checker error showcase |
-| **Tests** | All example files are executable and run in CI. All examples pass type checking (mypy + pyright). |
+| **Tests** | All example files are executable and run in CI. All examples pass type checking (ty check). |
 | **Blocked by** | #10, #11 |
 | **Spec sections** | §1, §2, §7, §11, §13 Phase 1 deliverables |
 
@@ -166,7 +166,7 @@ Each task follows this process:
 
 1. **Branch** from `main`: `git checkout -b issue-N-short-description`
 2. **Implement** the scope described in the issue
-3. **Test** — unit tests pass, static type tests pass (mypy + pyright), CI green
+3. **Test** — unit tests pass, static type tests pass (ty check), CI green
 4. **QA** — review against spec references, verify every acceptance criterion
 5. **Document** — update the issue with implementation notes, decisions, and test results
 6. **PR** — open pull request, reference the issue (`Closes #N`)
