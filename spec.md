@@ -192,24 +192,24 @@ colnade-ray/                 # Ray Data backend adapter (future)
 Schemas are defined as classes extending `Schema`, which itself extends `Protocol`. This enables structural subtyping: any schema that has a superset of another schema's fields is automatically a structural subtype.
 
 ```python
-from colnade import Schema, UInt64, UInt8, Utf8, Float64, Datetime
+from colnade import Schema, Column, UInt64, UInt8, Utf8, Float64, Datetime
 
 class Users(Schema):
-    id: UInt64
-    name: Utf8
-    age: UInt8 | None
-    score: Float64
-    created_at: Datetime
+    id: Column[UInt64]
+    name: Column[Utf8]
+    age: Column[UInt8 | None]
+    score: Column[Float64]
+    created_at: Column[Datetime]
 ```
 
 ### 4.2 Column Descriptors
 
-Each field on a `Schema` class is not a plain type annotation—it is a **column descriptor**. The `Schema` metaclass replaces each annotation with a `Column[T, S]` descriptor object, where `T` is the column's data type and `S` is the owning schema.
+Each field on a `Schema` class is annotated as a `Column[DType]` descriptor directly. The `Schema` metaclass extracts the dtype from each `Column[DType]` annotation and creates the runtime `Column` instances.
 
 ```python
 # At runtime, after class creation:
-Users.age  # → Column[UInt8 | None, Users]
-Users.name  # → Column[Utf8, Users]
+Users.age  # → Column[UInt8 | None]
+Users.name  # → Column[Utf8]
 ```
 
 Column descriptors serve triple duty:
@@ -226,43 +226,42 @@ The type checker sees `Column` as a generic descriptor:
 from typing import Generic, TypeVar, Protocol, overload
 
 DType = TypeVar("DType")
-SchemaType = TypeVar("SchemaType", bound="Schema")
 
-class Column(Generic[DType, SchemaType]):
+class Column(Generic[DType]):
     """A typed reference to a named column in a schema."""
 
     @overload
-    def __gt__(self: Column[NumericType, SchemaType], other: int | float) -> Expr[Bool]: ...
+    def __gt__(self: Column[NumericType], other: int | float) -> Expr[Bool]: ...
     @overload
-    def __gt__(self: Column[NumericType, SchemaType], other: Column[NumericType, SchemaType]) -> Expr[Bool]: ...
+    def __gt__(self: Column[NumericType], other: Column[NumericType]) -> Expr[Bool]: ...
 
-    def sum(self: Column[NumericType, SchemaType]) -> Agg[NumericType]: ...
-    def mean(self: Column[NumericType, SchemaType]) -> Agg[Float64]: ...
+    def sum(self: Column[NumericType]) -> Agg[NumericType]: ...
+    def mean(self: Column[NumericType]) -> Agg[Float64]: ...
     def count(self) -> Agg[UInt32]: ...
     def max(self) -> Agg[DType]: ...
     def min(self) -> Agg[DType]: ...
     def fill_null(self, value: DType) -> Expr[DType]: ...
     def is_null(self) -> Expr[Bool]: ...
-    def alias(self, target: Column[DType, Any]) -> AliasedExpr[DType]: ...
+    def alias(self, target: Column[DType]) -> AliasedExpr[DType]: ...
     def cast(self, dtype: type[NewDType]) -> Expr[NewDType]: ...
 
-    # String-specific methods (only available on Column[Utf8, S])
-    def str_contains(self: Column[Utf8, SchemaType], pattern: str) -> Expr[Bool]: ...
-    def str_len(self: Column[Utf8, SchemaType]) -> Expr[UInt32]: ...
+    # String-specific methods (only available on Column[Utf8])
+    def str_contains(self: Column[Utf8], pattern: str) -> Expr[Bool]: ...
+    def str_len(self: Column[Utf8]) -> Expr[UInt32]: ...
 
-    # Datetime-specific methods (only available on Column[Datetime, S])
-    def dt_year(self: Column[Datetime, SchemaType]) -> Expr[Int32]: ...
-    def dt_month(self: Column[Datetime, SchemaType]) -> Expr[UInt8]: ...
+    # Datetime-specific methods (only available on Column[Datetime])
+    def dt_year(self: Column[Datetime]) -> Expr[Int32]: ...
+    def dt_month(self: Column[Datetime]) -> Expr[UInt8]: ...
 
-    # Struct-specific methods (only available on Column[Struct[S2], S])
+    # Struct-specific methods (only available on Column[Struct[S2]])
     def field(
-        self: Column[Struct[S2], SchemaType],
-        col: Column[T, S2],
+        self: Column[Struct[S2]],
+        col: Column[T],
     ) -> Expr[T]: ...
 
-    # List-specific accessor (only available on Column[List[T], S])
+    # List-specific accessor (only available on Column[List[T]])
     @property
-    def list(self: Column[List[T], SchemaType]) -> ListAccessor[T]: ...
+    def list(self: Column[List[T]]) -> ListAccessor[T]: ...
 ```
 
 The `ListAccessor` provides list-specific operations:
@@ -285,7 +284,7 @@ The key insight is that **method availability is type-conditional.** `.sum()` on
 The `Schema` metaclass performs the following at class creation time:
 
 1. **Collects annotations** from the class and all bases (supporting inheritance).
-2. **Creates `Column` descriptor objects** for each field, storing the column name, dtype, and owning schema class.
+2. **Extracts the dtype** from each `Column[DType]` annotation and creates the runtime `Column` instances, storing the column name, dtype, and owning schema class.
 3. **Registers the schema** in an internal registry for runtime validation support.
 4. **Generates `__init_subclass__` hooks** so that subclass schemas correctly inherit and extend parent fields.
 
@@ -301,7 +300,9 @@ class SchemaMeta(type(Protocol)):
         for col_name, col_type in annotations.items():
             if col_name.startswith('_'):
                 continue
-            descriptor = Column(name=col_name, dtype=col_type, schema=cls)
+            # col_type is Column[DType] — extract DType from the annotation
+            dtype = get_args(col_type)[0]  # extracts DType from Column[DType]
+            descriptor = Column(name=col_name, dtype=dtype, schema=cls)
             setattr(cls, col_name, descriptor)
             cls._columns[col_name] = descriptor
 
@@ -314,37 +315,37 @@ Schemas support standard Python class inheritance:
 
 ```python
 class Users(Schema):
-    id: UInt64
-    name: Utf8
-    age: UInt8
-    score: Float64
+    id: Column[UInt64]
+    name: Column[Utf8]
+    age: Column[UInt8]
+    score: Column[Float64]
 
 # Adding columns
 class EnrichedUsers(Users):
-    normalized_age: Float64
-    age_bucket: Utf8
+    normalized_age: Column[Float64]
+    age_bucket: Column[Utf8]
 
 # Subset schema (for projected results)
 class UserSummary(Schema):
-    name: Utf8
-    score: Float64
+    name: Column[Utf8]
+    score: Column[Float64]
 
 # Aggregation output
 class AgeStats(Schema):
-    age: UInt8
-    avg_score: Float64
-    user_count: UInt32
+    age: Column[UInt8]
+    avg_score: Column[Float64]
+    user_count: Column[UInt32]
 
 # Trait-style composition
 class HasUserId(Schema):
-    user_id: UInt64
+    user_id: Column[UInt64]
 
 class HasTimestamp(Schema):
-    created_at: Datetime
+    created_at: Column[Datetime]
 
 class Events(HasUserId, HasTimestamp):
-    event_type: Utf8
-    payload: Utf8
+    event_type: Column[Utf8]
+    payload: Column[Utf8]
 ```
 
 Schema inheritance means:
@@ -353,7 +354,7 @@ Schema inheritance means:
 - `Events` composes traits, inheriting `user_id` from `HasUserId` and `created_at` from `HasTimestamp`.
 - `EnrichedUsers` is a structural subtype of `Users` at the Schema/Protocol level, meaning it satisfies `bound=Users` constraints in TypeVar bounds.
 
-**DataFrame is invariant.** `DataFrame[EnrichedUsers]` is **not** directly assignable to `DataFrame[Users]` — DataFrame is invariant in its schema parameter. This is intentional: covariant mutable containers are unsound, and even though Colnade DataFrames are immutable, covariance would require `Column[Any, EnrichedUsers]` to be accepted where `Column[Any, Users]` is expected, creating a cascade of contravariance requirements on Column.
+**DataFrame is invariant.** `DataFrame[EnrichedUsers]` is **not** directly assignable to `DataFrame[Users]` — DataFrame is invariant in its schema parameter. This is intentional: covariant mutable containers are unsound, and even though Colnade DataFrames are immutable, covariance would create a cascade of contravariance requirements on Column.
 
 Instead, generic utility functions use **bounded TypeVar**, which provides the same ergonomics without variance:
 
@@ -376,21 +377,21 @@ This pattern is strictly more useful than covariance: the return type preserves 
 When a schema represents the output of a join or other cross-schema transformation, columns may need to be mapped from source schemas with different names. The `mapped_from()` field modifier declares this mapping at the schema level:
 
 ```python
-from colnade import Schema, UInt64, Utf8, Float64, mapped_from
+from colnade import Schema, Column, UInt64, Utf8, Float64, mapped_from
 
 class Users(Schema):
-    id: UInt64
-    name: Utf8
+    id: Column[UInt64]
+    name: Column[Utf8]
 
 class Orders(Schema):
-    order_id: UInt64
-    user_id: UInt64
-    amount: Float64
+    order_id: Column[UInt64]
+    user_id: Column[UInt64]
+    amount: Column[Float64]
 
 class UserOrders(Schema):
-    user_name: Utf8 = mapped_from(Users.name)       # "name" → "user_name"
-    order_id: UInt64 = mapped_from(Orders.order_id)  # no rename, explicit source
-    amount: Float64 = mapped_from(Orders.amount)
+    user_name: Column[Utf8] = mapped_from(Users.name)       # "name" → "user_name"
+    order_id: Column[UInt64] = mapped_from(Orders.order_id)  # no rename, explicit source
+    amount: Column[Float64] = mapped_from(Orders.amount)
 ```
 
 `mapped_from` serves two purposes:
@@ -402,7 +403,7 @@ At the type level, `mapped_from(Users.name)` returns a value that the type check
 
 ```python
 class Bad(Schema):
-    user_name: Float64 = mapped_from(Users.name)  # Static error: Utf8 ≠ Float64
+    user_name: Column[Float64] = mapped_from(Users.name)  # Static error: Utf8 ≠ Float64
 ```
 
 `mapped_from` is optional. Columns without it are matched by name during `cast_schema` (the common case when column names don't need renaming).
@@ -415,9 +416,9 @@ Nullable columns use Python's native `None` in union syntax:
 
 ```python
 class Users(Schema):
-    id: UInt64           # Non-nullable — must always have a value
-    age: UInt8 | None    # Nullable — may be absent
-    email: Utf8 | None   # Nullable
+    id: Column[UInt64]           # Non-nullable — must always have a value
+    age: Column[UInt8 | None]    # Nullable — may be absent
+    email: Column[Utf8 | None]   # Nullable
 ```
 
 This is idiomatic Python — the same syntax used in dataclasses, TypedDict, and function signatures. Every Python developer reads `UInt8 | None` as "might not be there" without learning a new concept.
@@ -429,7 +430,7 @@ Schema annotations use `None` (Python convention), but expression methods use `n
 ```python
 # Schema: Python idiom
 class Users(Schema):
-    age: UInt8 | None
+    age: Column[UInt8 | None]
 
 # Expressions: DataFrame/SQL idiom
 Users.age.is_null()          # not is_none()
@@ -450,9 +451,9 @@ This follows the model established by Polars, DuckDB, and Arrow, and corrects th
 
 ```python
 class Measurements(Schema):
-    sensor_id: UInt64
-    reading: Float64           # Non-nullable, but can contain NaN
-    temperature: Float64 | None  # Nullable AND can contain NaN
+    sensor_id: Column[UInt64]
+    reading: Column[Float64]           # Non-nullable, but can contain NaN
+    temperature: Column[Float64 | None]  # Nullable AND can contain NaN
 
 # These are different operations:
 Measurements.reading.is_nan()       # Expr[Bool] — "is this an undefined float?"
@@ -471,8 +472,8 @@ Operations on nullable columns produce nullable results:
 
 ```python
 class Users(Schema):
-    age: UInt8 | None    # nullable
-    score: Float64       # non-nullable
+    age: Column[UInt8 | None]    # nullable
+    score: Column[Float64]       # non-nullable
 
 Users.age > 18           # Expr[Bool | None] — comparison with nullable input
 Users.score > 50.0       # Expr[Bool] — non-nullable, clean
@@ -486,7 +487,7 @@ Users.age.fill_null(0)              # Expr[UInt8] — no longer nullable
 Users.age.assert_non_null()         # Expr[UInt8] — strips null, inserts runtime check
 ```
 
-These are encoded as overloads: `fill_null` on `Column[T | None, S]` returns `Expr[T]`.
+These are encoded as overloads: `fill_null` on `Column[T | None]` returns `Expr[T]`.
 
 #### 4.7.5 Nullability Enforcement in `cast_schema`
 
@@ -494,8 +495,8 @@ These are encoded as overloads: `fill_null` on `Column[T | None, S]` returns `Ex
 
 ```python
 class UsersClean(Schema):
-    age: UInt8       # non-nullable target
-    score: Float64
+    age: Column[UInt8]       # non-nullable target
+    score: Column[Float64]
 
 df: DataFrame[Users]  # Users.age is UInt8 | None
 
@@ -538,22 +539,22 @@ Struct columns use an existing `Schema` class as their type parameter. This mean
 
 ```python
 class Address(Schema):
-    street: Utf8
-    city: Utf8
-    zip: Utf8
+    street: Column[Utf8]
+    city: Column[Utf8]
+    zip: Column[Utf8]
 
 class GeoPoint(Schema):
-    lat: Float64
-    lng: Float64
+    lat: Column[Float64]
+    lng: Column[Float64]
 
 class Users(Schema):
-    id: UInt64
-    name: Utf8
-    address: Struct[Address]             # struct column
-    location: Struct[GeoPoint] | None    # nullable struct
+    id: Column[UInt64]
+    name: Column[Utf8]
+    address: Column[Struct[Address]]             # struct column
+    location: Column[Struct[GeoPoint] | None]    # nullable struct
 ```
 
-The Schema metaclass handles `Struct[Address]` the same as any other dtype — it creates a `Column[Struct[Address], Users]` descriptor. No special-casing is needed because `Struct[Address]` is simply a parameterized type like `List[Utf8]`.
+The Schema metaclass handles `Struct[Address]` the same as any other dtype — it creates a `Column[Struct[Address]]` descriptor. No special-casing is needed because `Struct[Address]` is simply a parameterized type like `List[Utf8]`.
 
 **Typed struct field access** uses the `.field()` method with a column descriptor from the struct's schema, replacing string-based access:
 
@@ -572,7 +573,7 @@ Users.address.field(Users.name)             # Error: name is not a field of Addr
 Users.name.field(Address.city)              # Error: field() not available on Utf8
 ```
 
-The `.field()` method is only available on `Column[Struct[S2], S]` and accepts `Column[T, S2]` — the struct schema parameter `S2` must match. This means the type checker verifies both that you're accessing a struct column *and* that the field belongs to that struct's schema.
+The `.field()` method is only available on `Column[Struct[S2]]` and accepts `Column[T]` from the struct's schema — the struct schema parameter `S2` must match. This means the type checker verifies both that you're accessing a struct column *and* that the field belongs to that struct's schema.
 
 #### 4.8.2 List Columns
 
@@ -580,13 +581,13 @@ List columns are parameterized by their element type:
 
 ```python
 class Users(Schema):
-    id: UInt64
-    tags: List[Utf8]                     # list of strings
-    scores: List[Float64 | None]         # list of nullable floats
-    friends: List[UInt64] | None         # nullable list of non-nullable integers
+    id: Column[UInt64]
+    tags: Column[List[Utf8]]                     # list of strings
+    scores: Column[List[Float64 | None]]         # list of nullable floats
+    friends: Column[List[UInt64] | None]         # nullable list of non-nullable integers
 ```
 
-List operations are available via the `.list` accessor, which is only present on `Column[List[T], S]`:
+List operations are available via the `.list` accessor, which is only present on `Column[List[T]]`:
 
 ```python
 # List operations:
@@ -624,7 +625,7 @@ Outer nullability propagates through access:
 
 ```python
 class Users(Schema):
-    location: Struct[GeoPoint] | None   # nullable struct
+    location: Column[Struct[GeoPoint] | None]   # nullable struct
 
 Users.location.field(GeoPoint.lat)      # Expr[Float64 | None]
 # Even though GeoPoint.lat is non-nullable Float64, accessing it through
@@ -657,7 +658,7 @@ class Expr(Generic[DType]):
 
 class ColumnRef(Expr[DType]):
     """Reference to a schema column."""
-    column: Column[DType, Any]
+    column: Column[DType]
 
 class BinOp(Expr[DType]):
     """Binary operation (arithmetic, comparison, logical)."""
@@ -688,7 +689,7 @@ class Agg(Expr[DType]):
 class StructFieldAccess(Expr[DType]):
     """Access a field within a struct column."""
     struct_expr: Expr[Struct[Any]]
-    field: Column[DType, Any]
+    field: Column[DType]
 
 class ListOp(Expr[DType]):
     """Operation on a list column (len, get, contains, sum, etc.)."""
@@ -699,7 +700,7 @@ class ListOp(Expr[DType]):
 class AliasedExpr(Expr[DType]):
     """Expression with an output column binding."""
     expr: Expr[DType]
-    target: Column[DType, Any]
+    target: Column[DType]
 ```
 
 ### 5.2 Expression Building Examples
@@ -777,7 +778,7 @@ class DataFrame(Generic[S]):
     """A typed, materialized DataFrame parameterized by a Schema."""
 
     def filter(self, predicate: Expr[Bool]) -> DataFrame[S]: ...
-    def sort(self, *columns: Column[Any, S], descending: bool = False) -> DataFrame[S]: ...
+    def sort(self, *columns: Column[Any], descending: bool = False) -> DataFrame[S]: ...
     def limit(self, n: int) -> DataFrame[S]: ...
     def head(self, n: int = 5) -> DataFrame[S]: ...
     def tail(self, n: int = 5) -> DataFrame[S]: ...
@@ -787,17 +788,17 @@ class DataFrame(Generic[S]):
     # Return type is DataFrame[Any] — output schema requires cast_schema.
     # See Section 6.3 for details.
     @overload
-    def select(self, c1: Column[Any, S], /) -> DataFrame[Any]: ...
+    def select(self, c1: Column[Any], /) -> DataFrame[Any]: ...
     @overload
-    def select(self, c1: Column[Any, S], c2: Column[Any, S], /) -> DataFrame[Any]: ...
+    def select(self, c1: Column[Any], c2: Column[Any], /) -> DataFrame[Any]: ...
     @overload
-    def select(self, c1: Column[Any, S], c2: Column[Any, S], c3: Column[Any, S], /) -> DataFrame[Any]: ...
+    def select(self, c1: Column[Any], c2: Column[Any], c3: Column[Any], /) -> DataFrame[Any]: ...
     # ... overloads up to 10 columns
-    def select(self, *columns: Column[Any, S]) -> DataFrame[Any]: ...
+    def select(self, *columns: Column[Any]) -> DataFrame[Any]: ...
 
     def with_columns(self, *exprs: AliasedExpr | Expr) -> DataFrame[S]: ...
 
-    def group_by(self, *keys: Column[Any, S]) -> GroupBy[S]: ...
+    def group_by(self, *keys: Column[Any]) -> GroupBy[S]: ...
 
     def join(
         self,
@@ -806,8 +807,8 @@ class DataFrame(Generic[S]):
         how: Literal["inner", "left", "outer", "cross"] = "inner",
     ) -> JoinedDataFrame[S, S2]: ...
 
-    def unique(self, *columns: Column[Any, S]) -> DataFrame[S]: ...
-    def drop_nulls(self, *columns: Column[Any, S]) -> DataFrame[S]: ...
+    def unique(self, *columns: Column[Any]) -> DataFrame[S]: ...
+    def drop_nulls(self, *columns: Column[Any]) -> DataFrame[S]: ...
 
     def cast_schema(
         self,
@@ -829,19 +830,19 @@ class LazyFrame(Generic[S]):
     """A typed, lazy query plan parameterized by a Schema."""
 
     def filter(self, predicate: Expr[Bool]) -> LazyFrame[S]: ...
-    def sort(self, *columns: Column[Any, S], descending: bool = False) -> LazyFrame[S]: ...
+    def sort(self, *columns: Column[Any], descending: bool = False) -> LazyFrame[S]: ...
     def limit(self, n: int) -> LazyFrame[S]: ...
 
     @overload
-    def select(self, c1: Column[Any, S], /) -> LazyFrame[Any]: ...
+    def select(self, c1: Column[Any], /) -> LazyFrame[Any]: ...
     @overload
-    def select(self, c1: Column[Any, S], c2: Column[Any, S], /) -> LazyFrame[Any]: ...
+    def select(self, c1: Column[Any], c2: Column[Any], /) -> LazyFrame[Any]: ...
     # ... overloads up to 10 columns
-    def select(self, *columns: Column[Any, S]) -> LazyFrame[Any]: ...
+    def select(self, *columns: Column[Any]) -> LazyFrame[Any]: ...
 
     def with_columns(self, *exprs: AliasedExpr | Expr) -> LazyFrame[S]: ...
 
-    def group_by(self, *keys: Column[Any, S]) -> LazyGroupBy[S]: ...
+    def group_by(self, *keys: Column[Any]) -> LazyGroupBy[S]: ...
 
     def join(
         self,
@@ -850,8 +851,8 @@ class LazyFrame(Generic[S]):
         how: Literal["inner", "left", "outer", "cross"] = "inner",
     ) -> JoinedLazyFrame[S, S2]: ...
 
-    def unique(self, *columns: Column[Any, S]) -> LazyFrame[S]: ...
-    def drop_nulls(self, *columns: Column[Any, S]) -> LazyFrame[S]: ...
+    def unique(self, *columns: Column[Any]) -> LazyFrame[S]: ...
+    def drop_nulls(self, *columns: Column[Any]) -> LazyFrame[S]: ...
 
     def cast_schema(
         self,
@@ -873,19 +874,19 @@ class JoinedDataFrame(Generic[S, S2]):
     def filter(self, predicate: Expr[Bool]) -> JoinedDataFrame[S, S2]: ...
 
     @overload
-    def select(self, c1: Column[Any, S] | Column[Any, S2], /) -> DataFrame[Any]: ...
+    def select(self, c1: Column[Any] | Column[Any], /) -> DataFrame[Any]: ...
     @overload
     def select(
         self,
-        c1: Column[Any, S] | Column[Any, S2],
-        c2: Column[Any, S] | Column[Any, S2], /
+        c1: Column[Any] | Column[Any],
+        c2: Column[Any] | Column[Any], /
     ) -> DataFrame[Any]: ...
     # ... overloads up to 10 columns
-    def select(self, *columns: Column[Any, S] | Column[Any, S2]) -> DataFrame[Any]: ...
+    def select(self, *columns: Column[Any] | Column[Any]) -> DataFrame[Any]: ...
 
-    def sort(self, *columns: Column[Any, S] | Column[Any, S2]) -> JoinedDataFrame[S, S2]: ...
-    def unique(self, *columns: Column[Any, S] | Column[Any, S2]) -> JoinedDataFrame[S, S2]: ...
-    def drop_nulls(self, *columns: Column[Any, S] | Column[Any, S2]) -> JoinedDataFrame[S, S2]: ...
+    def sort(self, *columns: Column[Any] | Column[Any]) -> JoinedDataFrame[S, S2]: ...
+    def unique(self, *columns: Column[Any] | Column[Any]) -> JoinedDataFrame[S, S2]: ...
+    def drop_nulls(self, *columns: Column[Any] | Column[Any]) -> JoinedDataFrame[S, S2]: ...
     def limit(self, n: int) -> JoinedDataFrame[S, S2]: ...
 
     def with_columns(self, *exprs: AliasedExpr | Expr) -> JoinedDataFrame[S, S2]: ...
@@ -908,19 +909,19 @@ class JoinedLazyFrame(Generic[S, S2]):
     def filter(self, predicate: Expr[Bool]) -> JoinedLazyFrame[S, S2]: ...
 
     @overload
-    def select(self, c1: Column[Any, S] | Column[Any, S2], /) -> LazyFrame[Any]: ...
+    def select(self, c1: Column[Any] | Column[Any], /) -> LazyFrame[Any]: ...
     @overload
     def select(
         self,
-        c1: Column[Any, S] | Column[Any, S2],
-        c2: Column[Any, S] | Column[Any, S2], /
+        c1: Column[Any] | Column[Any],
+        c2: Column[Any] | Column[Any], /
     ) -> LazyFrame[Any]: ...
     # ... overloads up to 10 columns
-    def select(self, *columns: Column[Any, S] | Column[Any, S2]) -> LazyFrame[Any]: ...
+    def select(self, *columns: Column[Any] | Column[Any]) -> LazyFrame[Any]: ...
 
-    def sort(self, *columns: Column[Any, S] | Column[Any, S2]) -> JoinedLazyFrame[S, S2]: ...
-    def unique(self, *columns: Column[Any, S] | Column[Any, S2]) -> JoinedLazyFrame[S, S2]: ...
-    def drop_nulls(self, *columns: Column[Any, S] | Column[Any, S2]) -> JoinedLazyFrame[S, S2]: ...
+    def sort(self, *columns: Column[Any] | Column[Any]) -> JoinedLazyFrame[S, S2]: ...
+    def unique(self, *columns: Column[Any] | Column[Any]) -> JoinedLazyFrame[S, S2]: ...
+    def drop_nulls(self, *columns: Column[Any] | Column[Any]) -> JoinedLazyFrame[S, S2]: ...
     def limit(self, n: int) -> JoinedLazyFrame[S, S2]: ...
 
     def with_columns(self, *exprs: AliasedExpr | Expr) -> JoinedLazyFrame[S, S2]: ...
@@ -942,8 +943,8 @@ class JoinedLazyFrame(Generic[S, S2]):
 class JoinCondition:
     """A join predicate produced by comparing columns from two different schemas.
     Created by the == operator between Column descriptors from different schemas."""
-    left: Column[Any, Any]
-    right: Column[Any, Any]
+    left: Column[Any]
+    right: Column[Any]
 
 # Created by:
 Users.id == Orders.user_id  # → JoinCondition (when schemas differ)
@@ -1000,7 +1001,7 @@ df.with_columns(Users.age + 1)  # DataFrame[Users] — age is still UInt8
 
 ```python
 class EnrichedUsers(Users):
-    risk_score: Float64
+    risk_score: Column[Float64]
 
 def add_risk(df: DataFrame[Users]) -> DataFrame[EnrichedUsers]:
     return df.with_columns(
@@ -1015,12 +1016,12 @@ Operations that change the schema require an explicit output schema. Rather than
 
 **Select/Project:**
 
-`select` is overloaded for arities 1–10. The overloads constrain each column argument to `Column[Any, S]`, ensuring the type checker verifies that all selected columns belong to the input schema. The return type is `DataFrame[Any]`, requiring `cast_schema` to bind the result to a named output schema:
+`select` is overloaded for arities 1–10. The overloads constrain each column argument to `Column[Any]`, ensuring the type checker verifies that all selected columns belong to the input schema. The return type is `DataFrame[Any]`, requiring `cast_schema` to bind the result to a named output schema:
 
 ```python
 class UserNames(Schema):
-    name: Utf8
-    score: Float64
+    name: Column[Utf8]
+    score: Column[Float64]
 
 def get_names(df: DataFrame[Users]) -> DataFrame[UserNames]:
     return df.select(Users.name, Users.score).cast_schema(UserNames)
@@ -1035,9 +1036,9 @@ The overloads provide **input validation** (all columns belong to `S`) but not *
 
 ```python
 class AgeStats(Schema):
-    age: UInt8
-    avg_score: Float64
-    user_count: UInt32
+    age: Column[UInt8]
+    avg_score: Column[Float64]
+    user_count: Column[UInt32]
 
 def summarize(df: DataFrame[Users]) -> DataFrame[AgeStats]:
     return (
@@ -1050,7 +1051,7 @@ def summarize(df: DataFrame[Users]) -> DataFrame[AgeStats]:
     )
 ```
 
-The `.as_column(Target.col)` method binds an expression's output to a specific column in the target schema. The types must be compatible: `Users.score.mean()` produces `Agg[Float64]`, and `AgeStats.avg_score` is `Column[Float64, AgeStats]`. If the types don't match, it's a static error.
+The `.as_column(Target.col)` method binds an expression's output to a specific column in the target schema. The types must be compatible: `Users.score.mean()` produces `Agg[Float64]`, and `AgeStats.avg_score` is `Column[Float64]`. If the types don't match, it's a static error.
 
 **Adding columns** follows the `with_columns` + `cast_schema` pattern described in Section 6.2.
 
@@ -1083,8 +1084,8 @@ df.select(Users.name, Users.score).cast_schema(UserNames)
 
 # mapped_from case — schema declares source mapping:
 class UserOrders(Schema):
-    user_name: Utf8 = mapped_from(Users.name)  # rename: name → user_name
-    amount: Float64 = mapped_from(Orders.amount)
+    user_name: Column[Utf8] = mapped_from(Users.name)  # rename: name → user_name
+    amount: Column[Float64] = mapped_from(Orders.amount)
 
 joined_df.cast_schema(UserOrders)  # mapping resolved from schema definition
 ```
@@ -1105,14 +1106,14 @@ Joins return `JoinedDataFrame[S, S2]` — a distinct type where columns from bot
 
 ```python
 class Users(Schema):
-    id: UInt64
-    name: Utf8
-    age: UInt8
+    id: Column[UInt64]
+    name: Column[Utf8]
+    age: Column[UInt8]
 
 class Orders(Schema):
-    order_id: UInt64
-    user_id: UInt64
-    amount: Float64
+    order_id: Column[UInt64]
+    user_id: Column[UInt64]
+    amount: Column[Float64]
 
 joined = users_df.join(orders_df, on=Users.id == Orders.user_id)
 # joined: JoinedDataFrame[Users, Orders]
@@ -1123,7 +1124,7 @@ joined.filter(Orders.amount > 100.0)            # ✅ Orders.amount still valid
 joined.select(Users.name, Orders.amount, Orders.order_id)  # ✅ mixed sources
 ```
 
-`JoinedDataFrame` is a separate type from `DataFrame` because its methods accept `Column[Any, S] | Column[Any, S2]` (columns from either input schema), whereas `DataFrame[S]` methods only accept `Column[Any, S]`. This distinction is what makes the joined column access type-safe — the type checker verifies that each column belongs to one of the two joined schemas.
+`JoinedDataFrame` is a separate type from `DataFrame` because its methods accept `Column[Any] | Column[Any]` (columns from either input schema), whereas `DataFrame[S]` methods only accept `Column[Any]`. This distinction is what makes the joined column access type-safe — the type checker verifies that each column belongs to one of the two joined schemas.
 
 **No collision problem.** If both schemas have a column with the same name (e.g., both have `id`), you disambiguate by which descriptor you use: `Users.id` vs `Orders.id`. The backend adapter handles internal disambiguation (e.g., Polars suffixes, SQL qualified names). The user never sees the internal naming scheme — they always work through schema descriptors.
 
@@ -1131,9 +1132,9 @@ joined.select(Users.name, Orders.amount, Orders.order_id)  # ✅ mixed sources
 
 ```python
 class UserOrders(Schema):
-    user_name: Utf8 = mapped_from(Users.name)
-    order_id: UInt64 = mapped_from(Orders.order_id)
-    amount: Float64 = mapped_from(Orders.amount)
+    user_name: Column[Utf8] = mapped_from(Users.name)
+    order_id: Column[UInt64] = mapped_from(Orders.order_id)
+    amount: Column[Float64] = mapped_from(Orders.amount)
 
 def join_user_orders(
     users: DataFrame[Users],
@@ -1157,9 +1158,9 @@ For the simple case with no collisions or renames, `cast_schema` just works by n
 # If UserOrders fields had the same names as their sources,
 # no mapped_from would be needed:
 class SimpleUserOrders(Schema):
-    name: Utf8       # matches Users.name unambiguously
-    order_id: UInt64  # matches Orders.order_id unambiguously
-    amount: Float64   # matches Orders.amount unambiguously
+    name: Column[Utf8]       # matches Users.name unambiguously
+    order_id: Column[UInt64]  # matches Orders.order_id unambiguously
+    amount: Column[Float64]   # matches Orders.amount unambiguously
 
 users_df.join(orders_df, on=...).cast_schema(SimpleUserOrders)  # just works
 ```
@@ -1236,12 +1237,12 @@ Functions that need specific columns use Protocol-based bounds:
 
 ```python
 class HasAge(Schema):
-    age: UInt8
+    age: Column[UInt8]
 
 S = TypeVar("S", bound=HasAge)
 
 def filter_adults(df: DataFrame[S]) -> DataFrame[S]:
-    """Works on any schema that has an age: UInt8 column."""
+    """Works on any schema that has an age: Column[UInt8] column."""
     return df.filter(HasAge.age >= 18)
 ```
 
@@ -1251,7 +1252,7 @@ When called:
 users_df: DataFrame[Users]
 result = filter_adults(users_df)  # result: DataFrame[Users]
 
-# Users structurally satisfies HasAge (it has age: UInt8), so S resolves to Users.
+# Users structurally satisfies HasAge (it has age: Column[UInt8]), so S resolves to Users.
 # The full Users schema is preserved in the return type.
 ```
 
@@ -1259,9 +1260,9 @@ If called with a schema that lacks `age`:
 
 ```python
 class Products(Schema):
-    id: UInt64
-    name: Utf8
-    price: Float64
+    id: Column[UInt64]
+    name: Column[Utf8]
+    price: Column[Float64]
 
 products_df: DataFrame[Products]
 filter_adults(products_df)  # Static type error: Products doesn't satisfy HasAge
@@ -1272,13 +1273,13 @@ filter_adults(products_df)  # Static type error: Products doesn't satisfy HasAge
 For functions that are generic over which column they operate on:
 
 ```python
-from colnade import NumericType
+from colnade import Column, NumericType
 
 N = TypeVar("N", bound=NumericType)
 
 def normalize_column(
     df: DataFrame[S],
-    col: Column[N, S],
+    col: Column[N],
 ) -> DataFrame[S]:
     """Normalize any numeric column in any schema to [0, 1]."""
     return df.with_columns(
@@ -1294,14 +1295,14 @@ normalize_column(users_df, Users.name)    # Static error: name is Utf8, not nume
 normalize_column(users_df, Orders.amount) # Static error: amount is not in Users
 ```
 
-The constraint `Column[N, S]` means "a column of numeric type `N` belonging to schema `S`." The type checker unifies `S` from the `df` argument and verifies that the column belongs to the same schema.
+The constraint `Column[N]` means "a column of numeric type `N`." The type checker verifies that the column's dtype satisfies the `NumericType` bound.
 
 ### 7.4 Multi-Column Constraints
 
 ```python
 class HasScoreAndAge(Schema):
-    age: UInt8
-    score: Float64
+    age: Column[UInt8]
+    score: Column[Float64]
 
 S = TypeVar("S", bound=HasScoreAndAge)
 
@@ -1328,7 +1329,7 @@ def add_timestamp(df: DataFrame[S]) -> DataFrame[S & {timestamp: Datetime}]:
 
 ```python
 class UsersWithTimestamp(Users):
-    timestamp: Datetime
+    timestamp: Column[Datetime]
 
 def add_timestamp(df: DataFrame[Users]) -> DataFrame[UsersWithTimestamp]:
     ...
@@ -1517,10 +1518,10 @@ Runtime validation occurs at the boundary (checking that Arrow column names and 
 For distributed engines that process data in batches (Ray Data, Snowpark UDFs):
 
 ```python
-from colnade import udf, DataFrame, Schema
+from colnade import udf, DataFrame, Schema, Column
 
 class ScoredUsers(Users):
-    risk_score: Float64
+    risk_score: Column[Float64]
 
 @udf(input_schema=Users, output_schema=ScoredUsers)
 def compute_risk(batch: DataFrame[Users]) -> DataFrame[ScoredUsers]:
@@ -1555,14 +1556,14 @@ Summary of what the type checker can and cannot verify:
 | Operation                                    | Static Check | Mechanism                          |
 |----------------------------------------------|:------------:|------------------------------------|
 | Column reference exists in schema            | ✅           | Attribute access on Protocol class |
-| Column reference has correct type            | ✅           | `Column[DType, Schema]` generic    |
+| Column reference has correct type            | ✅           | `Column[DType]` generic    |
 | Method availability by dtype (e.g., `.sum()` on numeric) | ✅ | Self-type narrowing on `Column` |
 | Filter/sort/limit preserves schema           | ✅           | Returns `DataFrame[S]`            |
 | Same-type column overwrite preserves schema  | ✅           | Returns `DataFrame[S]`            |
 | Function schema passthrough                  | ✅           | Bounded `TypeVar`                 |
 | Schema structural subtyping                  | ✅           | `Protocol` structural matching     |
-| Select/sort/group_by columns belong to schema | ✅          | `Column[Any, S]` constraint       |
-| Joined select/sort accepts both input schemas | ✅          | `Column[Any, S] \| Column[Any, S2]` |
+| Select/sort/group_by columns belong to schema | ✅          | `Column[Any]` constraint       |
+| Joined select/sort accepts both input schemas | ✅          | `Column[Any] \| Column[Any]` |
 | Expression type correctness                  | ✅           | `Expr[DType]` generics + overloads|
 | Join condition compares cross-schema columns | ✅           | `JoinCondition` vs `Expr[Bool]` overload |
 | UDF input/output schema match                | ✅           | Decorator type constraints         |
@@ -1574,9 +1575,9 @@ Summary of what the type checker can and cannot verify:
 | `fill_null`/`assert_non_null` strips nullability | ✅       | Overloads return `Expr[T]`         |
 | Nullability narrowing in `cast_schema`       | ✅           | `T \| None` not assignable to `T`  |
 | `is_nan`/`fill_nan` only on float columns    | ✅           | Method only on `Float32`/`Float64` |
-| Struct field access type-safe                | ✅           | `.field()` constrained to `Column[Struct[S2], S]` |
-| Struct field belongs to correct struct schema | ✅          | `.field(Column[T, S2])` checks `S2` matches |
-| List operations only on list columns         | ✅           | `.list` accessor on `Column[List[T], S]` only |
+| Struct field access type-safe                | ✅           | `.field()` constrained to `Column[Struct[S2]]` |
+| Struct field belongs to correct struct schema | ✅          | `.field(Column[T])` checks `S2` matches |
+| List operations only on list columns         | ✅           | `.list` accessor on `Column[List[T]]` only |
 | List element type flows through operations   | ✅           | `.list.get()` returns `Expr[T \| None]`   |
 | Wrong-schema column in filter/with_columns   | ❌           | `Expr[Bool]` erases source schema  |
 | Select/drop infers output schema             | ❌           | Requires explicit output schema    |
@@ -1603,7 +1604,7 @@ This is a standard attribute error on a class—type checkers already produce go
 
 ```python
 Users.name.sum()
-# ty error: "Column[Utf8, Users]" has no attribute "sum".
+# ty error: "Column[Utf8]" has no attribute "sum".
 #           "sum" is only available on numeric column types.
 ```
 
@@ -1618,15 +1619,15 @@ def process(df: DataFrame[Users]) -> DataFrame[Users]:
 # Fails at runtime when the backend can't find "amount" in the Users frame.
 ```
 
-However, the type checker **does** catch wrong-schema columns in methods that accept `Column[Any, S]` directly:
+However, the type checker **does** catch wrong-schema columns in methods that accept `Column[Any]` directly:
 
 ```python
-df.select(Orders.amount)  # Static error: Column[Float64, Orders] ≠ Column[Any, Users]
+df.select(Orders.amount)  # Static error: Column[Float64] ≠ Column[Any]
 df.sort(Orders.amount)     # Static error
 df.group_by(Orders.amount) # Static error
 ```
 
-And on `JoinedDataFrame[S, S2]`, both `Column[Any, S]` and `Column[Any, S2]` are accepted, so columns from unrelated schemas are still caught:
+And on `JoinedDataFrame[S, S2]`, both `Column[Any]` and `Column[Any]` are accepted, so columns from unrelated schemas are still caught:
 
 ```python
 joined: JoinedDataFrame[Users, Orders]
@@ -1648,16 +1649,16 @@ def process(df: DataFrame[Users]) -> DataFrame[Orders]:
 Users.name.sum()  # type error: sum() not available on Utf8
 
 Users.age.mean().as_column(AgeStats.user_count)
-# type error: Agg[Float64] is not assignable to Column[UInt32, AgeStats]
+# type error: Agg[Float64] is not assignable to Column[UInt32]
 ```
 
 ### 11.6 Nullability Mismatch
 
 ```python
 class UsersClean(Schema):
-    age: UInt8  # non-nullable
+    age: Column[UInt8]  # non-nullable
 
-df: DataFrame[Users]  # Users.age is UInt8 | None
+df: DataFrame[Users]  # Users.age is Column[UInt8 | None]
 df.cast_schema(UsersClean)
 # type error: Column "age" is UInt8 | None in source but UInt8 in target.
 #             Use fill_null() or assert_non_null() to handle nullability.
@@ -1796,11 +1797,11 @@ A dedicated test suite of `.py` files that are run through `ty`, `mypy`, and `py
 ```python
 # tests/typing/test_column_access.py
 
-from colnade import Schema, UInt8, Utf8, DataFrame
+from colnade import Schema, Column, UInt8, Utf8, DataFrame
 
 class Users(Schema):
-    age: UInt8
-    name: Utf8
+    age: Column[UInt8]
+    name: Column[Utf8]
 
 df: DataFrame[Users]
 
@@ -1873,8 +1874,8 @@ from colnade import (
 
 ```python
 class MySchema(Schema):
-    column_name: DType
-    nullable_column: DType | None
+    column_name: Column[DType]
+    nullable_column: Column[DType | None]
 ```
 
 ### 15.3 DataFrame Operations
@@ -1900,7 +1901,7 @@ df.cast_schema(NewSchema, extra="drop"|"forbid")
 # Joins (return JoinedDataFrame[S, S2]):
 df.join(other, on=JoinCondition, how=how)
 
-# JoinedDataFrame[S, S2] — accepts Column[Any, S] | Column[Any, S2]:
+# JoinedDataFrame[S, S2] — accepts Column[Any] | Column[Any]:
 joined.filter(expr: Expr[Bool])
 joined.select(*columns)  # → DataFrame[Any]
 joined.cast_schema(FlatSchema)  # → DataFrame[FlatSchema]
@@ -1914,7 +1915,7 @@ lf.collect() -> DataFrame[S]
 ### 15.4 Column / Expression Operations
 
 ```python
-col: Column[DType, S]
+col: Column[DType]
 
 # Comparison (→ Expr[Bool]):
 col > value, col < value, col >= value, col <= value, col == value, col != value
@@ -1960,7 +1961,7 @@ col.dt_second() → Expr[UInt8]
 col.dt_truncate(interval) → Expr[Datetime]
 
 # Struct (Struct[S] only):
-col.field(Column[T, S]) → Expr[T]  # typed field access
+col.field(Column[T]) → Expr[T]  # typed field access
 
 # List (List[T] only):
 col.list.len() → Expr[UInt32]
@@ -2003,17 +2004,17 @@ df = backend.table("my_table", schema=Users)
 
 ### 16.1 `select` Uses Overloads for Input Validation (Resolved)
 
-`select` is overloaded for arities 1–10 to constrain column arguments to `Column[Any, S]`. This statically ensures that all selected columns belong to the input schema. The return type is `DataFrame[Any]` (or `LazyFrame[Any]`), requiring `cast_schema` to bind to a named output schema.
+`select` is overloaded for arities 1–10 to constrain column arguments to `Column[Any]`. This statically ensures that all selected columns belong to the input schema. The return type is `DataFrame[Any]` (or `LazyFrame[Any]`), requiring `cast_schema` to bind to a named output schema.
 
 **Rationale:** Output schema inference would require type-level record computation (e.g., TypeScript's `Pick<T, K>`), which Python's type system doesn't support. Overloads up to arity 10 cover the vast majority of real-world `select` calls. Going higher (e.g., 100) was considered but rejected due to stub bloat and type checker performance degradation for diminishing returns. The overloads' primary value is catching "column from wrong schema" bugs, not inferring output shape.
 
 ### 16.2 Joins Return `JoinedDataFrame[S, S2]` as a Distinct Type (Resolved)
 
-Joins return `JoinedDataFrame[S, S2]` (not `DataFrame[Joined[S, S2]]`) — a separate type whose methods accept `Column[Any, S] | Column[Any, S2]`, allowing columns from either input schema. `JoinedDataFrame` cannot be passed where `DataFrame` is expected; you must `cast_schema` to a flat output schema first.
+Joins return `JoinedDataFrame[S, S2]` (not `DataFrame[Joined[S, S2]]`) — a separate type whose methods accept `Column[Any] | Column[Any]`, allowing columns from either input schema. `JoinedDataFrame` cannot be passed where `DataFrame` is expected; you must `cast_schema` to a flat output schema first.
 
 Materializing a `JoinedDataFrame` into a flat schema uses `cast_schema` with three resolution strategies (in precedence order): explicit `mapping` parameter, `mapped_from()` annotations on the target schema, or automatic name matching.
 
-**Rationale:** The original design (`DataFrame[Joined[S, S2]]`) was cleaner conceptually but didn't type-check — `Column[Utf8, Users]` is not assignable to `Column[Any, Joined[Users, Orders]]`, so every column-accepting method on the joined frame would fail at the type level. Making `JoinedDataFrame` a distinct type with `Column[Any, S] | Column[Any, S2]` in its method signatures solves this cleanly. The requirement to `cast_schema` before further processing is correct: a joined result genuinely has different semantics (two namespaces, potential collisions) that should be resolved explicitly. Multi-way joins are handled by `cast_schema`'ing between each join to a named intermediate schema.
+**Rationale:** The original design (`DataFrame[Joined[S, S2]]`) was cleaner conceptually but didn't type-check — `Column[Utf8]` would not be assignable in the joined context, so every column-accepting method on the joined frame would fail at the type level. Making `JoinedDataFrame` a distinct type with `Column[Any]` in its method signatures (accepting columns from either input schema) solves this cleanly. The requirement to `cast_schema` before further processing is correct: a joined result genuinely has different semantics (two namespaces, potential collisions) that should be resolved explicitly. Multi-way joins are handled by `cast_schema`'ing between each join to a named intermediate schema.
 
 ### 16.3 `LazyFrame[S]` Is Distinct from `DataFrame[S]` (Resolved)
 
@@ -2067,7 +2068,7 @@ All DataFrame types are immutable by design. No operation modifies a frame in pl
 
 **Alternatives considered:**
 
-- **Covariant DataFrame:** Would allow `DataFrame[EnrichedUsers]` → `DataFrame[Users]`, but requires `Column[Any, EnrichedUsers]` to be accepted where `Column[Any, Users]` is expected — creating contravariance requirements on Column that cascade through the type system.
+- **Covariant DataFrame:** Would allow `DataFrame[EnrichedUsers]` → `DataFrame[Users]`, but covariant mutable containers are unsound, and even with immutability the variance interactions create subtle type system issues.
 
 **Rationale:** Invariance is simpler and avoids unsound type interactions. The ergonomic loss is minimal because bounded TypeVar provides the same utility: `S = TypeVar("S", bound=HasAge)` lets generic functions accept `DataFrame[Users]` and return `DataFrame[Users]` (not `DataFrame[HasAge]`), preserving the full concrete schema. This is strictly more useful than covariance. Immutability is what makes the schema type annotation trustworthy — if you have a `DataFrame[Users]`, it genuinely conforms to `Users` for its entire lifetime.
 
@@ -2084,7 +2085,7 @@ All DataFrame types are immutable by design. No operation modifies a frame in pl
 
 `filter` accepts `Expr[Bool]` and `with_columns` accepts `AliasedExpr | Expr`. Because expression trees erase their source schema (e.g., `Orders.amount > 100` and `Users.age > 18` both produce `Expr[Bool]`), these methods cannot verify that expressions reference columns from the correct schema.
 
-**Rationale:** Adding a schema parameter to `Expr` (e.g., `Expr[Bool, Users]`) was considered but creates cascading complexity — what is the schema parameter of `(Users.age > 18) & (Orders.amount > 100)`? The gap is acceptable because: (1) column *existence* is always caught at attribute access time (`Users.agee` → type error), (2) column *type* mismatches are caught (`Users.name.sum()` → type error), (3) methods that accept `Column[Any, S]` directly (select, sort, group_by) do check schema, and (4) wrong-schema columns in filter/with_columns fail clearly at runtime. The most common bugs are covered; the uncovered case (valid column from wrong schema) is relatively rare.
+**Rationale:** Adding a schema parameter to `Expr` (e.g., `Expr[Bool, Users]`) was considered but creates cascading complexity — what is the schema parameter of `(Users.age > 18) & (Orders.amount > 100)`? The gap is acceptable because: (1) column *existence* is always caught at attribute access time (`Users.agee` → type error), (2) column *type* mismatches are caught (`Users.name.sum()` → type error), (3) methods that accept `Column[Any]` directly (select, sort, group_by) do check schema, and (4) wrong-schema columns in filter/with_columns fail clearly at runtime. The most common bugs are covered; the uncovered case (valid column from wrong schema) is relatively rare.
 
 ---
 
@@ -2112,29 +2113,29 @@ All DataFrame types are immutable by design. No operation modifies a frame in pl
 
 ```python
 # schemas.py
-from colnade import Schema, UInt64, UInt32, UInt8, Utf8, Float64, Datetime
+from colnade import Schema, Column, UInt64, UInt32, UInt8, Utf8, Float64, Datetime
 
 class RawEvents(Schema):
-    event_id: UInt64
-    user_id: UInt64
-    event_type: Utf8
-    timestamp: Datetime
-    payload: Utf8 | None
+    event_id: Column[UInt64]
+    user_id: Column[UInt64]
+    event_type: Column[Utf8]
+    timestamp: Column[Datetime]
+    payload: Column[Utf8 | None]
 
 class Users(Schema):
-    user_id: UInt64
-    name: Utf8
-    age: UInt8
-    signup_date: Datetime
+    user_id: Column[UInt64]
+    name: Column[Utf8]
+    age: Column[UInt8]
+    signup_date: Column[Datetime]
 
 class UserFeatures(Schema):
-    user_id: UInt64
-    name: Utf8
-    event_count: UInt32
-    last_active: Datetime
+    user_id: Column[UInt64]
+    name: Column[Utf8]
+    event_count: Column[UInt32]
+    last_active: Column[Datetime]
 
 class ScoredUsers(UserFeatures):
-    risk_score: Float64
+    risk_score: Column[Float64]
 
 
 # transforms.py
@@ -2159,7 +2160,7 @@ def build_features(
 
 # Generic utility — works on any schema with user_id
 class HasUserId(Schema):
-    user_id: UInt64
+    user_id: Column[UInt64]
 
 S = TypeVar("S", bound=HasUserId)
 

@@ -72,7 +72,7 @@ Tasks are ordered by dependency. Each task is implemented as an independent bran
 
 | | |
 |---|---|
-| **Scope** | `schema.py`: `SchemaMeta` metaclass, `Schema` base class (extends Protocol), `Column[DType, SchemaType]` descriptor, schema inheritance/composition, nullable column annotations |
+| **Scope** | `schema.py`: `SchemaMeta` metaclass, `Schema` base class (extends Protocol), `Column[DType]` descriptor, schema inheritance/composition, nullable column annotations. Schema annotations use `Column[DType]` syntax (e.g., `age: Column[UInt8 | None]`) so type checkers see Column methods directly. |
 | **Tests** | Unit: schema creation, Column properties, inheritance, trait composition, nullable columns, edge cases. Static: `Users.age` accepted, `Users.agee` rejected, structural subtyping with bounded TypeVar. ty check passes. |
 | **Blocked by** | #2 |
 | **Spec sections** | §4.1–4.5, §4.7.1 |
@@ -108,7 +108,7 @@ Tasks are ordered by dependency. Each task is implemented as an independent bran
 
 | | |
 |---|---|
-| **Scope** | `JoinCondition` class. `Column.__eq__` overload (same schema → `Expr[Bool]`, different schema → `JoinCondition`). `JoinedDataFrame[S, S2]` and `JoinedLazyFrame[S, S2]` with select overloads accepting `Column[Any, S] \| Column[Any, S2]`. `.join()` method on DataFrame/LazyFrame |
+| **Scope** | `JoinCondition` class. `Column.__eq__` overload (same schema → `Expr[Bool]`, different schema → `JoinCondition`). `JoinedDataFrame[S, S2]` and `JoinedLazyFrame[S, S2]` with select overloads accepting `Column[Any]` from either schema. `.join()` method on DataFrame/LazyFrame |
 | **Tests** | Unit: JoinCondition creation, == dispatch (same vs different schema), JoinedDataFrame ops, conversions, join how variants. Static: joined select accepts both schemas, rejects third schema, JoinedDataFrame not assignable to DataFrame, join return types. ty check passes. |
 | **Blocked by** | #6 |
 | **Spec sections** | §6.1, §6.5 |
@@ -157,6 +157,32 @@ Tasks are ordered by dependency. Each task is implemented as an independent bran
 | **Tests** | All example files are executable and run in CI. All examples pass type checking (ty check). |
 | **Blocked by** | #10, #11 |
 | **Spec sections** | §1, §2, §7, §11, §13 Phase 1 deliverables |
+
+---
+
+## Architectural Decisions
+
+### Column[DType] Annotation Pattern (PR #16)
+
+Schema column annotations use `Column[DType]` instead of bare dtype annotations:
+
+```python
+# Correct — type checker sees Column methods
+class Users(Schema):
+    id: Column[UInt64]
+    name: Column[Utf8]
+    age: Column[UInt8 | None]
+
+# WRONG — type checker sees bare dtype, no Column methods visible
+class Users(Schema):
+    age: UInt8
+```
+
+**Rationale:** All Python type checkers (ty, mypy, pyright) read static annotations, not runtime metaclass replacements. With bare `age: UInt8`, the type checker thinks `Users.age` is `UInt8` — a sentinel class with no `.sum()`, `.mean()`, etc. This makes the entire expression DSL invisible to type checkers, defeating the library's purpose.
+
+The `Column[DType]` pattern (inspired by SQLAlchemy 2.0's `Mapped[T]`) makes the annotation _be_ the descriptor type, so `Users.age` is typed as `Column[UInt8 | None]` with full access to expression-building methods.
+
+**Trade-off:** Column uses a single generic parameter (`Column[DType]`). The schema binding (`SchemaType`) was dropped from the type-level signature since Python 3.10 lacks TypeVar defaults (PEP 696), making partial parameterization `Column[UInt8]` invalid for two-parameter generics. The schema is still stored as a runtime attribute (`Column.schema`). Schema-level type safety for column-DataFrame binding will be addressed through other mechanisms.
 
 ---
 

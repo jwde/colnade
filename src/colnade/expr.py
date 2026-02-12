@@ -95,11 +95,11 @@ class Expr(Generic[DType]):
 
     # --- Aliasing ---
 
-    def alias(self, target: Column[Any, Any]) -> AliasedExpr[Any]:
+    def alias(self, target: Column[Any]) -> AliasedExpr[Any]:
         """Bind this expression to a target column."""
         return AliasedExpr(expr=self, target=target)
 
-    def as_column(self, target: Column[Any, Any]) -> AliasedExpr[Any]:
+    def as_column(self, target: Column[Any]) -> AliasedExpr[Any]:
         """Bind this expression to a target column (alias for .alias())."""
         return AliasedExpr(expr=self, target=target)
 
@@ -115,7 +115,7 @@ class Expr(Generic[DType]):
 
     # --- Window ---
 
-    def over(self, *partition_by: Column[Any, Any]) -> Expr[Any]:
+    def over(self, *partition_by: Column[Any]) -> Expr[Any]:
         """Window function over partition columns."""
         return FunctionCall(name="over", args=(self, *[ColumnRef(column=c) for c in partition_by]))
 
@@ -130,7 +130,7 @@ class ColumnRef(Expr[DType]):
 
     __slots__ = ("column",)
 
-    def __init__(self, column: Column[Any, Any]) -> None:
+    def __init__(self, column: Column[Any]) -> None:
         self.column = column
 
     def __repr__(self) -> str:
@@ -213,7 +213,7 @@ class AliasedExpr(Expr[DType]):
 
     __slots__ = ("expr", "target")
 
-    def __init__(self, expr: Expr[Any], target: Column[Any, Any]) -> None:
+    def __init__(self, expr: Expr[Any], target: Column[Any]) -> None:
         self.expr = expr
         self.target = target
 
@@ -245,7 +245,7 @@ class StructFieldAccess(Expr[DType]):
 
     __slots__ = ("struct_expr", "field")
 
-    def __init__(self, struct_expr: Expr[Any], field: Column[Any, Any]) -> None:
+    def __init__(self, struct_expr: Expr[Any], field: Column[Any]) -> None:
         self.struct_expr = struct_expr
         self.field = field
 

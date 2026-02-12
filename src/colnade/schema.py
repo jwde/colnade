@@ -3,7 +3,7 @@
 Defines the foundational layer that makes column references statically verifiable:
 - ``SchemaMeta`` — metaclass that creates Column descriptors from annotations
 - ``Schema`` — base class for user-defined schemas (extends Protocol)
-- ``Column[DType, SchemaType]`` — typed column descriptor with expression building
+- ``Column[DType]`` — typed column descriptor with expression building
 """
 
 from __future__ import annotations
@@ -27,15 +27,12 @@ if TYPE_CHECKING:
 # Schema-bound TypeVars (must live here because they reference Schema)
 # ---------------------------------------------------------------------------
 
-# Primary schema TypeVar — used in DataFrame[S], Column[DType, S], etc.
+# Primary schema TypeVar — used in DataFrame[S], etc.
 S = TypeVar("S", bound="Schema")
 
 # Additional schema TypeVars for joins and multi-schema operations
 S2 = TypeVar("S2", bound="Schema")
 S3 = TypeVar("S3", bound="Schema")
-
-# SchemaType alias — for Column's second type parameter
-SchemaType = TypeVar("SchemaType", bound="Schema")
 
 # ---------------------------------------------------------------------------
 # Schema registry
@@ -48,11 +45,19 @@ _schema_registry: dict[str, type[Schema]] = {}
 # ---------------------------------------------------------------------------
 
 
-class Column(Generic[DType, SchemaType]):
+class Column(Generic[DType]):
     """A typed reference to a named column in a schema.
 
-    At the type level: ``Column[UInt8, Users]`` tells the type checker that
-    this column holds ``UInt8`` data and belongs to the ``Users`` schema.
+    Used as the annotation type in schema definitions::
+
+        class Users(Schema):
+            id: Column[UInt64]
+            name: Column[Utf8]
+            age: Column[UInt8 | None]
+
+    At the type level: ``Column[UInt8]`` tells the type checker this is a
+    column holding ``UInt8`` data, with full access to expression-building
+    methods (.sum(), .mean(), operators, etc.).
 
     At runtime: stores the column ``name``, ``dtype`` annotation, and owning
     ``schema`` class. All operator overloads and methods produce expression
@@ -303,15 +308,15 @@ class Column(Generic[DType, SchemaType]):
             name="cast", args=(ColumnRef(column=self),), kwargs={"dtype": new_dtype}
         )
 
-    def alias(self, target: Column[Any, Any]) -> AliasedExpr[Any]:
+    def alias(self, target: Column[Any]) -> AliasedExpr[Any]:
         from colnade.expr import AliasedExpr, ColumnRef
 
         return AliasedExpr(expr=ColumnRef(column=self), target=target)
 
-    def as_column(self, target: Column[Any, Any]) -> AliasedExpr[Any]:
+    def as_column(self, target: Column[Any]) -> AliasedExpr[Any]:
         return self.alias(target)
 
-    def over(self, *partition_by: Column[Any, Any]) -> Expr[Any]:
+    def over(self, *partition_by: Column[Any]) -> Expr[Any]:
         from colnade.expr import ColumnRef, FunctionCall
 
         return FunctionCall(
@@ -366,11 +371,13 @@ class SchemaMeta(type(Protocol)):  # type: ignore[misc]
                 annotations.update(getattr(base, "__annotations__", {}))
 
         # Build Column descriptors for non-private annotations
-        columns: dict[str, Column[Any, Any]] = {}
+        columns: dict[str, Column[Any]] = {}
         for col_name, col_type in annotations.items():
             if col_name.startswith("_"):
                 continue
-            descriptor: Column[Any, Any] = Column(name=col_name, dtype=col_type, schema=cls)
+            # Extract dtype from Column[DType] annotations
+            dtype = _extract_dtype(col_type)
+            descriptor: Column[Any] = Column(name=col_name, dtype=dtype, schema=cls)
             setattr(cls, col_name, descriptor)
             columns[col_name] = descriptor
 
@@ -388,19 +395,40 @@ class SchemaMeta(type(Protocol)):  # type: ignore[misc]
 # ---------------------------------------------------------------------------
 
 
+def _extract_dtype(annotation: Any) -> Any:
+    """Extract the data type from a column annotation.
+
+    Supports both ``Column[DType]`` annotations (recommended) and bare dtype
+    annotations (legacy). For ``Column[DType]``, extracts the inner type
+    parameter. For bare types, returns the annotation unchanged.
+    """
+    origin = typing.get_origin(annotation)
+    if origin is Column:
+        args = typing.get_args(annotation)
+        if args:
+            return args[0]
+    return annotation
+
+
+# ---------------------------------------------------------------------------
+# Schema base class
+# ---------------------------------------------------------------------------
+
+
 class Schema(Protocol, metaclass=SchemaMeta):
     """Base class for user-defined data schemas.
 
     Subclass this to define a typed schema::
 
         class Users(Schema):
-            id: UInt64
-            name: Utf8
-            age: UInt8 | None
+            id: Column[UInt64]
+            name: Column[Utf8]
+            age: Column[UInt8 | None]
 
-    The metaclass replaces each annotation with a ``Column`` descriptor,
-    enabling typed column references: ``Users.age`` → ``Column[UInt8 | None, Users]``.
+    The metaclass extracts the dtype from each ``Column[DType]`` annotation
+    and creates Column descriptor instances, giving type checkers full
+    visibility into column methods and operators.
     """
 
     # Populated by SchemaMeta; declared here for type checker visibility
-    _columns: dict[str, Column[Any, Any]]
+    _columns: dict[str, Column[Any]]

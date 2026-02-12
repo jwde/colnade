@@ -3,6 +3,9 @@
 This file is checked by ty — it must produce zero type errors.
 It verifies that Schema, Column, and the type hierarchy are
 visible to the type checker.
+
+With the Column[DType] annotation pattern, type checkers see schema
+attributes as Column instances with full access to expression methods.
 """
 
 from colnade import Column, Datetime, Float64, Schema, UInt8, UInt64, Utf8
@@ -11,34 +14,34 @@ from colnade import Column, Datetime, Float64, Schema, UInt8, UInt64, Utf8
 
 
 class Users(Schema):
-    id: UInt64
-    name: Utf8
-    age: UInt8 | None
-    score: Float64
+    id: Column[UInt64]
+    name: Column[Utf8]
+    age: Column[UInt8 | None]
+    score: Column[Float64]
 
 
 class EnrichedUsers(Users):
-    normalized_age: Float64
+    normalized_age: Column[Float64]
 
 
 class HasUserId(Schema):
-    user_id: UInt64
+    user_id: Column[UInt64]
 
 
 class HasTimestamp(Schema):
-    created_at: Datetime
+    created_at: Column[Datetime]
 
 
 class Events(HasUserId, HasTimestamp):
-    event_type: Utf8
+    event_type: Column[Utf8]
 
 
 # --- Column access produces Column instances ---
 
 
 def check_column_access() -> None:
-    _id: Column[UInt64, Users] = Users.id  # type: ignore[assignment]
-    _name: Column[Utf8, Users] = Users.name  # type: ignore[assignment]
+    _id: Column[UInt64] = Users.id
+    _name: Column[Utf8] = Users.name
     _ = _id
     _ = _name
 
@@ -48,16 +51,15 @@ def check_column_access() -> None:
 
 def check_types_exist() -> None:
     _: type[Schema] = Schema
-    _: type[Column[UInt64, Users]] = Column
+    _: type[Column[UInt64]] = Column
 
 
 # --- Schema-bound TypeVars are importable ---
 
 
 def check_schema_typevars() -> None:
-    from colnade.schema import S2, S3, S, SchemaType
+    from colnade.schema import S2, S3, S
 
     _ = S
     _ = S2
     _ = S3
-    _ = SchemaType

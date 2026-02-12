@@ -2,13 +2,10 @@
 
 This file is checked by ty — it must produce zero type errors.
 
-NOTE: The Schema metaclass replaces annotations with Column descriptors at
-runtime, but ty reads annotations statically. This means ty sees
-``Users.age`` as ``UInt8 | None``, not ``Column[UInt8 | None, Users]``.
-Column methods (operators, .sum(), etc.) are therefore not statically
-visible through schema attributes to ty. These tests focus on what ty
-CAN verify: AST node classes, Expr type hierarchy, lit(), and Column
-class methods when accessed directly.
+With the Column[DType] annotation pattern, type checkers see schema
+attributes as Column instances with full access to expression methods.
+This means Users.age is seen as Column[UInt8 | None] (not bare UInt8 | None),
+so all Column methods are statically visible through schema attributes.
 """
 
 from colnade import (
@@ -97,21 +94,21 @@ def check_lit() -> None:
 
 
 class Users(Schema):
-    id: UInt64
-    name: Utf8
-    age: UInt8 | None
-    score: Float64
-    created_at: Datetime
+    id: Column[UInt64]
+    name: Column[Utf8]
+    age: Column[UInt8 | None]
+    score: Column[Float64]
+    created_at: Column[Datetime]
 
 
 class AgeStats(Schema):
-    avg_score: Float64
-    user_count: UInt32
+    avg_score: Column[Float64]
+    user_count: Column[UInt32]
 
 
 def check_column_has_methods() -> None:
     """Verify Column class has expression-building methods defined."""
-    c: Column[UInt64, Users] = Column(name="id", dtype=UInt64, schema=Users)
+    c: Column[UInt64] = Column(name="id", dtype=UInt64, schema=Users)
 
     # Comparison operators
     _: Expr[object] = c > 18
@@ -152,7 +149,7 @@ def check_column_has_methods() -> None:
 
 def check_expr_chaining() -> None:
     """Verify Expr supports chaining operators."""
-    c: Column[UInt64, Users] = Column(name="id", dtype=UInt64, schema=Users)
+    c: Column[UInt64] = Column(name="id", dtype=UInt64, schema=Users)
     e = c > 18
 
     # Logical chaining on Expr
@@ -166,13 +163,13 @@ def check_expr_chaining() -> None:
     _: BinOp[object] = e2 > 18
 
     # Aliasing on Expr
-    target = Column[Float64, AgeStats](name="avg_score", dtype=Float64, schema=AgeStats)
+    target = Column[Float64](name="avg_score", dtype=Float64, schema=AgeStats)
     _a: AliasedExpr[object] = e2.as_column(target)
     _s: SortExpr = e2.desc()
 
 
 def check_agg_aliasing() -> None:
     """Verify Agg supports .as_column()."""
-    c: Column[Float64, Users] = Column(name="score", dtype=Float64, schema=Users)
-    target = Column[Float64, AgeStats](name="avg_score", dtype=Float64, schema=AgeStats)
+    c: Column[Float64] = Column(name="score", dtype=Float64, schema=Users)
+    target = Column[Float64](name="avg_score", dtype=Float64, schema=AgeStats)
     _: AliasedExpr[object] = c.mean().as_column(target)

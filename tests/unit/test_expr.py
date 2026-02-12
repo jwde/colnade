@@ -6,6 +6,7 @@ from colnade import (
     Agg,
     AliasedExpr,
     BinOp,
+    Column,
     ColumnRef,
     Datetime,
     Float64,
@@ -28,16 +29,16 @@ from colnade import (
 
 
 class Users(Schema):
-    id: UInt64
-    name: Utf8
-    age: UInt8 | None
-    score: Float64
-    created_at: Datetime
+    id: Column[UInt64]
+    name: Column[Utf8]
+    age: Column[UInt8 | None]
+    score: Column[Float64]
+    created_at: Column[Datetime]
 
 
 class AgeStats(Schema):
-    avg_score: Float64
-    user_count: UInt32
+    avg_score: Column[Float64]
+    user_count: Column[UInt32]
 
 
 # ---------------------------------------------------------------------------
