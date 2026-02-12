@@ -10,8 +10,10 @@ from typing import TypeVar
 
 from colnade.dtypes import FloatType, NumericType
 
-# General-purpose type variable for column data types
-DType = TypeVar("DType")
+# General-purpose type variable for column data types.
+# Covariant: Expr[Bool] is assignable to Expr[object], Column[UInt8] to Column[NumericType].
+# Safe because no class uses DType in a contravariant position (no method takes DType as input).
+DType = TypeVar("DType", covariant=True)
 
 # Element type (used in List[T] and other generic contexts)
 T = TypeVar("T")

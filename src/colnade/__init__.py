@@ -25,12 +25,39 @@ from colnade.dtypes import (
     UInt64,
     Utf8,
 )
+from colnade.expr import (
+    Agg,
+    AliasedExpr,
+    BinOp,
+    ColumnRef,
+    Expr,
+    FunctionCall,
+    ListOp,
+    Literal,
+    SortExpr,
+    StructFieldAccess,
+    UnaryOp,
+    lit,
+)
 from colnade.schema import Column, Schema
 
 __all__ = [
     # Schema layer
     "Schema",
     "Column",
+    # Expression DSL
+    "Expr",
+    "ColumnRef",
+    "BinOp",
+    "UnaryOp",
+    "Literal",
+    "FunctionCall",
+    "Agg",
+    "AliasedExpr",
+    "SortExpr",
+    "StructFieldAccess",
+    "ListOp",
+    "lit",
     # Type categories
     "NumericType",
     "IntegerType",

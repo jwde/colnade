@@ -21,31 +21,31 @@ from colnade.schema import _schema_registry
 
 
 class Users(Schema):
-    id: UInt64
-    name: Utf8
-    age: UInt8 | None
-    score: Float64
+    id: Column[UInt64]
+    name: Column[Utf8]
+    age: Column[UInt8 | None]
+    score: Column[Float64]
 
 
 class EnrichedUsers(Users):
-    normalized_age: Float64
+    normalized_age: Column[Float64]
 
 
 class UserSummary(Schema):
-    name: Utf8
-    score: Float64
+    name: Column[Utf8]
+    score: Column[Float64]
 
 
 class HasUserId(Schema):
-    user_id: UInt64
+    user_id: Column[UInt64]
 
 
 class HasTimestamp(Schema):
-    created_at: Datetime
+    created_at: Column[Datetime]
 
 
 class Events(HasUserId, HasTimestamp):
-    event_type: Utf8
+    event_type: Column[Utf8]
 
 
 class Empty(Schema):
@@ -102,8 +102,8 @@ class TestColumnDescriptor:
         assert "Users" in r
 
     def test_column_is_generic(self) -> None:
-        # Column should be subscriptable (Generic[DType, SchemaType])
-        alias = Column[UInt64, Users]
+        # Column should be subscriptable (Generic[DType])
+        alias = Column[UInt64]
         assert alias is not None
 
     def test_private_annotations_skipped(self) -> None:
@@ -118,12 +118,12 @@ class TestColumnDescriptor:
 
 class TestNullableColumns:
     def test_nullable_dtype(self) -> None:
-        # age: UInt8 | None — dtype should be the union type
+        # age: Column[UInt8 | None] — dtype should be the union type
         age_dtype = Users.age.dtype
         assert isinstance(age_dtype, types.UnionType)
 
     def test_non_nullable_dtype(self) -> None:
-        # name: Utf8 — dtype should be the class directly
+        # name: Column[Utf8] — dtype should be the class directly
         assert Users.name.dtype is Utf8
 
 
