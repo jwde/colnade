@@ -339,6 +339,15 @@ class Column(Generic[DType]):
         return SortExpr(expr=ColumnRef(column=self), descending=False)
 
     # --- Struct field access ---
+    #
+    # Limitation: .field() is available on ALL Column instances, not just
+    # Column[Struct[S]]. Restricting it requires self narrowing:
+    #
+    #     def field(self: Column[Struct[S2]], col: Column[T]) -> StructFieldAccess[T]: ...
+    #
+    # ty does not yet support self narrowing on non-Protocol generic classes.
+    # When it does, calling .field() on a non-struct column (e.g., Users.name)
+    # would become a static type error. See §4.3.
 
     def field(self, col: Column[T]) -> StructFieldAccess[T]:
         """Access a field within a struct column.
@@ -352,6 +361,16 @@ class Column(Generic[DType]):
         return StructFieldAccess(struct_expr=ColumnRef(column=self), field=col)
 
     # --- List accessor ---
+    #
+    # Limitation: returns ListAccessor[Any] because extracting the element type
+    # T from Column[List[T]] requires self narrowing:
+    #
+    #     @property
+    #     def list(self: Column[List[T]]) -> ListAccessor[T]: ...
+    #
+    # ty does not yet support self narrowing on non-Protocol generic classes.
+    # When it does, this property and all ListAccessor methods that return
+    # ListOp[Any] can be tightened to preserve the element type. See §4.3.
 
     @property
     def list(self) -> ListAccessor[Any]:
@@ -382,6 +401,19 @@ class ListAccessor(Generic[DType]):
         Users.tags.list.len()          # ListOp(op="len")
         Users.tags.list.get(0)         # ListOp(op="get", args=(0,))
         Users.tags.list.contains("x")  # ListOp(op="contains", args=("x",))
+
+    **Type precision limitation:** Methods like ``get()``, ``sum()``, etc. return
+    ``ListOp[Any]`` because the list element type ``T`` is not available — it is
+    lost at the ``.list`` property boundary (see comment on ``Column.list``).
+    With self narrowing support, these would become:
+
+    - ``get(index) -> ListOp[T | None]``
+    - ``sum() -> ListOp[T]``
+    - ``contains(value: T) -> ListOp[Bool]``
+    - etc.
+
+    Methods with fixed return types (``len() -> ListOp[UInt32]``,
+    ``contains() -> ListOp[Bool]``) are already precise.
     """
 
     __slots__ = ("_column",)
