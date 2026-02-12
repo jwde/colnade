@@ -1,0 +1,1 @@
+"""Colnade Polars backend adapter."""
