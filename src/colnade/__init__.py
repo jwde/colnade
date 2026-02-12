@@ -1,5 +1,13 @@
 """Colnade: A statically type-safe DataFrame abstraction layer."""
 
+from colnade.dataframe import (
+    DataFrame,
+    GroupBy,
+    LazyFrame,
+    LazyGroupBy,
+    UntypedDataFrame,
+    UntypedLazyFrame,
+)
 from colnade.dtypes import (
     Binary,
     Bool,
@@ -46,6 +54,13 @@ __all__ = [
     "Schema",
     "Column",
     "ListAccessor",
+    # DataFrame layer
+    "DataFrame",
+    "LazyFrame",
+    "GroupBy",
+    "LazyGroupBy",
+    "UntypedDataFrame",
+    "UntypedLazyFrame",
     # Expression DSL
     "Expr",
     "ColumnRef",
