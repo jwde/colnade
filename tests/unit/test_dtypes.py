@@ -166,6 +166,8 @@ class TestPublicAPI:
 
         # __all__ should contain every expected public name
         expected = {
+            "Schema",
+            "Column",
             "NumericType",
             "IntegerType",
             "FloatType",
