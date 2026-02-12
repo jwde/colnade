@@ -14,13 +14,15 @@ from typing import TYPE_CHECKING, Any, Generic, Protocol, TypeVar
 from colnade._types import DType
 
 if TYPE_CHECKING:
+    from colnade.dtypes import Bool, Datetime, Float64, Int32, UInt32, Utf8
     from colnade.expr import (
         Agg,
         AliasedExpr,
         BinOp,
-        Expr,
+        ColumnRef,
         FunctionCall,
         SortExpr,
+        UnaryOp,
     )
 
 # ---------------------------------------------------------------------------
@@ -76,7 +78,7 @@ class Column(Generic[DType]):
 
     # --- Internal helpers ---
 
-    def _ref(self) -> Any:
+    def _ref(self) -> ColumnRef[DType]:
         """Create a ColumnRef for this column."""
         from colnade.expr import ColumnRef
 
@@ -102,98 +104,98 @@ class Column(Generic[DType]):
 
         return BinOp(left=Literal(value=other), right=ColumnRef(column=self), op=op)
 
-    # --- Comparison operators → Expr[Bool] ---
+    # --- Comparison operators → BinOp[Bool] ---
 
-    def __gt__(self, other: Any) -> Expr[Any]:
+    def __gt__(self, other: Any) -> BinOp[Bool]:
         return self._binop(other, ">")
 
-    def __lt__(self, other: Any) -> Expr[Any]:
+    def __lt__(self, other: Any) -> BinOp[Bool]:
         return self._binop(other, "<")
 
-    def __ge__(self, other: Any) -> Expr[Any]:
+    def __ge__(self, other: Any) -> BinOp[Bool]:
         return self._binop(other, ">=")
 
-    def __le__(self, other: Any) -> Expr[Any]:
+    def __le__(self, other: Any) -> BinOp[Bool]:
         return self._binop(other, "<=")
 
-    def __eq__(self, other: Any) -> Expr[Any]:  # type: ignore[override]
+    def __eq__(self, other: Any) -> BinOp[Bool]:  # type: ignore[override]
         return self._binop(other, "==")
 
-    def __ne__(self, other: Any) -> Expr[Any]:  # type: ignore[override]
+    def __ne__(self, other: Any) -> BinOp[Bool]:  # type: ignore[override]
         return self._binop(other, "!=")
 
-    # --- Arithmetic operators ---
+    # --- Arithmetic operators → BinOp[DType] ---
 
-    def __add__(self, other: Any) -> Expr[Any]:
+    def __add__(self, other: Any) -> BinOp[DType]:
         return self._binop(other, "+")
 
-    def __radd__(self, other: Any) -> Expr[Any]:
+    def __radd__(self, other: Any) -> BinOp[DType]:
         return self._rbinop(other, "+")
 
-    def __sub__(self, other: Any) -> Expr[Any]:
+    def __sub__(self, other: Any) -> BinOp[DType]:
         return self._binop(other, "-")
 
-    def __rsub__(self, other: Any) -> Expr[Any]:
+    def __rsub__(self, other: Any) -> BinOp[DType]:
         return self._rbinop(other, "-")
 
-    def __mul__(self, other: Any) -> Expr[Any]:
+    def __mul__(self, other: Any) -> BinOp[DType]:
         return self._binop(other, "*")
 
-    def __rmul__(self, other: Any) -> Expr[Any]:
+    def __rmul__(self, other: Any) -> BinOp[DType]:
         return self._rbinop(other, "*")
 
-    def __truediv__(self, other: Any) -> Expr[Any]:
+    def __truediv__(self, other: Any) -> BinOp[DType]:
         return self._binop(other, "/")
 
-    def __rtruediv__(self, other: Any) -> Expr[Any]:
+    def __rtruediv__(self, other: Any) -> BinOp[DType]:
         return self._rbinop(other, "/")
 
-    def __mod__(self, other: Any) -> Expr[Any]:
+    def __mod__(self, other: Any) -> BinOp[DType]:
         return self._binop(other, "%")
 
-    def __rmod__(self, other: Any) -> Expr[Any]:
+    def __rmod__(self, other: Any) -> BinOp[DType]:
         return self._rbinop(other, "%")
 
-    def __neg__(self) -> Expr[Any]:
+    def __neg__(self) -> UnaryOp[DType]:
         from colnade.expr import ColumnRef, UnaryOp
 
         return UnaryOp(operand=ColumnRef(column=self), op="-")
 
-    # --- Aggregation methods → Agg[ResultType] ---
+    # --- Aggregation methods ---
 
     def _agg(self, agg_type: str) -> Agg[Any]:
         from colnade.expr import Agg, ColumnRef
 
         return Agg(source=ColumnRef(column=self), agg_type=agg_type)
 
-    def sum(self) -> Agg[Any]:
+    def sum(self) -> Agg[DType]:
         return self._agg("sum")
 
-    def mean(self) -> Agg[Any]:
+    def mean(self) -> Agg[Float64]:
         return self._agg("mean")
 
-    def min(self) -> Agg[Any]:
+    def min(self) -> Agg[DType]:
         return self._agg("min")
 
-    def max(self) -> Agg[Any]:
+    def max(self) -> Agg[DType]:
         return self._agg("max")
 
-    def count(self) -> Agg[Any]:
+    def count(self) -> Agg[UInt32]:
         return self._agg("count")
 
-    def std(self) -> Agg[Any]:
+    def std(self) -> Agg[Float64]:
         return self._agg("std")
 
-    def var(self) -> Agg[Any]:
+    def var(self) -> Agg[Float64]:
         return self._agg("var")
 
-    def first(self) -> Agg[Any]:
+    def first(self) -> Agg[DType]:
         return self._agg("first")
 
-    def last(self) -> Agg[Any]:
+    def last(self) -> Agg[DType]:
         return self._agg("last")
 
-    def n_unique(self) -> Agg[Any]:
+    def n_unique(self) -> Agg[UInt32]:
         return self._agg("n_unique")
 
     # --- String methods (Utf8 only at type level) ---
@@ -203,28 +205,28 @@ class Column(Generic[DType]):
 
         return FunctionCall(name=name, args=(ColumnRef(column=self), *args))
 
-    def str_contains(self, pattern: str) -> Expr[Any]:
+    def str_contains(self, pattern: str) -> FunctionCall[Bool]:
         return self._str_fn("str_contains", pattern)
 
-    def str_starts_with(self, prefix: str) -> Expr[Any]:
+    def str_starts_with(self, prefix: str) -> FunctionCall[Bool]:
         return self._str_fn("str_starts_with", prefix)
 
-    def str_ends_with(self, suffix: str) -> Expr[Any]:
+    def str_ends_with(self, suffix: str) -> FunctionCall[Bool]:
         return self._str_fn("str_ends_with", suffix)
 
-    def str_len(self) -> Expr[Any]:
+    def str_len(self) -> FunctionCall[UInt32]:
         return self._str_fn("str_len")
 
-    def str_to_lowercase(self) -> Expr[Any]:
+    def str_to_lowercase(self) -> FunctionCall[Utf8]:
         return self._str_fn("str_to_lowercase")
 
-    def str_to_uppercase(self) -> Expr[Any]:
+    def str_to_uppercase(self) -> FunctionCall[Utf8]:
         return self._str_fn("str_to_uppercase")
 
-    def str_strip(self) -> Expr[Any]:
+    def str_strip(self) -> FunctionCall[Utf8]:
         return self._str_fn("str_strip")
 
-    def str_replace(self, pattern: str, replacement: str) -> Expr[Any]:
+    def str_replace(self, pattern: str, replacement: str) -> FunctionCall[Utf8]:
         return self._str_fn("str_replace", pattern, replacement)
 
     # --- Temporal methods (Datetime only at type level) ---
@@ -234,42 +236,42 @@ class Column(Generic[DType]):
 
         return FunctionCall(name=name, args=(ColumnRef(column=self),))
 
-    def dt_year(self) -> Expr[Any]:
+    def dt_year(self) -> FunctionCall[Int32]:
         return self._dt_fn("dt_year")
 
-    def dt_month(self) -> Expr[Any]:
+    def dt_month(self) -> FunctionCall[Int32]:
         return self._dt_fn("dt_month")
 
-    def dt_day(self) -> Expr[Any]:
+    def dt_day(self) -> FunctionCall[Int32]:
         return self._dt_fn("dt_day")
 
-    def dt_hour(self) -> Expr[Any]:
+    def dt_hour(self) -> FunctionCall[Int32]:
         return self._dt_fn("dt_hour")
 
-    def dt_minute(self) -> Expr[Any]:
+    def dt_minute(self) -> FunctionCall[Int32]:
         return self._dt_fn("dt_minute")
 
-    def dt_second(self) -> Expr[Any]:
+    def dt_second(self) -> FunctionCall[Int32]:
         return self._dt_fn("dt_second")
 
-    def dt_truncate(self, interval: str) -> Expr[Any]:
+    def dt_truncate(self, interval: str) -> FunctionCall[Datetime]:
         from colnade.expr import ColumnRef, FunctionCall
 
         return FunctionCall(name="dt_truncate", args=(ColumnRef(column=self), interval))
 
     # --- Null handling ---
 
-    def is_null(self) -> Expr[Any]:
+    def is_null(self) -> UnaryOp[Bool]:
         from colnade.expr import ColumnRef, UnaryOp
 
         return UnaryOp(operand=ColumnRef(column=self), op="is_null")
 
-    def is_not_null(self) -> Expr[Any]:
+    def is_not_null(self) -> UnaryOp[Bool]:
         from colnade.expr import ColumnRef, UnaryOp
 
         return UnaryOp(operand=ColumnRef(column=self), op="is_not_null")
 
-    def fill_null(self, value: Any) -> Expr[Any]:
+    def fill_null(self, value: Any) -> FunctionCall[DType]:
         from colnade.expr import ColumnRef, FunctionCall
         from colnade.expr import Expr as _Expr
 
@@ -281,19 +283,19 @@ class Column(Generic[DType]):
             fill_arg = Literal(value=value)
         return FunctionCall(name="fill_null", args=(ColumnRef(column=self), fill_arg))
 
-    def assert_non_null(self) -> Expr[Any]:
+    def assert_non_null(self) -> FunctionCall[DType]:
         from colnade.expr import ColumnRef, FunctionCall
 
         return FunctionCall(name="assert_non_null", args=(ColumnRef(column=self),))
 
     # --- NaN handling (Float32/Float64 only at type level) ---
 
-    def is_nan(self) -> Expr[Any]:
+    def is_nan(self) -> UnaryOp[Bool]:
         from colnade.expr import ColumnRef, UnaryOp
 
         return UnaryOp(operand=ColumnRef(column=self), op="is_nan")
 
-    def fill_nan(self, value: Any) -> Expr[Any]:
+    def fill_nan(self, value: Any) -> FunctionCall[DType]:
         from colnade.expr import ColumnRef, FunctionCall, Literal
 
         fill_arg = value if isinstance(value, Literal) else Literal(value=value)
@@ -301,7 +303,7 @@ class Column(Generic[DType]):
 
     # --- General ---
 
-    def cast(self, new_dtype: type) -> Expr[Any]:
+    def cast(self, new_dtype: type) -> FunctionCall[Any]:
         from colnade.expr import ColumnRef, FunctionCall
 
         return FunctionCall(
@@ -316,7 +318,7 @@ class Column(Generic[DType]):
     def as_column(self, target: Column[Any]) -> AliasedExpr[Any]:
         return self.alias(target)
 
-    def over(self, *partition_by: Column[Any]) -> Expr[Any]:
+    def over(self, *partition_by: Column[Any]) -> FunctionCall[DType]:
         from colnade.expr import ColumnRef, FunctionCall
 
         return FunctionCall(
@@ -340,7 +342,7 @@ class Column(Generic[DType]):
 # ---------------------------------------------------------------------------
 
 
-class SchemaMeta(type(Protocol)):  # type: ignore[misc]
+class SchemaMeta(type(Protocol)):
     """Metaclass for Schema that creates Column descriptors from annotations.
 
     At class creation time:
@@ -385,9 +387,9 @@ class SchemaMeta(type(Protocol)):  # type: ignore[misc]
 
         # Register non-base schemas
         if name != "Schema":
-            _schema_registry[name] = cls  # type: ignore[assignment]
+            _schema_registry[name] = cls
 
-        return cls  # type: ignore[return-value]
+        return cls
 
 
 # ---------------------------------------------------------------------------

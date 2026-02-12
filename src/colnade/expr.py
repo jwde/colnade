@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Any, Generic
 from colnade._types import DType
 
 if TYPE_CHECKING:
+    from colnade.dtypes import Bool
     from colnade.schema import Column
 
 
@@ -29,68 +30,68 @@ class Expr(Generic[DType]):
 
     # --- Logical operators (for chaining boolean expressions) ---
 
-    def __and__(self, other: Expr[Any]) -> BinOp[Any]:
+    def __and__(self, other: Expr[Any]) -> BinOp[DType]:
         return BinOp(left=self, right=_wrap(other), op="&")
 
-    def __or__(self, other: Expr[Any]) -> BinOp[Any]:
+    def __or__(self, other: Expr[Any]) -> BinOp[DType]:
         return BinOp(left=self, right=_wrap(other), op="|")
 
-    def __invert__(self) -> UnaryOp[Any]:
+    def __invert__(self) -> UnaryOp[DType]:
         return UnaryOp(operand=self, op="~")
 
     # --- Comparison operators (for expression chaining) ---
 
-    def __gt__(self, other: Any) -> BinOp[Any]:
+    def __gt__(self, other: Any) -> BinOp[Bool]:
         return BinOp(left=self, right=_wrap(other), op=">")
 
-    def __lt__(self, other: Any) -> BinOp[Any]:
+    def __lt__(self, other: Any) -> BinOp[Bool]:
         return BinOp(left=self, right=_wrap(other), op="<")
 
-    def __ge__(self, other: Any) -> BinOp[Any]:
+    def __ge__(self, other: Any) -> BinOp[Bool]:
         return BinOp(left=self, right=_wrap(other), op=">=")
 
-    def __le__(self, other: Any) -> BinOp[Any]:
+    def __le__(self, other: Any) -> BinOp[Bool]:
         return BinOp(left=self, right=_wrap(other), op="<=")
 
-    def __eq__(self, other: Any) -> BinOp[Any]:  # type: ignore[override]
+    def __eq__(self, other: Any) -> BinOp[Bool]:  # type: ignore[override]
         return BinOp(left=self, right=_wrap(other), op="==")
 
-    def __ne__(self, other: Any) -> BinOp[Any]:  # type: ignore[override]
+    def __ne__(self, other: Any) -> BinOp[Bool]:  # type: ignore[override]
         return BinOp(left=self, right=_wrap(other), op="!=")
 
     # --- Arithmetic operators (for expression chaining) ---
 
-    def __add__(self, other: Any) -> BinOp[Any]:
+    def __add__(self, other: Any) -> BinOp[DType]:
         return BinOp(left=self, right=_wrap(other), op="+")
 
-    def __radd__(self, other: Any) -> BinOp[Any]:
+    def __radd__(self, other: Any) -> BinOp[DType]:
         return BinOp(left=_wrap(other), right=self, op="+")
 
-    def __sub__(self, other: Any) -> BinOp[Any]:
+    def __sub__(self, other: Any) -> BinOp[DType]:
         return BinOp(left=self, right=_wrap(other), op="-")
 
-    def __rsub__(self, other: Any) -> BinOp[Any]:
+    def __rsub__(self, other: Any) -> BinOp[DType]:
         return BinOp(left=_wrap(other), right=self, op="-")
 
-    def __mul__(self, other: Any) -> BinOp[Any]:
+    def __mul__(self, other: Any) -> BinOp[DType]:
         return BinOp(left=self, right=_wrap(other), op="*")
 
-    def __rmul__(self, other: Any) -> BinOp[Any]:
+    def __rmul__(self, other: Any) -> BinOp[DType]:
         return BinOp(left=_wrap(other), right=self, op="*")
 
-    def __truediv__(self, other: Any) -> BinOp[Any]:
+    def __truediv__(self, other: Any) -> BinOp[DType]:
         return BinOp(left=self, right=_wrap(other), op="/")
 
-    def __rtruediv__(self, other: Any) -> BinOp[Any]:
+    def __rtruediv__(self, other: Any) -> BinOp[DType]:
         return BinOp(left=_wrap(other), right=self, op="/")
 
-    def __mod__(self, other: Any) -> BinOp[Any]:
+    def __mod__(self, other: Any) -> BinOp[DType]:
         return BinOp(left=self, right=_wrap(other), op="%")
 
-    def __rmod__(self, other: Any) -> BinOp[Any]:
+    def __rmod__(self, other: Any) -> BinOp[DType]:
         return BinOp(left=_wrap(other), right=self, op="%")
 
-    def __neg__(self) -> UnaryOp[Any]:
+    def __neg__(self) -> UnaryOp[DType]:
         return UnaryOp(operand=self, op="-")
 
     # --- Aliasing ---
@@ -115,7 +116,7 @@ class Expr(Generic[DType]):
 
     # --- Window ---
 
-    def over(self, *partition_by: Column[Any]) -> Expr[Any]:
+    def over(self, *partition_by: Column[Any]) -> FunctionCall[DType]:
         """Window function over partition columns."""
         return FunctionCall(name="over", args=(self, *[ColumnRef(column=c) for c in partition_by]))
 
