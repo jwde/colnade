@@ -1,0 +1,1 @@
+"""Series[T] generic interface."""
