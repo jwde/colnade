@@ -11,7 +11,7 @@ from __future__ import annotations
 import typing
 from typing import TYPE_CHECKING, Any, Generic, Protocol, TypeVar
 
-from colnade._types import DType
+from colnade._types import DType, T
 
 if TYPE_CHECKING:
     from colnade.dtypes import Bool, Datetime, Float64, Int32, UInt32, Utf8
@@ -21,7 +21,9 @@ if TYPE_CHECKING:
         BinOp,
         ColumnRef,
         FunctionCall,
+        ListOp,
         SortExpr,
+        StructFieldAccess,
         UnaryOp,
     )
 
@@ -335,6 +337,86 @@ class Column(Generic[DType]):
         from colnade.expr import ColumnRef, SortExpr
 
         return SortExpr(expr=ColumnRef(column=self), descending=False)
+
+    # --- Struct field access ---
+
+    def field(self, col: Column[T]) -> StructFieldAccess[T]:
+        """Access a field within a struct column.
+
+        The ``col`` argument must be a Column descriptor from the struct's schema::
+
+            Users.address.field(Address.city)  # StructFieldAccess[Utf8]
+        """
+        from colnade.expr import ColumnRef, StructFieldAccess
+
+        return StructFieldAccess(struct_expr=ColumnRef(column=self), field=col)
+
+    # --- List accessor ---
+
+    @property
+    def list(self) -> ListAccessor[Any]:
+        """Access list operations on a list column.
+
+        Returns a ``ListAccessor`` that provides list-specific methods::
+
+            Users.tags.list.len()          # ListOp node
+            Users.tags.list.get(0)         # ListOp node
+            Users.tags.list.contains("x")  # ListOp node
+        """
+        return ListAccessor(column=self)
+
+
+# ---------------------------------------------------------------------------
+# ListAccessor
+# ---------------------------------------------------------------------------
+
+
+class ListAccessor(Generic[DType]):
+    """Typed accessor for list column operations.
+
+    Provides list-specific methods (len, get, contains, sum, mean, min, max)
+    that produce ``ListOp`` AST nodes for backend translation.
+
+    Created via the ``.list`` property on Column::
+
+        Users.tags.list.len()          # ListOp(op="len")
+        Users.tags.list.get(0)         # ListOp(op="get", args=(0,))
+        Users.tags.list.contains("x")  # ListOp(op="contains", args=("x",))
+    """
+
+    __slots__ = ("_column",)
+
+    def __init__(self, column: Column[Any]) -> None:
+        self._column = column
+
+    def __repr__(self) -> str:
+        return f"ListAccessor({self._column!r})"
+
+    def _list_op(self, op: str, *args: Any) -> ListOp[Any]:
+        from colnade.expr import ColumnRef, ListOp
+
+        return ListOp(list_expr=ColumnRef(column=self._column), op=op, args=args)
+
+    def len(self) -> ListOp[UInt32]:
+        return self._list_op("len")
+
+    def get(self, index: int) -> ListOp[Any]:
+        return self._list_op("get", index)
+
+    def contains(self, value: Any) -> ListOp[Bool]:
+        return self._list_op("contains", value)
+
+    def sum(self) -> ListOp[Any]:
+        return self._list_op("sum")
+
+    def mean(self) -> ListOp[Any]:
+        return self._list_op("mean")
+
+    def min(self) -> ListOp[Any]:
+        return self._list_op("min")
+
+    def max(self) -> ListOp[Any]:
+        return self._list_op("max")
 
 
 # ---------------------------------------------------------------------------

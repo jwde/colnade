@@ -39,12 +39,13 @@ from colnade.expr import (
     UnaryOp,
     lit,
 )
-from colnade.schema import Column, Schema
+from colnade.schema import Column, ListAccessor, Schema
 
 __all__ = [
     # Schema layer
     "Schema",
     "Column",
+    "ListAccessor",
     # Expression DSL
     "Expr",
     "ColumnRef",
