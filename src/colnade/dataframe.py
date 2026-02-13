@@ -180,6 +180,71 @@ class DataFrame(Generic[S]):
         c5: Column[Any],
         /,
     ) -> DataFrame[Any]: ...
+    @overload
+    def select(
+        self,
+        c1: Column[Any],
+        c2: Column[Any],
+        c3: Column[Any],
+        c4: Column[Any],
+        c5: Column[Any],
+        c6: Column[Any],
+        /,
+    ) -> DataFrame[Any]: ...
+    @overload
+    def select(
+        self,
+        c1: Column[Any],
+        c2: Column[Any],
+        c3: Column[Any],
+        c4: Column[Any],
+        c5: Column[Any],
+        c6: Column[Any],
+        c7: Column[Any],
+        /,
+    ) -> DataFrame[Any]: ...
+    @overload
+    def select(
+        self,
+        c1: Column[Any],
+        c2: Column[Any],
+        c3: Column[Any],
+        c4: Column[Any],
+        c5: Column[Any],
+        c6: Column[Any],
+        c7: Column[Any],
+        c8: Column[Any],
+        /,
+    ) -> DataFrame[Any]: ...
+    @overload
+    def select(
+        self,
+        c1: Column[Any],
+        c2: Column[Any],
+        c3: Column[Any],
+        c4: Column[Any],
+        c5: Column[Any],
+        c6: Column[Any],
+        c7: Column[Any],
+        c8: Column[Any],
+        c9: Column[Any],
+        /,
+    ) -> DataFrame[Any]: ...
+    @overload
+    def select(
+        self,
+        c1: Column[Any],
+        c2: Column[Any],
+        c3: Column[Any],
+        c4: Column[Any],
+        c5: Column[Any],
+        c6: Column[Any],
+        c7: Column[Any],
+        c8: Column[Any],
+        c9: Column[Any],
+        c10: Column[Any],
+        /,
+    ) -> DataFrame[Any]: ...
 
     def select(self, *columns: Column[Any]) -> DataFrame[Any]:
         """Select columns. Returns DataFrame[Any] — use cast_schema() to bind."""
@@ -330,6 +395,71 @@ class LazyFrame(Generic[S]):
         c3: Column[Any],
         c4: Column[Any],
         c5: Column[Any],
+        /,
+    ) -> LazyFrame[Any]: ...
+    @overload
+    def select(
+        self,
+        c1: Column[Any],
+        c2: Column[Any],
+        c3: Column[Any],
+        c4: Column[Any],
+        c5: Column[Any],
+        c6: Column[Any],
+        /,
+    ) -> LazyFrame[Any]: ...
+    @overload
+    def select(
+        self,
+        c1: Column[Any],
+        c2: Column[Any],
+        c3: Column[Any],
+        c4: Column[Any],
+        c5: Column[Any],
+        c6: Column[Any],
+        c7: Column[Any],
+        /,
+    ) -> LazyFrame[Any]: ...
+    @overload
+    def select(
+        self,
+        c1: Column[Any],
+        c2: Column[Any],
+        c3: Column[Any],
+        c4: Column[Any],
+        c5: Column[Any],
+        c6: Column[Any],
+        c7: Column[Any],
+        c8: Column[Any],
+        /,
+    ) -> LazyFrame[Any]: ...
+    @overload
+    def select(
+        self,
+        c1: Column[Any],
+        c2: Column[Any],
+        c3: Column[Any],
+        c4: Column[Any],
+        c5: Column[Any],
+        c6: Column[Any],
+        c7: Column[Any],
+        c8: Column[Any],
+        c9: Column[Any],
+        /,
+    ) -> LazyFrame[Any]: ...
+    @overload
+    def select(
+        self,
+        c1: Column[Any],
+        c2: Column[Any],
+        c3: Column[Any],
+        c4: Column[Any],
+        c5: Column[Any],
+        c6: Column[Any],
+        c7: Column[Any],
+        c8: Column[Any],
+        c9: Column[Any],
+        c10: Column[Any],
         /,
     ) -> LazyFrame[Any]: ...
 
@@ -575,6 +705,71 @@ class JoinedDataFrame(Generic[S, S2]):
         c5: Column[Any],
         /,
     ) -> DataFrame[Any]: ...
+    @overload
+    def select(
+        self,
+        c1: Column[Any],
+        c2: Column[Any],
+        c3: Column[Any],
+        c4: Column[Any],
+        c5: Column[Any],
+        c6: Column[Any],
+        /,
+    ) -> DataFrame[Any]: ...
+    @overload
+    def select(
+        self,
+        c1: Column[Any],
+        c2: Column[Any],
+        c3: Column[Any],
+        c4: Column[Any],
+        c5: Column[Any],
+        c6: Column[Any],
+        c7: Column[Any],
+        /,
+    ) -> DataFrame[Any]: ...
+    @overload
+    def select(
+        self,
+        c1: Column[Any],
+        c2: Column[Any],
+        c3: Column[Any],
+        c4: Column[Any],
+        c5: Column[Any],
+        c6: Column[Any],
+        c7: Column[Any],
+        c8: Column[Any],
+        /,
+    ) -> DataFrame[Any]: ...
+    @overload
+    def select(
+        self,
+        c1: Column[Any],
+        c2: Column[Any],
+        c3: Column[Any],
+        c4: Column[Any],
+        c5: Column[Any],
+        c6: Column[Any],
+        c7: Column[Any],
+        c8: Column[Any],
+        c9: Column[Any],
+        /,
+    ) -> DataFrame[Any]: ...
+    @overload
+    def select(
+        self,
+        c1: Column[Any],
+        c2: Column[Any],
+        c3: Column[Any],
+        c4: Column[Any],
+        c5: Column[Any],
+        c6: Column[Any],
+        c7: Column[Any],
+        c8: Column[Any],
+        c9: Column[Any],
+        c10: Column[Any],
+        /,
+    ) -> DataFrame[Any]: ...
 
     def select(self, *columns: Column[Any]) -> DataFrame[Any]:
         """Select columns. Returns DataFrame[Any] — use cast_schema() to bind."""
@@ -721,6 +916,71 @@ class JoinedLazyFrame(Generic[S, S2]):
         c3: Column[Any],
         c4: Column[Any],
         c5: Column[Any],
+        /,
+    ) -> LazyFrame[Any]: ...
+    @overload
+    def select(
+        self,
+        c1: Column[Any],
+        c2: Column[Any],
+        c3: Column[Any],
+        c4: Column[Any],
+        c5: Column[Any],
+        c6: Column[Any],
+        /,
+    ) -> LazyFrame[Any]: ...
+    @overload
+    def select(
+        self,
+        c1: Column[Any],
+        c2: Column[Any],
+        c3: Column[Any],
+        c4: Column[Any],
+        c5: Column[Any],
+        c6: Column[Any],
+        c7: Column[Any],
+        /,
+    ) -> LazyFrame[Any]: ...
+    @overload
+    def select(
+        self,
+        c1: Column[Any],
+        c2: Column[Any],
+        c3: Column[Any],
+        c4: Column[Any],
+        c5: Column[Any],
+        c6: Column[Any],
+        c7: Column[Any],
+        c8: Column[Any],
+        /,
+    ) -> LazyFrame[Any]: ...
+    @overload
+    def select(
+        self,
+        c1: Column[Any],
+        c2: Column[Any],
+        c3: Column[Any],
+        c4: Column[Any],
+        c5: Column[Any],
+        c6: Column[Any],
+        c7: Column[Any],
+        c8: Column[Any],
+        c9: Column[Any],
+        /,
+    ) -> LazyFrame[Any]: ...
+    @overload
+    def select(
+        self,
+        c1: Column[Any],
+        c2: Column[Any],
+        c3: Column[Any],
+        c4: Column[Any],
+        c5: Column[Any],
+        c6: Column[Any],
+        c7: Column[Any],
+        c8: Column[Any],
+        c9: Column[Any],
+        c10: Column[Any],
         /,
     ) -> LazyFrame[Any]: ...
 

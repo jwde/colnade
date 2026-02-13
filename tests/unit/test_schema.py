@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import types
+import warnings
+from unittest.mock import patch
 
 from colnade import (
     Column,
@@ -210,3 +212,76 @@ class TestSchemaRegistry:
 
     def test_registry_values_are_classes(self) -> None:
         assert _schema_registry["Users"] is Users
+
+
+# ---------------------------------------------------------------------------
+# SchemaMeta robustness
+# ---------------------------------------------------------------------------
+
+
+class TestSchemaMetaRobustness:
+    def test_get_type_hints_primary_path_works(self) -> None:
+        """Normal schema creation uses get_type_hints() successfully."""
+
+        class Normal(Schema):
+            x: Column[UInt64]
+
+        assert "x" in Normal._columns
+        assert Normal.x.dtype is UInt64
+
+    def test_fallback_on_name_error_warns(self) -> None:
+        """When get_type_hints raises NameError, fallback triggers with warning."""
+        with (
+            patch("colnade.schema.typing.get_type_hints", side_effect=NameError("bad ref")),
+            warnings.catch_warnings(record=True) as w,
+        ):
+            warnings.simplefilter("always")
+
+            class Fallback(Schema):
+                val: Column[Utf8]
+
+            assert len(w) == 1
+            assert "get_type_hints() failed" in str(w[0].message)
+            assert "Fallback" in str(w[0].message)
+
+    def test_fallback_on_type_error_warns(self) -> None:
+        """When get_type_hints raises TypeError, fallback triggers with warning."""
+        with (
+            patch("colnade.schema.typing.get_type_hints", side_effect=TypeError("bad type")),
+            warnings.catch_warnings(record=True) as w,
+        ):
+            warnings.simplefilter("always")
+
+            class Fallback2(Schema):
+                val: Column[Utf8]
+
+            assert len(w) == 1
+            assert "get_type_hints() failed" in str(w[0].message)
+
+    def test_fallback_still_creates_columns(self) -> None:
+        """Fallback path still creates Column descriptors from raw annotations."""
+        with (
+            patch("colnade.schema.typing.get_type_hints", side_effect=NameError("x")),
+            warnings.catch_warnings(record=True),
+        ):
+            warnings.simplefilter("always")
+
+            class FallbackSchema(Schema):
+                name: Column[Utf8]
+                age: Column[UInt64]
+
+            assert "name" in FallbackSchema._columns
+            assert "age" in FallbackSchema._columns
+            assert FallbackSchema.name.name == "name"
+
+    def test_unexpected_exception_not_caught(self) -> None:
+        """Unexpected exceptions (not NameError/TypeError) propagate."""
+        with patch("colnade.schema.typing.get_type_hints", side_effect=RuntimeError("unexpected")):
+            try:
+
+                class BadSchema(Schema):
+                    val: Column[Utf8]
+
+                raise AssertionError("RuntimeError should have propagated")
+            except RuntimeError:
+                pass  # Expected

@@ -538,7 +538,7 @@ class ListAccessor(Generic[DType]):
 # ---------------------------------------------------------------------------
 
 
-class SchemaMeta(type(Protocol)):
+class SchemaMeta(type(Protocol)):  # type(Protocol) is typing._ProtocolMeta (CPython internal)
     """Metaclass for Schema that creates Column descriptors from annotations.
 
     At class creation time:
@@ -546,6 +546,11 @@ class SchemaMeta(type(Protocol)):
     2. Creates Column descriptor objects for each non-private field.
     3. Stores column descriptors in ``cls._columns``.
     4. Registers the schema in the internal registry.
+
+    Note: Inherits from ``type(Protocol)`` so that Schema subclasses are valid
+    Protocol types for structural subtyping. This resolves to ``_ProtocolMeta``,
+    a private CPython implementation detail. If this breaks on a future Python
+    version, replace with ``type`` and drop Protocol compatibility.
     """
 
     def __new__(
@@ -562,8 +567,17 @@ class SchemaMeta(type(Protocol)):
         # get_type_hints() traverses the MRO and resolves forward references.
         try:
             annotations: dict[str, Any] = typing.get_type_hints(cls, include_extras=True)
-        except Exception:
+        except (NameError, TypeError):
+            # NameError: unresolvable forward references
+            # TypeError: invalid annotation expressions
             # Fallback: collect raw annotations from MRO (base-first so children override)
+            import warnings
+
+            warnings.warn(
+                f"Schema {name!r}: get_type_hints() failed, falling back to raw annotations. "
+                "Forward references may not be resolved correctly.",
+                stacklevel=2,
+            )
             annotations = {}
             for base in reversed(cls.__mro__):
                 annotations.update(getattr(base, "__annotations__", {}))
