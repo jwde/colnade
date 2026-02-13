@@ -1,0 +1,159 @@
+"""Full pipeline: a complete ETL example.
+
+Demonstrates an end-to-end pipeline: read data, clean nulls, filter, join,
+aggregate, cast to output schema, and write results.
+"""
+
+from __future__ import annotations
+
+import tempfile
+from pathlib import Path
+
+import polars as pl
+
+from colnade import Column, DataFrame, Float64, Schema, UInt64, Utf8, mapped_from
+from colnade_polars import PolarsBackend, write_parquet
+from colnade_polars.io import read_parquet
+
+# ---------------------------------------------------------------------------
+# Schemas
+# ---------------------------------------------------------------------------
+
+
+class Users(Schema):
+    id: Column[UInt64]
+    name: Column[Utf8]
+    age: Column[UInt64]
+    score: Column[Float64]
+
+
+class Orders(Schema):
+    id: Column[UInt64]
+    user_id: Column[UInt64]
+    amount: Column[Float64]
+
+
+class UserRevenue(Schema):
+    """Output schema: per-user revenue summary."""
+
+    user_name: Column[Utf8] = mapped_from(Users.name)
+    user_id: Column[UInt64] = mapped_from(Users.id)
+    total_amount: Column[Float64]
+
+
+# ---------------------------------------------------------------------------
+# Generate sample data
+# ---------------------------------------------------------------------------
+
+tmp_dir = Path(tempfile.mkdtemp())
+
+users_data = pl.DataFrame(
+    {
+        "id": pl.Series(list(range(1, 11)), dtype=pl.UInt64),
+        "name": [
+            "Alice",
+            "Bob",
+            "Charlie",
+            "Diana",
+            "Eve",
+            "Frank",
+            "Grace",
+            "Henry",
+            "Iris",
+            "Jack",
+        ],
+        "age": pl.Series([30, 25, 35, 28, 40, 22, 33, 45, 27, 31], dtype=pl.UInt64),
+        "score": pl.Series(
+            [85.0, 92.5, None, 95.0, 88.0, 76.0, None, 91.0, 82.0, 79.0],
+            dtype=pl.Float64,
+        ),
+    }
+)
+users_path = str(tmp_dir / "users.parquet")
+users_data.write_parquet(users_path)
+
+orders_data = pl.DataFrame(
+    {
+        "id": pl.Series(list(range(1, 16)), dtype=pl.UInt64),
+        "user_id": pl.Series([1, 2, 1, 3, 5, 2, 8, 1, 4, 6, 3, 5, 9, 10, 7], dtype=pl.UInt64),
+        "amount": pl.Series(
+            [
+                100.0,
+                200.0,
+                150.0,
+                300.0,
+                75.0,
+                125.0,
+                450.0,
+                90.0,
+                175.0,
+                60.0,
+                220.0,
+                180.0,
+                95.0,
+                310.0,
+                140.0,
+            ],
+            dtype=pl.Float64,
+        ),
+    }
+)
+orders_path = str(tmp_dir / "orders.parquet")
+orders_data.write_parquet(orders_path)
+
+# ---------------------------------------------------------------------------
+# Pipeline
+# ---------------------------------------------------------------------------
+
+print("=== ETL Pipeline ===\n")
+
+# Step 1: Read typed data
+users = read_parquet(users_path, Users)
+orders = read_parquet(orders_path, Orders)
+print(f"Step 1: Read {users._data.shape[0]} users, {orders._data.shape[0]} orders")
+
+# Step 2: Clean nulls — fill missing scores with 0
+users_clean = users.with_columns(Users.score.fill_null(0.0).alias(Users.score))
+print(f"Step 2: Filled null scores (was {users._data['score'].null_count()} nulls)")
+
+# Step 3: Filter — only users aged 25+
+active_users = users_clean.filter(Users.age >= 25)
+print(f"Step 3: Filtered to {active_users._data.shape[0]} users aged 25+")
+
+# Step 4: Join users with orders
+joined = active_users.join(orders, on=Users.id == Orders.user_id)  # type: ignore[invalid-argument-type]
+print(f"Step 4: Joined — {joined._data.shape[0]} matched order rows")
+
+# Step 5: Aggregate — total amount per user
+# First cast to get user info, then aggregate
+user_orders = joined.cast_schema(
+    UserRevenue,
+    mapping={
+        UserRevenue.total_amount: Orders.amount,
+    },
+)
+
+# Use raw Polars for the aggregation since group_by returns DataFrame[Any]
+agg_data = user_orders._data.group_by("user_name", "user_id").agg(pl.col("total_amount").sum())
+revenue = DataFrame(_data=agg_data, _schema=UserRevenue, _backend=PolarsBackend())
+
+# Step 6: Sort by revenue descending
+result = revenue.sort(UserRevenue.total_amount, descending=True)
+print("Step 5-6: Aggregated and sorted by revenue")
+print()
+
+# Step 7: Display results
+print("=== User Revenue Report ===")
+print(result._data)
+print()
+
+# Step 8: Write output
+output_path = str(tmp_dir / "user_revenue.parquet")
+write_parquet(result, output_path)
+print(f"Step 8: Wrote results to {output_path}")
+
+# Step 9: Verify — read back and validate
+restored = read_parquet(output_path, UserRevenue)
+print(f"Step 9: Verified — read back {restored._data.shape[0]} rows")
+
+print("\nDone!")
