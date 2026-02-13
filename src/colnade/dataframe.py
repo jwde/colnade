@@ -245,8 +245,8 @@ class DataFrame(Generic[S]):
         return self
 
     def to_batches(self, batch_size: int | None = None) -> Any:
-        """Convert to Arrow batches."""
-        raise NotImplementedError("to_batches requires a backend adapter")
+        """Convert to Arrow batches (see #22)."""
+        raise NotImplementedError("to_batches requires PyArrow boundary support (#22)")
 
 
 # ---------------------------------------------------------------------------
