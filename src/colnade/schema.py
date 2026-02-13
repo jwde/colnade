@@ -46,6 +46,71 @@ S3 = TypeVar("S3", bound="Schema")
 _schema_registry: dict[str, type[Schema]] = {}
 
 # ---------------------------------------------------------------------------
+# _MappedFrom sentinel (for cast_schema resolution)
+# ---------------------------------------------------------------------------
+
+
+class _MappedFrom(Generic[DType]):
+    """Sentinel returned by ``mapped_from()``. Detected by SchemaMeta."""
+
+    __slots__ = ("source",)
+
+    def __init__(self, source: Column[DType]) -> None:
+        self.source = source
+
+
+def mapped_from(source: Column[DType]) -> Column[DType]:
+    """Declare a column's source for ``cast_schema()`` resolution.
+
+    Used in target schema definitions to map a column back to its source::
+
+        class UsersClean(Schema):
+            user_id: Column[UInt64] = mapped_from(Users.id)
+            name: Column[Utf8]
+    """
+    return _MappedFrom(source)  # type: ignore[return-value]
+
+
+# ---------------------------------------------------------------------------
+# SchemaError
+# ---------------------------------------------------------------------------
+
+
+class SchemaError(Exception):
+    """Raised when data does not conform to the declared schema."""
+
+    def __init__(
+        self,
+        *,
+        missing_columns: list[str] | None = None,
+        extra_columns: list[str] | None = None,
+        type_mismatches: dict[str, tuple[str, str]] | None = None,
+        null_violations: list[str] | None = None,
+    ) -> None:
+        self.missing_columns = missing_columns or []
+        self.extra_columns = extra_columns or []
+        self.type_mismatches = type_mismatches or {}
+        self.null_violations = null_violations or []
+        super().__init__(self._build_message())
+
+    def _build_message(self) -> str:
+        parts: list[str] = []
+        if self.missing_columns:
+            parts.append(f"Missing columns: {', '.join(self.missing_columns)}")
+        if self.extra_columns:
+            parts.append(f"Extra columns: {', '.join(self.extra_columns)}")
+        if self.type_mismatches:
+            mismatches = [
+                f"{col}: expected {exp}, got {got}"
+                for col, (exp, got) in self.type_mismatches.items()
+            ]
+            parts.append(f"Type mismatches: {'; '.join(mismatches)}")
+        if self.null_violations:
+            parts.append(f"Null violations: {', '.join(self.null_violations)}")
+        return " | ".join(parts) if parts else "Schema validation failed"
+
+
+# ---------------------------------------------------------------------------
 # Column descriptor
 # ---------------------------------------------------------------------------
 
@@ -69,15 +134,27 @@ class Column(Generic[DType]):
     tree nodes (AST) for backend translation.
     """
 
-    __slots__ = ("name", "dtype", "schema")
+    __slots__ = ("name", "dtype", "schema", "_mapped_from")
 
-    def __init__(self, name: str, dtype: Any, schema: type) -> None:
+    def __init__(
+        self,
+        name: str,
+        dtype: Any,
+        schema: type,
+        _mapped_from: Column[Any] | None = None,
+    ) -> None:
         self.name = name
         self.dtype = dtype
         self.schema = schema
+        self._mapped_from = _mapped_from
 
     def __repr__(self) -> str:
         return f"Column({self.name!r}, dtype={self.dtype}, schema={self.schema.__name__})"
+
+    def __hash__(self) -> int:
+        # Restore hashability after __eq__ override. Identity-based since
+        # each Column descriptor is a unique instance created by SchemaMeta.
+        return id(self)
 
     # --- Internal helpers ---
 
@@ -498,7 +575,14 @@ class SchemaMeta(type(Protocol)):
                 continue
             # Extract dtype from Column[DType] annotations
             dtype = _extract_dtype(col_type)
-            descriptor: Column[Any] = Column(name=col_name, dtype=dtype, schema=cls)
+            # Check for mapped_from() default in namespace
+            source_col: Column[Any] | None = None
+            default = namespace.get(col_name)
+            if isinstance(default, _MappedFrom):
+                source_col = default.source
+            descriptor: Column[Any] = Column(
+                name=col_name, dtype=dtype, schema=cls, _mapped_from=source_col
+            )
             setattr(cls, col_name, descriptor)
             columns[col_name] = descriptor
 

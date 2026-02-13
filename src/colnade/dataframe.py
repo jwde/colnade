@@ -16,13 +16,67 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Generic, overload
 
-from colnade.schema import S2, Column, S
+from colnade.schema import S2, S3, Column, S, Schema, SchemaError
 
 if TYPE_CHECKING:
     from typing import Literal
 
     from colnade.dtypes import Bool
     from colnade.expr import AliasedExpr, Expr, JoinCondition, SortExpr
+
+
+# ---------------------------------------------------------------------------
+# cast_schema resolution helper
+# ---------------------------------------------------------------------------
+
+
+def _resolve_mapping(
+    target_schema: type[Schema],
+    source_columns: dict[str, Column[Any]],
+    mapping: dict[Column[Any], Column[Any]] | None,
+    extra: Literal["drop", "forbid"],
+    ambiguous_names: set[str] | None = None,
+) -> dict[str, str]:
+    """Resolve target→source column name mapping.
+
+    Returns ``{target_name: source_name}``.
+    Raises :class:`SchemaError` on missing or (when ``extra="forbid"``) extra columns.
+
+    Resolution precedence per target column:
+    1. Explicit ``mapping`` dict
+    2. Target column's ``_mapped_from`` attribute
+    3. Name matching against source columns (skipped for ambiguous names)
+    """
+    result: dict[str, str] = {}
+    explicit = mapping or {}
+    ambiguous = ambiguous_names or set()
+    target_columns: dict[str, Column[Any]] = target_schema._columns
+
+    for target_name, target_col in target_columns.items():
+        # 1. Explicit mapping
+        if target_col in explicit:
+            result[target_name] = explicit[target_col].name
+            continue
+        # 2. mapped_from
+        if target_col._mapped_from is not None:
+            result[target_name] = target_col._mapped_from.name
+            continue
+        # 3. Name matching (not for ambiguous names in joined schemas)
+        if target_name in source_columns and target_name not in ambiguous:
+            result[target_name] = target_name
+            continue
+
+    missing = [name for name in target_columns if name not in result]
+    if missing:
+        raise SchemaError(missing_columns=missing)
+
+    if extra == "forbid":
+        used = set(result.values())
+        extra_cols = sorted(set(source_columns) - used)
+        if extra_cols:
+            raise SchemaError(extra_columns=extra_cols)
+
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -138,6 +192,25 @@ class DataFrame(Generic[S]):
             _schema_left=self._schema,
             _schema_right=other._schema,
         )
+
+    # --- Schema transition ---
+
+    def cast_schema(
+        self,
+        schema: type[S3],
+        mapping: dict[Column[Any], Column[Any]] | None = None,
+        extra: Literal["drop", "forbid"] = "drop",
+    ) -> DataFrame[S3]:
+        """Bind to a new schema via mapping resolution.
+
+        Resolution precedence per target column:
+        1. Explicit ``mapping`` dict
+        2. Target column's ``mapped_from()`` declaration
+        3. Name matching against source schema columns
+        """
+        if self._schema is not None:
+            _resolve_mapping(schema, self._schema._columns, mapping, extra)
+        return DataFrame(_data=self._data, _schema=schema)
 
     # --- Conversion ---
 
@@ -255,6 +328,19 @@ class LazyFrame(Generic[S]):
             _schema_left=self._schema,
             _schema_right=other._schema,
         )
+
+    # --- Schema transition ---
+
+    def cast_schema(
+        self,
+        schema: type[S3],
+        mapping: dict[Column[Any], Column[Any]] | None = None,
+        extra: Literal["drop", "forbid"] = "drop",
+    ) -> LazyFrame[S3]:
+        """Bind to a new schema via mapping resolution."""
+        if self._schema is not None:
+            _resolve_mapping(schema, self._schema._columns, mapping, extra)
+        return LazyFrame(_data=self._data, _schema=schema)
 
     # --- Materialization ---
 
@@ -472,6 +558,31 @@ class JoinedDataFrame(Generic[S, S2]):
         """Select columns. Returns DataFrame[Any] — use cast_schema() to bind."""
         return DataFrame(_data=self._data, _schema=None)
 
+    # --- Schema transition ---
+
+    def cast_schema(
+        self,
+        schema: type[S3],
+        mapping: dict[Column[Any], Column[Any]] | None = None,
+        extra: Literal["drop", "forbid"] = "drop",
+    ) -> DataFrame[S3]:
+        """Flatten join result into a single-schema DataFrame.
+
+        Source columns are merged from both schemas. Ambiguous names
+        (present in both schemas) require ``mapped_from()`` or explicit mapping.
+        """
+        source_columns: dict[str, Column[Any]] = {}
+        ambiguous: set[str] = set()
+        if self._schema_left is not None:
+            source_columns.update(self._schema_left._columns)
+        if self._schema_right is not None:
+            for name, col in self._schema_right._columns.items():
+                if name in source_columns:
+                    ambiguous.add(name)
+                source_columns[name] = col
+        _resolve_mapping(schema, source_columns, mapping, extra, ambiguous)
+        return DataFrame(_data=self._data, _schema=schema)
+
     # --- Conversion ---
 
     def lazy(self) -> JoinedLazyFrame[S, S2]:
@@ -600,6 +711,27 @@ class JoinedLazyFrame(Generic[S, S2]):
     def select(self, *columns: Column[Any]) -> LazyFrame[Any]:
         """Select columns. Returns LazyFrame[Any] — use cast_schema() to bind."""
         return LazyFrame(_data=self._data, _schema=None)
+
+    # --- Schema transition ---
+
+    def cast_schema(
+        self,
+        schema: type[S3],
+        mapping: dict[Column[Any], Column[Any]] | None = None,
+        extra: Literal["drop", "forbid"] = "drop",
+    ) -> LazyFrame[S3]:
+        """Flatten join result into a single-schema LazyFrame."""
+        source_columns: dict[str, Column[Any]] = {}
+        ambiguous: set[str] = set()
+        if self._schema_left is not None:
+            source_columns.update(self._schema_left._columns)
+        if self._schema_right is not None:
+            for name, col in self._schema_right._columns.items():
+                if name in source_columns:
+                    ambiguous.add(name)
+                source_columns[name] = col
+        _resolve_mapping(schema, source_columns, mapping, extra, ambiguous)
+        return LazyFrame(_data=self._data, _schema=schema)
 
     # --- Materialization ---
 
