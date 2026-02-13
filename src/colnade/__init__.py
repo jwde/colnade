@@ -50,13 +50,15 @@ from colnade.expr import (
     UnaryOp,
     lit,
 )
-from colnade.schema import Column, ListAccessor, Schema
+from colnade.schema import Column, ListAccessor, Schema, SchemaError, mapped_from
 
 __all__ = [
     # Schema layer
     "Schema",
     "Column",
     "ListAccessor",
+    "mapped_from",
+    "SchemaError",
     # DataFrame layer
     "DataFrame",
     "LazyFrame",
