@@ -221,12 +221,12 @@ assignable to `Column[UInt8]`
 
 ## Documentation
 
-Full documentation is available at [jwde.github.io/colnade](https://jwde.github.io/colnade/), including:
+Full documentation is available at [colnade.com](https://colnade.com/), including:
 
-- [Getting Started](https://jwde.github.io/colnade/getting-started/installation/) — installation and quick start
-- [User Guide](https://jwde.github.io/colnade/user-guide/core-concepts/) — concepts, schemas, expressions, joins
-- [Tutorials](https://jwde.github.io/colnade/tutorials/basic-usage/) — worked examples with real data
-- [API Reference](https://jwde.github.io/colnade/api/) — auto-generated from source
+- [Getting Started](https://colnade.com/getting-started/installation/) — installation and quick start
+- [User Guide](https://colnade.com/user-guide/core-concepts/) — concepts, schemas, expressions, joins
+- [Tutorials](https://colnade.com/tutorials/basic-usage/) — worked examples with real data
+- [API Reference](https://colnade.com/api/) — auto-generated from source
 
 ## Examples
 
