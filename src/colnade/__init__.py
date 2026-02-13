@@ -1,5 +1,6 @@
 """Colnade: A statically type-safe DataFrame abstraction layer."""
 
+from colnade._protocols import BackendProtocol
 from colnade.dataframe import (
     DataFrame,
     GroupBy,
@@ -53,6 +54,8 @@ from colnade.expr import (
 from colnade.schema import Column, ListAccessor, Schema, SchemaError, mapped_from
 
 __all__ = [
+    # Backend
+    "BackendProtocol",
     # Schema layer
     "Schema",
     "Column",
