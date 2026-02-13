@@ -1,8 +1,8 @@
 """DataFrame[S], LazyFrame[S], GroupBy, and untyped escape hatches.
 
-Typed DataFrame interfaces parameterized by Schema. At this stage these are
-interface definitions with stub method bodies — actual backend execution is
-delegated to a backend adapter (wired in Issue #9).
+Typed DataFrame interfaces parameterized by Schema. Operations delegate to a
+backend adapter when one is attached (via ``_backend``). When ``_backend`` is
+``None``, methods return stub frames (useful for type-level tests).
 
 Limitation: Column[DType] has a single type parameter (no schema binding),
 so methods like select(), sort(), group_by() accept Column[Any] and cannot
@@ -21,6 +21,7 @@ from colnade.schema import S2, S3, Column, S, Schema, SchemaError
 if TYPE_CHECKING:
     from typing import Literal
 
+    from colnade._protocols import BackendProtocol
     from colnade.dtypes import Bool
     from colnade.expr import AliasedExpr, Expr, JoinCondition, SortExpr
 
@@ -93,11 +94,18 @@ class DataFrame(Generic[S]):
     named output schema.
     """
 
-    __slots__ = ("_data", "_schema")
+    __slots__ = ("_data", "_schema", "_backend")
 
-    def __init__(self, *, _data: Any = None, _schema: type[Any] | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        _data: Any = None,
+        _schema: type[Any] | None = None,
+        _backend: BackendProtocol | None = None,
+    ) -> None:
         self._data = _data
         self._schema = _schema
+        self._backend = _backend
 
     def __repr__(self) -> str:
         schema_name = self._schema.__name__ if self._schema else "Any"
@@ -107,43 +115,48 @@ class DataFrame(Generic[S]):
 
     def filter(self, predicate: Expr[Bool]) -> DataFrame[S]:
         """Filter rows by a boolean expression."""
-        return DataFrame(_data=self._data, _schema=self._schema)
+        data = self._backend.filter(self._data, predicate) if self._backend else self._data
+        return DataFrame(_data=data, _schema=self._schema, _backend=self._backend)
 
     def sort(self, *columns: Column[Any] | SortExpr, descending: bool = False) -> DataFrame[S]:
         """Sort rows by columns or sort expressions."""
-        return DataFrame(_data=self._data, _schema=self._schema)
+        data = self._backend.sort(self._data, columns, descending) if self._backend else self._data
+        return DataFrame(_data=data, _schema=self._schema, _backend=self._backend)
 
     def limit(self, n: int) -> DataFrame[S]:
         """Limit to the first n rows."""
-        return DataFrame(_data=self._data, _schema=self._schema)
+        data = self._backend.limit(self._data, n) if self._backend else self._data
+        return DataFrame(_data=data, _schema=self._schema, _backend=self._backend)
 
     def head(self, n: int = 5) -> DataFrame[S]:
         """Return the first n rows (materialized only)."""
-        return DataFrame(_data=self._data, _schema=self._schema)
+        data = self._backend.head(self._data, n) if self._backend else self._data
+        return DataFrame(_data=data, _schema=self._schema, _backend=self._backend)
 
     def tail(self, n: int = 5) -> DataFrame[S]:
         """Return the last n rows (materialized only)."""
-        return DataFrame(_data=self._data, _schema=self._schema)
+        data = self._backend.tail(self._data, n) if self._backend else self._data
+        return DataFrame(_data=data, _schema=self._schema, _backend=self._backend)
 
     def sample(self, n: int) -> DataFrame[S]:
         """Return a random sample of n rows (materialized only)."""
-        return DataFrame(_data=self._data, _schema=self._schema)
+        data = self._backend.sample(self._data, n) if self._backend else self._data
+        return DataFrame(_data=data, _schema=self._schema, _backend=self._backend)
 
     def unique(self, *columns: Column[Any]) -> DataFrame[S]:
         """Remove duplicate rows based on the given columns."""
-        return DataFrame(_data=self._data, _schema=self._schema)
+        data = self._backend.unique(self._data, columns) if self._backend else self._data
+        return DataFrame(_data=data, _schema=self._schema, _backend=self._backend)
 
     def drop_nulls(self, *columns: Column[Any]) -> DataFrame[S]:
         """Drop rows with null values in the given columns."""
-        return DataFrame(_data=self._data, _schema=self._schema)
+        data = self._backend.drop_nulls(self._data, columns) if self._backend else self._data
+        return DataFrame(_data=data, _schema=self._schema, _backend=self._backend)
 
     def with_columns(self, *exprs: AliasedExpr[Any] | Expr[Any]) -> DataFrame[S]:
-        """Add or overwrite columns. Returns DataFrame[S] (optimistic).
-
-        Schema preservation is assumed — use ``cast_schema()`` to validate
-        and bind to a new schema if columns were added or changed types.
-        """
-        return DataFrame(_data=self._data, _schema=self._schema)
+        """Add or overwrite columns. Returns DataFrame[S] (optimistic)."""
+        data = self._backend.with_columns(self._data, exprs) if self._backend else self._data
+        return DataFrame(_data=data, _schema=self._schema, _backend=self._backend)
 
     # --- Schema-transforming operations (return DataFrame[Any]) ---
 
@@ -170,13 +183,14 @@ class DataFrame(Generic[S]):
 
     def select(self, *columns: Column[Any]) -> DataFrame[Any]:
         """Select columns. Returns DataFrame[Any] — use cast_schema() to bind."""
-        return DataFrame(_data=self._data, _schema=None)
+        data = self._backend.select(self._data, columns) if self._backend else self._data
+        return DataFrame(_data=data, _schema=None, _backend=self._backend)
 
     # --- GroupBy ---
 
     def group_by(self, *keys: Column[Any]) -> GroupBy[S]:
         """Group by columns for aggregation."""
-        return GroupBy(_data=self._data, _schema=self._schema, _keys=keys)
+        return GroupBy(_data=self._data, _schema=self._schema, _keys=keys, _backend=self._backend)
 
     # --- Join ---
 
@@ -187,10 +201,12 @@ class DataFrame(Generic[S]):
         how: Literal["inner", "left", "outer", "cross"] = "inner",
     ) -> JoinedDataFrame[S, S2]:
         """Join with another DataFrame on a JoinCondition."""
+        data = self._backend.join(self._data, other._data, on, how) if self._backend else self._data
         return JoinedDataFrame(
-            _data=self._data,
+            _data=data,
             _schema_left=self._schema,
             _schema_right=other._schema,
+            _backend=self._backend,
         )
 
     # --- Schema transition ---
@@ -201,36 +217,36 @@ class DataFrame(Generic[S]):
         mapping: dict[Column[Any], Column[Any]] | None = None,
         extra: Literal["drop", "forbid"] = "drop",
     ) -> DataFrame[S3]:
-        """Bind to a new schema via mapping resolution.
-
-        Resolution precedence per target column:
-        1. Explicit ``mapping`` dict
-        2. Target column's ``mapped_from()`` declaration
-        3. Name matching against source schema columns
-        """
+        """Bind to a new schema via mapping resolution."""
+        data = self._data
         if self._schema is not None:
-            _resolve_mapping(schema, self._schema._columns, mapping, extra)
-        return DataFrame(_data=self._data, _schema=schema)
+            name_map = _resolve_mapping(schema, self._schema._columns, mapping, extra)
+            if self._backend:
+                data = self._backend.cast_schema(data, name_map)
+        return DataFrame(_data=data, _schema=schema, _backend=self._backend)
 
     # --- Conversion ---
 
     def lazy(self) -> LazyFrame[S]:
         """Convert to a lazy query plan."""
-        return LazyFrame(_data=self._data, _schema=self._schema)
+        data = self._backend.lazy(self._data) if self._backend else self._data
+        return LazyFrame(_data=data, _schema=self._schema, _backend=self._backend)
 
     def untyped(self) -> UntypedDataFrame:
         """Drop type information — string-based escape hatch."""
         return UntypedDataFrame(_data=self._data)
 
-    # --- Boundary stubs (deferred to later issues) ---
+    # --- Validation ---
 
     def validate(self) -> DataFrame[S]:
-        """Validate that the data conforms to the schema (Issue #8)."""
+        """Validate that the data conforms to the schema."""
+        if self._backend and self._schema:
+            self._backend.validate_schema(self._data, self._schema)
         return self
 
     def to_batches(self, batch_size: int | None = None) -> Any:
-        """Convert to Arrow batches (Issue #9)."""
-        raise NotImplementedError("to_batches requires a backend adapter (Issue #9)")
+        """Convert to Arrow batches (see #22)."""
+        raise NotImplementedError("to_batches requires PyArrow boundary support (#22)")
 
 
 # ---------------------------------------------------------------------------
@@ -245,11 +261,18 @@ class LazyFrame(Generic[S]):
     to_batches() (materialized-only ops). Use collect() to materialize.
     """
 
-    __slots__ = ("_data", "_schema")
+    __slots__ = ("_data", "_schema", "_backend")
 
-    def __init__(self, *, _data: Any = None, _schema: type[Any] | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        _data: Any = None,
+        _schema: type[Any] | None = None,
+        _backend: BackendProtocol | None = None,
+    ) -> None:
         self._data = _data
         self._schema = _schema
+        self._backend = _backend
 
     def __repr__(self) -> str:
         schema_name = self._schema.__name__ if self._schema else "Any"
@@ -259,27 +282,33 @@ class LazyFrame(Generic[S]):
 
     def filter(self, predicate: Expr[Bool]) -> LazyFrame[S]:
         """Filter rows by a boolean expression."""
-        return LazyFrame(_data=self._data, _schema=self._schema)
+        data = self._backend.filter(self._data, predicate) if self._backend else self._data
+        return LazyFrame(_data=data, _schema=self._schema, _backend=self._backend)
 
     def sort(self, *columns: Column[Any] | SortExpr, descending: bool = False) -> LazyFrame[S]:
         """Sort rows by columns or sort expressions."""
-        return LazyFrame(_data=self._data, _schema=self._schema)
+        data = self._backend.sort(self._data, columns, descending) if self._backend else self._data
+        return LazyFrame(_data=data, _schema=self._schema, _backend=self._backend)
 
     def limit(self, n: int) -> LazyFrame[S]:
         """Limit to the first n rows."""
-        return LazyFrame(_data=self._data, _schema=self._schema)
+        data = self._backend.limit(self._data, n) if self._backend else self._data
+        return LazyFrame(_data=data, _schema=self._schema, _backend=self._backend)
 
     def unique(self, *columns: Column[Any]) -> LazyFrame[S]:
         """Remove duplicate rows based on the given columns."""
-        return LazyFrame(_data=self._data, _schema=self._schema)
+        data = self._backend.unique(self._data, columns) if self._backend else self._data
+        return LazyFrame(_data=data, _schema=self._schema, _backend=self._backend)
 
     def drop_nulls(self, *columns: Column[Any]) -> LazyFrame[S]:
         """Drop rows with null values in the given columns."""
-        return LazyFrame(_data=self._data, _schema=self._schema)
+        data = self._backend.drop_nulls(self._data, columns) if self._backend else self._data
+        return LazyFrame(_data=data, _schema=self._schema, _backend=self._backend)
 
     def with_columns(self, *exprs: AliasedExpr[Any] | Expr[Any]) -> LazyFrame[S]:
         """Add or overwrite columns. Returns LazyFrame[S] (optimistic)."""
-        return LazyFrame(_data=self._data, _schema=self._schema)
+        data = self._backend.with_columns(self._data, exprs) if self._backend else self._data
+        return LazyFrame(_data=data, _schema=self._schema, _backend=self._backend)
 
     # --- Schema-transforming operations (return LazyFrame[Any]) ---
 
@@ -306,13 +335,16 @@ class LazyFrame(Generic[S]):
 
     def select(self, *columns: Column[Any]) -> LazyFrame[Any]:
         """Select columns. Returns LazyFrame[Any] — use cast_schema() to bind."""
-        return LazyFrame(_data=self._data, _schema=None)
+        data = self._backend.select(self._data, columns) if self._backend else self._data
+        return LazyFrame(_data=data, _schema=None, _backend=self._backend)
 
     # --- GroupBy ---
 
     def group_by(self, *keys: Column[Any]) -> LazyGroupBy[S]:
         """Group by columns for aggregation."""
-        return LazyGroupBy(_data=self._data, _schema=self._schema, _keys=keys)
+        return LazyGroupBy(
+            _data=self._data, _schema=self._schema, _keys=keys, _backend=self._backend
+        )
 
     # --- Join ---
 
@@ -323,10 +355,12 @@ class LazyFrame(Generic[S]):
         how: Literal["inner", "left", "outer", "cross"] = "inner",
     ) -> JoinedLazyFrame[S, S2]:
         """Join with another LazyFrame on a JoinCondition."""
+        data = self._backend.join(self._data, other._data, on, how) if self._backend else self._data
         return JoinedLazyFrame(
-            _data=self._data,
+            _data=data,
             _schema_left=self._schema,
             _schema_right=other._schema,
+            _backend=self._backend,
         )
 
     # --- Schema transition ---
@@ -338,15 +372,19 @@ class LazyFrame(Generic[S]):
         extra: Literal["drop", "forbid"] = "drop",
     ) -> LazyFrame[S3]:
         """Bind to a new schema via mapping resolution."""
+        data = self._data
         if self._schema is not None:
-            _resolve_mapping(schema, self._schema._columns, mapping, extra)
-        return LazyFrame(_data=self._data, _schema=schema)
+            name_map = _resolve_mapping(schema, self._schema._columns, mapping, extra)
+            if self._backend:
+                data = self._backend.cast_schema(data, name_map)
+        return LazyFrame(_data=data, _schema=schema, _backend=self._backend)
 
     # --- Materialization ---
 
     def collect(self) -> DataFrame[S]:
         """Materialize the lazy query plan into a DataFrame."""
-        return DataFrame(_data=self._data, _schema=self._schema)
+        data = self._backend.collect(self._data) if self._backend else self._data
+        return DataFrame(_data=data, _schema=self._schema, _backend=self._backend)
 
     # --- Conversion ---
 
@@ -354,10 +392,10 @@ class LazyFrame(Generic[S]):
         """Drop type information — string-based escape hatch."""
         return UntypedLazyFrame(_data=self._data)
 
-    # --- Boundary stubs ---
+    # --- Validation ---
 
     def validate(self) -> LazyFrame[S]:
-        """Validate that the data conforms to the schema (Issue #8)."""
+        """Validate that the data conforms to the schema."""
         return self
 
 
@@ -367,13 +405,9 @@ class LazyFrame(Generic[S]):
 
 
 class GroupBy(Generic[S]):
-    """GroupBy on a materialized DataFrame.
+    """GroupBy on a materialized DataFrame."""
 
-    Created by ``DataFrame.group_by()``. Use ``.agg()`` to produce
-    aggregated results (returns ``DataFrame[Any]`` requiring ``cast_schema``).
-    """
-
-    __slots__ = ("_data", "_schema", "_keys")
+    __slots__ = ("_data", "_schema", "_keys", "_backend")
 
     def __init__(
         self,
@@ -381,24 +415,26 @@ class GroupBy(Generic[S]):
         _data: Any = None,
         _schema: type[Any] | None = None,
         _keys: tuple[Column[Any], ...] = (),
+        _backend: BackendProtocol | None = None,
     ) -> None:
         self._data = _data
         self._schema = _schema
         self._keys = _keys
+        self._backend = _backend
 
     def agg(self, *exprs: AliasedExpr[Any]) -> DataFrame[Any]:
         """Aggregate grouped data. Returns DataFrame[Any] — use cast_schema()."""
-        return DataFrame(_data=self._data, _schema=None)
+        if self._backend:
+            data = self._backend.group_by_agg(self._data, self._keys, exprs)
+        else:
+            data = self._data
+        return DataFrame(_data=data, _schema=None, _backend=self._backend)
 
 
 class LazyGroupBy(Generic[S]):
-    """GroupBy on a lazy query plan.
+    """GroupBy on a lazy query plan."""
 
-    Created by ``LazyFrame.group_by()``. Use ``.agg()`` to produce
-    aggregated results (returns ``LazyFrame[Any]`` requiring ``cast_schema``).
-    """
-
-    __slots__ = ("_data", "_schema", "_keys")
+    __slots__ = ("_data", "_schema", "_keys", "_backend")
 
     def __init__(
         self,
@@ -406,14 +442,20 @@ class LazyGroupBy(Generic[S]):
         _data: Any = None,
         _schema: type[Any] | None = None,
         _keys: tuple[Column[Any], ...] = (),
+        _backend: BackendProtocol | None = None,
     ) -> None:
         self._data = _data
         self._schema = _schema
         self._keys = _keys
+        self._backend = _backend
 
     def agg(self, *exprs: AliasedExpr[Any]) -> LazyFrame[Any]:
         """Aggregate grouped data. Returns LazyFrame[Any] — use cast_schema()."""
-        return LazyFrame(_data=self._data, _schema=None)
+        if self._backend:
+            data = self._backend.group_by_agg(self._data, self._keys, exprs)
+        else:
+            data = self._data
+        return LazyFrame(_data=data, _schema=None, _backend=self._backend)
 
 
 # ---------------------------------------------------------------------------
@@ -427,12 +469,9 @@ class JoinedDataFrame(Generic[S, S2]):
     Operations accept columns from either schema S or S2. Schema-preserving
     operations return ``JoinedDataFrame[S, S2]``. Schema-transforming operations
     (select) return ``DataFrame[Any]`` and require ``cast_schema()`` to bind.
-
-    Limitation: Column[DType] has no schema type parameter, so methods accept
-    ``Column[Any]`` — cannot statically enforce columns belong to S or S2.
     """
 
-    __slots__ = ("_data", "_schema_left", "_schema_right")
+    __slots__ = ("_data", "_schema_left", "_schema_right", "_backend")
 
     def __init__(
         self,
@@ -440,10 +479,12 @@ class JoinedDataFrame(Generic[S, S2]):
         _data: Any = None,
         _schema_left: type[Any] | None = None,
         _schema_right: type[Any] | None = None,
+        _backend: BackendProtocol | None = None,
     ) -> None:
         self._data = _data
         self._schema_left = _schema_left
         self._schema_right = _schema_right
+        self._backend = _backend
 
     def __repr__(self) -> str:
         left = self._schema_left.__name__ if self._schema_left else "Any"
@@ -452,79 +493,60 @@ class JoinedDataFrame(Generic[S, S2]):
 
     # --- Schema-preserving operations (return JoinedDataFrame[S, S2]) ---
 
-    def filter(self, predicate: Expr[Bool]) -> JoinedDataFrame[S, S2]:
-        """Filter rows by a boolean expression."""
+    def _joined(self, data: Any) -> JoinedDataFrame[S, S2]:
         return JoinedDataFrame(
-            _data=self._data,
+            _data=data,
             _schema_left=self._schema_left,
             _schema_right=self._schema_right,
+            _backend=self._backend,
         )
+
+    def filter(self, predicate: Expr[Bool]) -> JoinedDataFrame[S, S2]:
+        """Filter rows by a boolean expression."""
+        data = self._backend.filter(self._data, predicate) if self._backend else self._data
+        return self._joined(data)
 
     def sort(
         self, *columns: Column[Any] | SortExpr, descending: bool = False
     ) -> JoinedDataFrame[S, S2]:
         """Sort rows by columns or sort expressions."""
-        return JoinedDataFrame(
-            _data=self._data,
-            _schema_left=self._schema_left,
-            _schema_right=self._schema_right,
-        )
+        data = self._backend.sort(self._data, columns, descending) if self._backend else self._data
+        return self._joined(data)
 
     def limit(self, n: int) -> JoinedDataFrame[S, S2]:
         """Limit to the first n rows."""
-        return JoinedDataFrame(
-            _data=self._data,
-            _schema_left=self._schema_left,
-            _schema_right=self._schema_right,
-        )
+        data = self._backend.limit(self._data, n) if self._backend else self._data
+        return self._joined(data)
 
     def head(self, n: int = 5) -> JoinedDataFrame[S, S2]:
         """Return the first n rows (materialized only)."""
-        return JoinedDataFrame(
-            _data=self._data,
-            _schema_left=self._schema_left,
-            _schema_right=self._schema_right,
-        )
+        data = self._backend.head(self._data, n) if self._backend else self._data
+        return self._joined(data)
 
     def tail(self, n: int = 5) -> JoinedDataFrame[S, S2]:
         """Return the last n rows (materialized only)."""
-        return JoinedDataFrame(
-            _data=self._data,
-            _schema_left=self._schema_left,
-            _schema_right=self._schema_right,
-        )
+        data = self._backend.tail(self._data, n) if self._backend else self._data
+        return self._joined(data)
 
     def sample(self, n: int) -> JoinedDataFrame[S, S2]:
         """Return a random sample of n rows (materialized only)."""
-        return JoinedDataFrame(
-            _data=self._data,
-            _schema_left=self._schema_left,
-            _schema_right=self._schema_right,
-        )
+        data = self._backend.sample(self._data, n) if self._backend else self._data
+        return self._joined(data)
 
     def unique(self, *columns: Column[Any]) -> JoinedDataFrame[S, S2]:
         """Remove duplicate rows based on the given columns."""
-        return JoinedDataFrame(
-            _data=self._data,
-            _schema_left=self._schema_left,
-            _schema_right=self._schema_right,
-        )
+        data = self._backend.unique(self._data, columns) if self._backend else self._data
+        return self._joined(data)
 
     def drop_nulls(self, *columns: Column[Any]) -> JoinedDataFrame[S, S2]:
         """Drop rows with null values in the given columns."""
-        return JoinedDataFrame(
-            _data=self._data,
-            _schema_left=self._schema_left,
-            _schema_right=self._schema_right,
-        )
+        data = self._backend.drop_nulls(self._data, columns) if self._backend else self._data
+        return self._joined(data)
 
     def with_columns(self, *exprs: AliasedExpr[Any] | Expr[Any]) -> JoinedDataFrame[S, S2]:
         """Add or overwrite columns."""
-        return JoinedDataFrame(
-            _data=self._data,
-            _schema_left=self._schema_left,
-            _schema_right=self._schema_right,
-        )
+        data = self._backend.with_columns(self._data, exprs) if self._backend else self._data
+        return self._joined(data)
 
     # --- Schema-transforming operations (return DataFrame[Any]) ---
 
@@ -556,7 +578,8 @@ class JoinedDataFrame(Generic[S, S2]):
 
     def select(self, *columns: Column[Any]) -> DataFrame[Any]:
         """Select columns. Returns DataFrame[Any] — use cast_schema() to bind."""
-        return DataFrame(_data=self._data, _schema=None)
+        data = self._backend.select(self._data, columns) if self._backend else self._data
+        return DataFrame(_data=data, _schema=None, _backend=self._backend)
 
     # --- Schema transition ---
 
@@ -566,11 +589,7 @@ class JoinedDataFrame(Generic[S, S2]):
         mapping: dict[Column[Any], Column[Any]] | None = None,
         extra: Literal["drop", "forbid"] = "drop",
     ) -> DataFrame[S3]:
-        """Flatten join result into a single-schema DataFrame.
-
-        Source columns are merged from both schemas. Ambiguous names
-        (present in both schemas) require ``mapped_from()`` or explicit mapping.
-        """
+        """Flatten join result into a single-schema DataFrame."""
         source_columns: dict[str, Column[Any]] = {}
         ambiguous: set[str] = set()
         if self._schema_left is not None:
@@ -580,17 +599,22 @@ class JoinedDataFrame(Generic[S, S2]):
                 if name in source_columns:
                     ambiguous.add(name)
                 source_columns[name] = col
-        _resolve_mapping(schema, source_columns, mapping, extra, ambiguous)
-        return DataFrame(_data=self._data, _schema=schema)
+        name_map = _resolve_mapping(schema, source_columns, mapping, extra, ambiguous)
+        data = self._data
+        if self._backend:
+            data = self._backend.cast_schema(data, name_map)
+        return DataFrame(_data=data, _schema=schema, _backend=self._backend)
 
     # --- Conversion ---
 
     def lazy(self) -> JoinedLazyFrame[S, S2]:
         """Convert to a lazy query plan."""
+        data = self._backend.lazy(self._data) if self._backend else self._data
         return JoinedLazyFrame(
-            _data=self._data,
+            _data=data,
             _schema_left=self._schema_left,
             _schema_right=self._schema_right,
+            _backend=self._backend,
         )
 
     def untyped(self) -> UntypedDataFrame:
@@ -610,7 +634,7 @@ class JoinedLazyFrame(Generic[S, S2]):
     (materialized-only ops). Use collect() to materialize.
     """
 
-    __slots__ = ("_data", "_schema_left", "_schema_right")
+    __slots__ = ("_data", "_schema_left", "_schema_right", "_backend")
 
     def __init__(
         self,
@@ -618,10 +642,12 @@ class JoinedLazyFrame(Generic[S, S2]):
         _data: Any = None,
         _schema_left: type[Any] | None = None,
         _schema_right: type[Any] | None = None,
+        _backend: BackendProtocol | None = None,
     ) -> None:
         self._data = _data
         self._schema_left = _schema_left
         self._schema_right = _schema_right
+        self._backend = _backend
 
     def __repr__(self) -> str:
         left = self._schema_left.__name__ if self._schema_left else "Any"
@@ -630,55 +656,45 @@ class JoinedLazyFrame(Generic[S, S2]):
 
     # --- Schema-preserving operations (return JoinedLazyFrame[S, S2]) ---
 
-    def filter(self, predicate: Expr[Bool]) -> JoinedLazyFrame[S, S2]:
-        """Filter rows by a boolean expression."""
+    def _joined(self, data: Any) -> JoinedLazyFrame[S, S2]:
         return JoinedLazyFrame(
-            _data=self._data,
+            _data=data,
             _schema_left=self._schema_left,
             _schema_right=self._schema_right,
+            _backend=self._backend,
         )
+
+    def filter(self, predicate: Expr[Bool]) -> JoinedLazyFrame[S, S2]:
+        """Filter rows by a boolean expression."""
+        data = self._backend.filter(self._data, predicate) if self._backend else self._data
+        return self._joined(data)
 
     def sort(
         self, *columns: Column[Any] | SortExpr, descending: bool = False
     ) -> JoinedLazyFrame[S, S2]:
         """Sort rows by columns or sort expressions."""
-        return JoinedLazyFrame(
-            _data=self._data,
-            _schema_left=self._schema_left,
-            _schema_right=self._schema_right,
-        )
+        data = self._backend.sort(self._data, columns, descending) if self._backend else self._data
+        return self._joined(data)
 
     def limit(self, n: int) -> JoinedLazyFrame[S, S2]:
         """Limit to the first n rows."""
-        return JoinedLazyFrame(
-            _data=self._data,
-            _schema_left=self._schema_left,
-            _schema_right=self._schema_right,
-        )
+        data = self._backend.limit(self._data, n) if self._backend else self._data
+        return self._joined(data)
 
     def unique(self, *columns: Column[Any]) -> JoinedLazyFrame[S, S2]:
         """Remove duplicate rows based on the given columns."""
-        return JoinedLazyFrame(
-            _data=self._data,
-            _schema_left=self._schema_left,
-            _schema_right=self._schema_right,
-        )
+        data = self._backend.unique(self._data, columns) if self._backend else self._data
+        return self._joined(data)
 
     def drop_nulls(self, *columns: Column[Any]) -> JoinedLazyFrame[S, S2]:
         """Drop rows with null values in the given columns."""
-        return JoinedLazyFrame(
-            _data=self._data,
-            _schema_left=self._schema_left,
-            _schema_right=self._schema_right,
-        )
+        data = self._backend.drop_nulls(self._data, columns) if self._backend else self._data
+        return self._joined(data)
 
     def with_columns(self, *exprs: AliasedExpr[Any] | Expr[Any]) -> JoinedLazyFrame[S, S2]:
         """Add or overwrite columns."""
-        return JoinedLazyFrame(
-            _data=self._data,
-            _schema_left=self._schema_left,
-            _schema_right=self._schema_right,
-        )
+        data = self._backend.with_columns(self._data, exprs) if self._backend else self._data
+        return self._joined(data)
 
     # --- Schema-transforming operations (return LazyFrame[Any]) ---
 
@@ -710,7 +726,8 @@ class JoinedLazyFrame(Generic[S, S2]):
 
     def select(self, *columns: Column[Any]) -> LazyFrame[Any]:
         """Select columns. Returns LazyFrame[Any] — use cast_schema() to bind."""
-        return LazyFrame(_data=self._data, _schema=None)
+        data = self._backend.select(self._data, columns) if self._backend else self._data
+        return LazyFrame(_data=data, _schema=None, _backend=self._backend)
 
     # --- Schema transition ---
 
@@ -730,17 +747,22 @@ class JoinedLazyFrame(Generic[S, S2]):
                 if name in source_columns:
                     ambiguous.add(name)
                 source_columns[name] = col
-        _resolve_mapping(schema, source_columns, mapping, extra, ambiguous)
-        return LazyFrame(_data=self._data, _schema=schema)
+        name_map = _resolve_mapping(schema, source_columns, mapping, extra, ambiguous)
+        data = self._data
+        if self._backend:
+            data = self._backend.cast_schema(data, name_map)
+        return LazyFrame(_data=data, _schema=schema, _backend=self._backend)
 
     # --- Materialization ---
 
     def collect(self) -> JoinedDataFrame[S, S2]:
         """Materialize the lazy query plan into a JoinedDataFrame."""
+        data = self._backend.collect(self._data) if self._backend else self._data
         return JoinedDataFrame(
-            _data=self._data,
+            _data=data,
             _schema_left=self._schema_left,
             _schema_right=self._schema_right,
+            _backend=self._backend,
         )
 
     # --- Conversion ---
@@ -756,11 +778,7 @@ class JoinedLazyFrame(Generic[S, S2]):
 
 
 class UntypedDataFrame:
-    """A DataFrame with no schema parameter. String-based column access.
-
-    Created by ``DataFrame.untyped()``. Use ``to_typed()`` to re-enter
-    the typed world (performs runtime validation when backend is wired).
-    """
+    """A DataFrame with no schema parameter. String-based column access."""
 
     __slots__ = ("_data",)
 
@@ -796,16 +814,12 @@ class UntypedDataFrame:
         return UntypedDataFrame(_data=self._data)
 
     def to_typed(self, schema: type[S]) -> DataFrame[S]:
-        """Bind to a schema. Performs runtime validation (when backend is wired)."""
+        """Bind to a schema."""
         return DataFrame(_data=self._data, _schema=schema)
 
 
 class UntypedLazyFrame:
-    """A LazyFrame with no schema parameter. String-based column access.
-
-    Created by ``LazyFrame.untyped()``. Use ``to_typed()`` to re-enter
-    the typed world (performs runtime validation when backend is wired).
-    """
+    """A LazyFrame with no schema parameter. String-based column access."""
 
     __slots__ = ("_data",)
 
@@ -837,5 +851,5 @@ class UntypedLazyFrame:
         return UntypedDataFrame(_data=self._data)
 
     def to_typed(self, schema: type[S]) -> LazyFrame[S]:
-        """Bind to a schema. Performs runtime validation (when backend is wired)."""
+        """Bind to a schema."""
         return LazyFrame(_data=self._data, _schema=schema)

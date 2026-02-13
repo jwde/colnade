@@ -1,1 +1,75 @@
 """Backend protocols (what adapters must implement)."""
+
+from __future__ import annotations
+
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Any, Protocol
+
+if TYPE_CHECKING:
+    from colnade.expr import AliasedExpr, Expr, JoinCondition, SortExpr
+    from colnade.schema import Column, Schema
+
+
+class BackendProtocol(Protocol):
+    """Interface that all backend adapters must implement.
+
+    Each method takes backend-native data (``Any``) as ``source`` and returns
+    backend-native data. The DataFrame/LazyFrame layer wraps results in typed
+    frame instances.
+    """
+
+    # --- Expression translation ---
+
+    def translate_expr(self, expr: Expr[Any]) -> Any:
+        """Translate a Colnade expression AST to a backend-native expression."""
+        ...
+
+    # --- Schema-preserving operations ---
+
+    def filter(self, source: Any, predicate: Expr[Any]) -> Any: ...
+
+    def sort(
+        self,
+        source: Any,
+        by: Sequence[Column[Any] | SortExpr],
+        descending: bool,
+    ) -> Any: ...
+
+    def limit(self, source: Any, n: int) -> Any: ...
+
+    def head(self, source: Any, n: int) -> Any: ...
+
+    def tail(self, source: Any, n: int) -> Any: ...
+
+    def sample(self, source: Any, n: int) -> Any: ...
+
+    def unique(self, source: Any, columns: Sequence[Column[Any]]) -> Any: ...
+
+    def drop_nulls(self, source: Any, columns: Sequence[Column[Any]]) -> Any: ...
+
+    def with_columns(self, source: Any, exprs: Sequence[AliasedExpr[Any] | Expr[Any]]) -> Any: ...
+
+    # --- Schema-transforming operations ---
+
+    def select(self, source: Any, columns: Sequence[Column[Any]]) -> Any: ...
+
+    def group_by_agg(
+        self,
+        source: Any,
+        keys: Sequence[Column[Any]],
+        aggs: Sequence[AliasedExpr[Any]],
+    ) -> Any: ...
+
+    def join(self, left: Any, right: Any, on: JoinCondition, how: str) -> Any: ...
+
+    def cast_schema(self, source: Any, column_mapping: dict[str, str]) -> Any: ...
+
+    # --- Lazy / collect ---
+
+    def lazy(self, source: Any) -> Any: ...
+
+    def collect(self, source: Any) -> Any: ...
+
+    # --- Validation ---
+
+    def validate_schema(self, source: Any, schema: type[Schema]) -> None: ...
