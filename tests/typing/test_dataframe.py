@@ -193,3 +193,93 @@ def check_neg_groupby_schema_distinct() -> None:
     """GroupBy[Users] is NOT assignable to GroupBy[AgeStats]."""
     gb: GroupBy[Users] = GroupBy(_schema=Users)
     _: GroupBy[AgeStats] = gb  # type: ignore[invalid-assignment]
+
+
+# ---------------------------------------------------------------------------
+# Schema-preservation guards — detect if return types regress to Any
+#
+# These are CRITICAL. If a schema-preserving operation like filter()
+# regressed from returning DataFrame[S] to DataFrame[Any], the positive
+# tests above would STILL PASS (because Any is compatible with everything).
+# These negative tests catch that: if the return type widens to Any, the
+# assignment to a WRONG schema succeeds, the type: ignore becomes unused,
+# and --error-on-warning fails CI.
+# ---------------------------------------------------------------------------
+
+
+def check_neg_filter_preserves_exact_schema() -> None:
+    """filter() returns DataFrame[Users], NOT DataFrame[Any] or DataFrame[AgeStats]."""
+    df: DataFrame[Users] = DataFrame(_schema=Users)
+    result = df.filter(Users.age > 18)
+    _: DataFrame[AgeStats] = result  # type: ignore[invalid-assignment]
+
+
+def check_neg_sort_preserves_exact_schema() -> None:
+    """sort() returns DataFrame[Users], NOT DataFrame[Any]."""
+    df: DataFrame[Users] = DataFrame(_schema=Users)
+    result = df.sort(Users.name)
+    _: DataFrame[AgeStats] = result  # type: ignore[invalid-assignment]
+
+
+def check_neg_with_columns_preserves_exact_schema() -> None:
+    """with_columns() returns DataFrame[Users], NOT DataFrame[Any]."""
+    df: DataFrame[Users] = DataFrame(_schema=Users)
+    result = df.with_columns(Users.age + 1)
+    _: DataFrame[AgeStats] = result  # type: ignore[invalid-assignment]
+
+
+def check_neg_lazy_filter_preserves_exact_schema() -> None:
+    """LazyFrame.filter() returns LazyFrame[Users], NOT LazyFrame[Any]."""
+    lf: LazyFrame[Users] = LazyFrame(_schema=Users)
+    result = lf.filter(Users.age > 18)
+    _: LazyFrame[AgeStats] = result  # type: ignore[invalid-assignment]
+
+
+def check_neg_lazy_preserves_schema() -> None:
+    """lazy() returns LazyFrame[Users], NOT LazyFrame[Any]."""
+    df: DataFrame[Users] = DataFrame(_schema=Users)
+    result = df.lazy()
+    _: LazyFrame[AgeStats] = result  # type: ignore[invalid-assignment]
+
+
+def check_neg_collect_preserves_schema() -> None:
+    """collect() returns DataFrame[Users], NOT DataFrame[Any]."""
+    lf: LazyFrame[Users] = LazyFrame(_schema=Users)
+    result = lf.collect()
+    _: DataFrame[AgeStats] = result  # type: ignore[invalid-assignment]
+
+
+def check_neg_validate_preserves_exact_schema() -> None:
+    """validate() returns DataFrame[Users], NOT DataFrame[Any]."""
+    df: DataFrame[Users] = DataFrame(_schema=Users)
+    result = df.validate()
+    _: DataFrame[AgeStats] = result  # type: ignore[invalid-assignment]
+
+
+# ---------------------------------------------------------------------------
+# Additional frame type boundaries
+# ---------------------------------------------------------------------------
+
+
+def check_neg_lazyframe_schema_invariant() -> None:
+    """LazyFrame[Users] is NOT assignable to LazyFrame[AgeStats]."""
+    lf: LazyFrame[Users] = LazyFrame(_schema=Users)
+    _: LazyFrame[AgeStats] = lf  # type: ignore[invalid-assignment]
+
+
+def check_neg_untyped_lazy_not_lazyframe() -> None:
+    """UntypedLazyFrame is NOT assignable to LazyFrame[Users]."""
+    ulf = UntypedLazyFrame()
+    _: LazyFrame[Users] = ulf  # type: ignore[invalid-assignment]
+
+
+def check_neg_groupby_not_dataframe() -> None:
+    """GroupBy[Users] is NOT assignable to DataFrame[Users]."""
+    gb: GroupBy[Users] = GroupBy(_schema=Users)
+    _: DataFrame[Users] = gb  # type: ignore[invalid-assignment]
+
+
+def check_neg_lazy_groupby_not_lazyframe() -> None:
+    """LazyGroupBy[Users] is NOT assignable to LazyFrame[Users]."""
+    lgb: LazyGroupBy[Users] = LazyGroupBy(_schema=Users)
+    _: LazyFrame[Users] = lgb  # type: ignore[invalid-assignment]

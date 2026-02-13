@@ -288,3 +288,75 @@ def check_neg_expr_comparison_returns_bool() -> None:
     """Expr chaining: comparison on Expr also returns BinOp[Bool]."""
     e = Users.id + 1  # BinOp[UInt64]
     _: BinOp[UInt64] = e > 18  # type: ignore[invalid-assignment]
+
+
+# ---------------------------------------------------------------------------
+# Additional return type guards — every Column method's return type is pinned
+# ---------------------------------------------------------------------------
+
+
+def check_neg_std_returns_float64() -> None:
+    """std() returns Agg[Float64], NOT Agg of the column's dtype."""
+    _: Agg[UInt64] = Users.id.std()  # type: ignore[invalid-assignment]
+
+
+def check_neg_var_returns_float64() -> None:
+    """var() returns Agg[Float64], NOT Agg of the column's dtype."""
+    _: Agg[UInt64] = Users.id.var()  # type: ignore[invalid-assignment]
+
+
+def check_neg_first_preserves_dtype() -> None:
+    """first() preserves DType — Agg[Utf8] not assignable to Agg[Float64]."""
+    _: Agg[Float64] = Users.name.first()  # type: ignore[invalid-assignment]
+
+
+def check_neg_last_preserves_dtype() -> None:
+    """last() preserves DType — Agg[Utf8] not assignable to Agg[Float64]."""
+    _: Agg[Float64] = Users.name.last()  # type: ignore[invalid-assignment]
+
+
+def check_neg_n_unique_returns_uint32() -> None:
+    """n_unique() returns Agg[UInt32], NOT Agg of the column's dtype."""
+    _: Agg[UInt64] = Users.id.n_unique()  # type: ignore[invalid-assignment]
+
+
+def check_neg_str_to_lowercase_returns_utf8() -> None:
+    """str_to_lowercase returns FunctionCall[Utf8], NOT FunctionCall[Bool]."""
+    _: FunctionCall[Bool] = Users.name.str_to_lowercase()  # type: ignore[invalid-assignment]
+
+
+def check_neg_dt_truncate_returns_datetime() -> None:
+    """dt_truncate returns FunctionCall[Datetime], NOT FunctionCall[Int32]."""
+    _: FunctionCall[Int32] = Users.created_at.dt_truncate("1d")  # type: ignore[invalid-assignment]
+
+
+def check_neg_fill_null_preserves_dtype() -> None:
+    """fill_null preserves DType — not assignable to wrong type."""
+    _: FunctionCall[Bool] = Users.age.fill_null(0)  # type: ignore[invalid-assignment]
+
+
+def check_neg_fill_nan_preserves_dtype() -> None:
+    """fill_nan preserves DType — not assignable to wrong type."""
+    _: FunctionCall[Bool] = Users.score.fill_nan(0.0)  # type: ignore[invalid-assignment]
+
+
+def check_neg_over_preserves_dtype() -> None:
+    """over() preserves DType — not assignable to wrong type."""
+    _: FunctionCall[Bool] = Users.id.over(Users.name)  # type: ignore[invalid-assignment]
+
+
+def check_neg_negation_preserves_dtype() -> None:
+    """Negation preserves DType — UnaryOp[UInt64] not assignable to UnaryOp[Bool]."""
+    _: UnaryOp[Bool] = -Users.id  # type: ignore[invalid-assignment]
+
+
+def check_neg_sort_expr_not_expr() -> None:
+    """SortExpr is NOT an Expr — it's a separate type for sort specifications."""
+    s: SortExpr = Users.id.desc()
+    _: Expr[object] = s  # type: ignore[invalid-assignment]
+
+
+def check_neg_logical_and_preserves_dtype() -> None:
+    """Logical & preserves DType — BinOp[Bool] & BinOp[Bool] stays Bool."""
+    e = Users.id > 18  # BinOp[Bool]
+    _: BinOp[UInt64] = e & e  # type: ignore[invalid-assignment]
