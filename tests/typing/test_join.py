@@ -158,3 +158,28 @@ def check_neg_joined_order_matters() -> None:
     """JoinedDataFrame[Users, Orders] is NOT assignable to JoinedDataFrame[Orders, Users]."""
     j: JoinedDataFrame[Users, Orders] = JoinedDataFrame(_schema_left=Users, _schema_right=Orders)
     _: JoinedDataFrame[Orders, Users] = j  # type: ignore[invalid-assignment]
+
+
+def check_neg_joined_lazy_order_matters() -> None:
+    """JoinedLazyFrame[Users, Orders] is NOT assignable to JoinedLazyFrame[Orders, Users]."""
+    jl: JoinedLazyFrame[Users, Orders] = JoinedLazyFrame(_schema_left=Users, _schema_right=Orders)
+    _: JoinedLazyFrame[Orders, Users] = jl  # type: ignore[invalid-assignment]
+
+
+# ---------------------------------------------------------------------------
+# Schema-preservation guards — detect if return types regress to Any
+# ---------------------------------------------------------------------------
+
+
+def check_neg_joined_filter_preserves_exact_type() -> None:
+    """JoinedDataFrame.filter() returns exact joined type, NOT JoinedDataFrame[Any, Any]."""
+    j: JoinedDataFrame[Users, Orders] = JoinedDataFrame(_schema_left=Users, _schema_right=Orders)
+    result = j.filter(Users.age > 18)
+    _: JoinedDataFrame[Orders, Users] = result  # type: ignore[invalid-assignment]
+
+
+def check_neg_joined_lazy_collect_preserves_type() -> None:
+    """JoinedLazyFrame.collect() returns exact joined type."""
+    jl: JoinedLazyFrame[Users, Orders] = JoinedLazyFrame(_schema_left=Users, _schema_right=Orders)
+    result = jl.collect()
+    _: JoinedDataFrame[Orders, Users] = result  # type: ignore[invalid-assignment]
