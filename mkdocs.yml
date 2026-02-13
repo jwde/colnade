@@ -1,6 +1,6 @@
 site_name: Colnade
 site_description: A statically type-safe DataFrame abstraction layer for Python
-site_url: https://jwde.github.io/colnade/
+site_url: https://colnade.com/
 repo_url: https://github.com/jwde/colnade
 repo_name: jwde/colnade
 
