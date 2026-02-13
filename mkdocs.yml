@@ -1,0 +1,94 @@
+site_name: Colnade
+site_description: A statically type-safe DataFrame abstraction layer for Python
+site_url: https://jwde.github.io/colnade/
+repo_url: https://github.com/jwde/colnade
+repo_name: jwde/colnade
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.tracking
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths:
+            - src
+            - colnade-polars/src
+          options:
+            show_source: false
+            show_root_heading: true
+            show_root_full_path: false
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            members_order: source
+            merge_init_into_class: true
+            signature_crossrefs: true
+            docstring_style: google
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - admonition
+  - pymdownx.details
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Installation: getting-started/installation.md
+      - Quick Start: getting-started/quick-start.md
+  - User Guide:
+      - Core Concepts: user-guide/core-concepts.md
+      - Schemas: user-guide/schemas.md
+      - DataFrames: user-guide/dataframes.md
+      - Expressions: user-guide/expressions.md
+      - Joins: user-guide/joins.md
+      - Nested Types: user-guide/nested-types.md
+      - Type Checker Integration: user-guide/type-checking.md
+  - Tutorials:
+      - Basic Usage: tutorials/basic-usage.md
+      - Null Handling: tutorials/null-handling.md
+      - Joins: tutorials/joins.md
+      - Generic Functions: tutorials/generic-functions.md
+      - Nested Types: tutorials/nested-types.md
+      - Full Pipeline: tutorials/full-pipeline.md
+  - API Reference:
+      - Overview: api/index.md
+      - colnade.schema: api/schema.md
+      - colnade.dataframe: api/dataframe.md
+      - colnade.expr: api/expressions.md
+      - colnade.dtypes: api/types.md
+      - colnade_polars: api/polars.md
+  - Comparison: comparison.md

@@ -22,6 +22,10 @@ dev-dependencies = [
     "ruff>=0.4",
     "ty>=0.0.1",
     "colnade-polars",
+    # Documentation
+    "mkdocs>=1.5",
+    "mkdocs-material>=9.5",
+    "mkdocstrings[python]>=0.24",
 ]
 
 [tool.uv.workspace]

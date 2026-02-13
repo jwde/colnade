@@ -219,9 +219,14 @@ assignable to `Column[UInt8]`
 | Generic utility functions | Yes | No | No | No |
 | Struct/List typed access | Yes | No | No | No |
 
-## API Reference
+## Documentation
 
-See [docs/api_reference.md](docs/api_reference.md) for the full API reference.
+Full documentation is available at [jwde.github.io/colnade](https://jwde.github.io/colnade/), including:
+
+- [Getting Started](https://jwde.github.io/colnade/getting-started/installation/) — installation and quick start
+- [User Guide](https://jwde.github.io/colnade/user-guide/core-concepts/) — concepts, schemas, expressions, joins
+- [Tutorials](https://jwde.github.io/colnade/tutorials/basic-usage/) — worked examples with real data
+- [API Reference](https://jwde.github.io/colnade/api/) — auto-generated from source
 
 ## Examples
 
