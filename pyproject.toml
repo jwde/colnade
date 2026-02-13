@@ -4,9 +4,31 @@ version = "0.1.0"
 description = "A statically type-safe DataFrame abstraction layer"
 requires-python = ">=3.10"
 license = "MIT"
+readme = "README.md"
+authors = [
+    { name = "jwde" },
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Typing :: Typed",
+    "Topic :: Software Development :: Libraries",
+]
 dependencies = [
     "typing_extensions>=4.0",
 ]
+
+[project.urls]
+Homepage = "https://colnade.com"
+Documentation = "https://colnade.com"
+Repository = "https://github.com/jwde/colnade"
+Issues = "https://github.com/jwde/colnade/issues"
 
 [build-system]
 requires = ["hatchling"]
