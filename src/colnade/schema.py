@@ -21,6 +21,7 @@ if TYPE_CHECKING:
         BinOp,
         ColumnRef,
         FunctionCall,
+        JoinCondition,
         ListOp,
         SortExpr,
         StructFieldAccess,
@@ -120,7 +121,11 @@ class Column(Generic[DType]):
     def __le__(self, other: Any) -> BinOp[Bool]:
         return self._binop(other, "<=")
 
-    def __eq__(self, other: Any) -> BinOp[Bool]:  # type: ignore[override]
+    def __eq__(self, other: Any) -> BinOp[Bool] | JoinCondition:  # type: ignore[override]
+        if isinstance(other, Column) and self.schema is not other.schema:
+            from colnade.expr import JoinCondition as _JoinCondition
+
+            return _JoinCondition(left=self, right=other)
         return self._binop(other, "==")
 
     def __ne__(self, other: Any) -> BinOp[Bool]:  # type: ignore[override]

@@ -3,6 +3,8 @@
 from colnade.dataframe import (
     DataFrame,
     GroupBy,
+    JoinedDataFrame,
+    JoinedLazyFrame,
     LazyFrame,
     LazyGroupBy,
     UntypedDataFrame,
@@ -40,6 +42,7 @@ from colnade.expr import (
     ColumnRef,
     Expr,
     FunctionCall,
+    JoinCondition,
     ListOp,
     Literal,
     SortExpr,
@@ -59,6 +62,8 @@ __all__ = [
     "LazyFrame",
     "GroupBy",
     "LazyGroupBy",
+    "JoinedDataFrame",
+    "JoinedLazyFrame",
     "UntypedDataFrame",
     "UntypedLazyFrame",
     # Expression DSL
@@ -73,6 +78,7 @@ __all__ = [
     "SortExpr",
     "StructFieldAccess",
     "ListOp",
+    "JoinCondition",
     "lit",
     # Type categories
     "NumericType",
