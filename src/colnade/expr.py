@@ -269,6 +269,31 @@ class ListOp(Expr[DType]):
 
 
 # ---------------------------------------------------------------------------
+# Join condition (not an Expr — a join predicate)
+# ---------------------------------------------------------------------------
+
+
+class JoinCondition:
+    """A join predicate from comparing columns of two different schemas.
+
+    Created by ``Column.__eq__`` when the two columns belong to different
+    schemas::
+
+        Users.id == Orders.user_id  # → JoinCondition
+        Users.age == Users.score    # → BinOp[Bool] (same schema)
+    """
+
+    __slots__ = ("left", "right")
+
+    def __init__(self, left: Column[Any], right: Column[Any]) -> None:
+        self.left = left
+        self.right = right
+
+    def __repr__(self) -> str:
+        return f"JoinCondition({self.left.name!r} == {self.right.name!r})"
+
+
+# ---------------------------------------------------------------------------
 # Helper
 # ---------------------------------------------------------------------------
 

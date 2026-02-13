@@ -16,11 +16,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Generic, overload
 
-from colnade.schema import Column, S
+from colnade.schema import S2, Column, S
 
 if TYPE_CHECKING:
+    from typing import Literal
+
     from colnade.dtypes import Bool
-    from colnade.expr import AliasedExpr, Expr, SortExpr
+    from colnade.expr import AliasedExpr, Expr, JoinCondition, SortExpr
 
 
 # ---------------------------------------------------------------------------
@@ -121,6 +123,21 @@ class DataFrame(Generic[S]):
     def group_by(self, *keys: Column[Any]) -> GroupBy[S]:
         """Group by columns for aggregation."""
         return GroupBy(_data=self._data, _schema=self._schema, _keys=keys)
+
+    # --- Join ---
+
+    def join(
+        self,
+        other: DataFrame[S2],
+        on: JoinCondition,
+        how: Literal["inner", "left", "outer", "cross"] = "inner",
+    ) -> JoinedDataFrame[S, S2]:
+        """Join with another DataFrame on a JoinCondition."""
+        return JoinedDataFrame(
+            _data=self._data,
+            _schema_left=self._schema,
+            _schema_right=other._schema,
+        )
 
     # --- Conversion ---
 
@@ -224,6 +241,21 @@ class LazyFrame(Generic[S]):
         """Group by columns for aggregation."""
         return LazyGroupBy(_data=self._data, _schema=self._schema, _keys=keys)
 
+    # --- Join ---
+
+    def join(
+        self,
+        other: LazyFrame[S2],
+        on: JoinCondition,
+        how: Literal["inner", "left", "outer", "cross"] = "inner",
+    ) -> JoinedLazyFrame[S, S2]:
+        """Join with another LazyFrame on a JoinCondition."""
+        return JoinedLazyFrame(
+            _data=self._data,
+            _schema_left=self._schema,
+            _schema_right=other._schema,
+        )
+
     # --- Materialization ---
 
     def collect(self) -> DataFrame[S]:
@@ -296,6 +328,294 @@ class LazyGroupBy(Generic[S]):
     def agg(self, *exprs: AliasedExpr[Any]) -> LazyFrame[Any]:
         """Aggregate grouped data. Returns LazyFrame[Any] — use cast_schema()."""
         return LazyFrame(_data=self._data, _schema=None)
+
+
+# ---------------------------------------------------------------------------
+# JoinedDataFrame[S, S2] — result of joining two DataFrames
+# ---------------------------------------------------------------------------
+
+
+class JoinedDataFrame(Generic[S, S2]):
+    """A typed DataFrame resulting from a join of two schemas.
+
+    Operations accept columns from either schema S or S2. Schema-preserving
+    operations return ``JoinedDataFrame[S, S2]``. Schema-transforming operations
+    (select) return ``DataFrame[Any]`` and require ``cast_schema()`` to bind.
+
+    Limitation: Column[DType] has no schema type parameter, so methods accept
+    ``Column[Any]`` — cannot statically enforce columns belong to S or S2.
+    """
+
+    __slots__ = ("_data", "_schema_left", "_schema_right")
+
+    def __init__(
+        self,
+        *,
+        _data: Any = None,
+        _schema_left: type[Any] | None = None,
+        _schema_right: type[Any] | None = None,
+    ) -> None:
+        self._data = _data
+        self._schema_left = _schema_left
+        self._schema_right = _schema_right
+
+    def __repr__(self) -> str:
+        left = self._schema_left.__name__ if self._schema_left else "Any"
+        right = self._schema_right.__name__ if self._schema_right else "Any"
+        return f"JoinedDataFrame[{left}, {right}]"
+
+    # --- Schema-preserving operations (return JoinedDataFrame[S, S2]) ---
+
+    def filter(self, predicate: Expr[Bool]) -> JoinedDataFrame[S, S2]:
+        """Filter rows by a boolean expression."""
+        return JoinedDataFrame(
+            _data=self._data,
+            _schema_left=self._schema_left,
+            _schema_right=self._schema_right,
+        )
+
+    def sort(
+        self, *columns: Column[Any] | SortExpr, descending: bool = False
+    ) -> JoinedDataFrame[S, S2]:
+        """Sort rows by columns or sort expressions."""
+        return JoinedDataFrame(
+            _data=self._data,
+            _schema_left=self._schema_left,
+            _schema_right=self._schema_right,
+        )
+
+    def limit(self, n: int) -> JoinedDataFrame[S, S2]:
+        """Limit to the first n rows."""
+        return JoinedDataFrame(
+            _data=self._data,
+            _schema_left=self._schema_left,
+            _schema_right=self._schema_right,
+        )
+
+    def head(self, n: int = 5) -> JoinedDataFrame[S, S2]:
+        """Return the first n rows (materialized only)."""
+        return JoinedDataFrame(
+            _data=self._data,
+            _schema_left=self._schema_left,
+            _schema_right=self._schema_right,
+        )
+
+    def tail(self, n: int = 5) -> JoinedDataFrame[S, S2]:
+        """Return the last n rows (materialized only)."""
+        return JoinedDataFrame(
+            _data=self._data,
+            _schema_left=self._schema_left,
+            _schema_right=self._schema_right,
+        )
+
+    def sample(self, n: int) -> JoinedDataFrame[S, S2]:
+        """Return a random sample of n rows (materialized only)."""
+        return JoinedDataFrame(
+            _data=self._data,
+            _schema_left=self._schema_left,
+            _schema_right=self._schema_right,
+        )
+
+    def unique(self, *columns: Column[Any]) -> JoinedDataFrame[S, S2]:
+        """Remove duplicate rows based on the given columns."""
+        return JoinedDataFrame(
+            _data=self._data,
+            _schema_left=self._schema_left,
+            _schema_right=self._schema_right,
+        )
+
+    def drop_nulls(self, *columns: Column[Any]) -> JoinedDataFrame[S, S2]:
+        """Drop rows with null values in the given columns."""
+        return JoinedDataFrame(
+            _data=self._data,
+            _schema_left=self._schema_left,
+            _schema_right=self._schema_right,
+        )
+
+    def with_columns(self, *exprs: AliasedExpr[Any] | Expr[Any]) -> JoinedDataFrame[S, S2]:
+        """Add or overwrite columns."""
+        return JoinedDataFrame(
+            _data=self._data,
+            _schema_left=self._schema_left,
+            _schema_right=self._schema_right,
+        )
+
+    # --- Schema-transforming operations (return DataFrame[Any]) ---
+
+    @overload
+    def select(self, c1: Column[Any], /) -> DataFrame[Any]: ...
+    @overload
+    def select(self, c1: Column[Any], c2: Column[Any], /) -> DataFrame[Any]: ...
+    @overload
+    def select(self, c1: Column[Any], c2: Column[Any], c3: Column[Any], /) -> DataFrame[Any]: ...
+    @overload
+    def select(
+        self,
+        c1: Column[Any],
+        c2: Column[Any],
+        c3: Column[Any],
+        c4: Column[Any],
+        /,
+    ) -> DataFrame[Any]: ...
+    @overload
+    def select(
+        self,
+        c1: Column[Any],
+        c2: Column[Any],
+        c3: Column[Any],
+        c4: Column[Any],
+        c5: Column[Any],
+        /,
+    ) -> DataFrame[Any]: ...
+
+    def select(self, *columns: Column[Any]) -> DataFrame[Any]:
+        """Select columns. Returns DataFrame[Any] — use cast_schema() to bind."""
+        return DataFrame(_data=self._data, _schema=None)
+
+    # --- Conversion ---
+
+    def lazy(self) -> JoinedLazyFrame[S, S2]:
+        """Convert to a lazy query plan."""
+        return JoinedLazyFrame(
+            _data=self._data,
+            _schema_left=self._schema_left,
+            _schema_right=self._schema_right,
+        )
+
+    def untyped(self) -> UntypedDataFrame:
+        """Drop type information — string-based escape hatch."""
+        return UntypedDataFrame(_data=self._data)
+
+
+# ---------------------------------------------------------------------------
+# JoinedLazyFrame[S, S2] — lazy result of joining two LazyFrames
+# ---------------------------------------------------------------------------
+
+
+class JoinedLazyFrame(Generic[S, S2]):
+    """A typed lazy query plan resulting from a join of two schemas.
+
+    Same operations as JoinedDataFrame except: no head(), tail(), sample()
+    (materialized-only ops). Use collect() to materialize.
+    """
+
+    __slots__ = ("_data", "_schema_left", "_schema_right")
+
+    def __init__(
+        self,
+        *,
+        _data: Any = None,
+        _schema_left: type[Any] | None = None,
+        _schema_right: type[Any] | None = None,
+    ) -> None:
+        self._data = _data
+        self._schema_left = _schema_left
+        self._schema_right = _schema_right
+
+    def __repr__(self) -> str:
+        left = self._schema_left.__name__ if self._schema_left else "Any"
+        right = self._schema_right.__name__ if self._schema_right else "Any"
+        return f"JoinedLazyFrame[{left}, {right}]"
+
+    # --- Schema-preserving operations (return JoinedLazyFrame[S, S2]) ---
+
+    def filter(self, predicate: Expr[Bool]) -> JoinedLazyFrame[S, S2]:
+        """Filter rows by a boolean expression."""
+        return JoinedLazyFrame(
+            _data=self._data,
+            _schema_left=self._schema_left,
+            _schema_right=self._schema_right,
+        )
+
+    def sort(
+        self, *columns: Column[Any] | SortExpr, descending: bool = False
+    ) -> JoinedLazyFrame[S, S2]:
+        """Sort rows by columns or sort expressions."""
+        return JoinedLazyFrame(
+            _data=self._data,
+            _schema_left=self._schema_left,
+            _schema_right=self._schema_right,
+        )
+
+    def limit(self, n: int) -> JoinedLazyFrame[S, S2]:
+        """Limit to the first n rows."""
+        return JoinedLazyFrame(
+            _data=self._data,
+            _schema_left=self._schema_left,
+            _schema_right=self._schema_right,
+        )
+
+    def unique(self, *columns: Column[Any]) -> JoinedLazyFrame[S, S2]:
+        """Remove duplicate rows based on the given columns."""
+        return JoinedLazyFrame(
+            _data=self._data,
+            _schema_left=self._schema_left,
+            _schema_right=self._schema_right,
+        )
+
+    def drop_nulls(self, *columns: Column[Any]) -> JoinedLazyFrame[S, S2]:
+        """Drop rows with null values in the given columns."""
+        return JoinedLazyFrame(
+            _data=self._data,
+            _schema_left=self._schema_left,
+            _schema_right=self._schema_right,
+        )
+
+    def with_columns(self, *exprs: AliasedExpr[Any] | Expr[Any]) -> JoinedLazyFrame[S, S2]:
+        """Add or overwrite columns."""
+        return JoinedLazyFrame(
+            _data=self._data,
+            _schema_left=self._schema_left,
+            _schema_right=self._schema_right,
+        )
+
+    # --- Schema-transforming operations (return LazyFrame[Any]) ---
+
+    @overload
+    def select(self, c1: Column[Any], /) -> LazyFrame[Any]: ...
+    @overload
+    def select(self, c1: Column[Any], c2: Column[Any], /) -> LazyFrame[Any]: ...
+    @overload
+    def select(self, c1: Column[Any], c2: Column[Any], c3: Column[Any], /) -> LazyFrame[Any]: ...
+    @overload
+    def select(
+        self,
+        c1: Column[Any],
+        c2: Column[Any],
+        c3: Column[Any],
+        c4: Column[Any],
+        /,
+    ) -> LazyFrame[Any]: ...
+    @overload
+    def select(
+        self,
+        c1: Column[Any],
+        c2: Column[Any],
+        c3: Column[Any],
+        c4: Column[Any],
+        c5: Column[Any],
+        /,
+    ) -> LazyFrame[Any]: ...
+
+    def select(self, *columns: Column[Any]) -> LazyFrame[Any]:
+        """Select columns. Returns LazyFrame[Any] — use cast_schema() to bind."""
+        return LazyFrame(_data=self._data, _schema=None)
+
+    # --- Materialization ---
+
+    def collect(self) -> JoinedDataFrame[S, S2]:
+        """Materialize the lazy query plan into a JoinedDataFrame."""
+        return JoinedDataFrame(
+            _data=self._data,
+            _schema_left=self._schema_left,
+            _schema_right=self._schema_right,
+        )
+
+    # --- Conversion ---
+
+    def untyped(self) -> UntypedLazyFrame:
+        """Drop type information — string-based escape hatch."""
+        return UntypedLazyFrame(_data=self._data)
 
 
 # ---------------------------------------------------------------------------
