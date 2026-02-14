@@ -92,6 +92,50 @@ totals = (
 )
 ```
 
+## Introspection
+
+DataFrame provides properties for inspecting dimensions:
+
+```python
+df.height      # number of rows (int)
+len(df)        # same as height
+df.width       # number of columns (int)
+df.shape       # (rows, columns) tuple
+df.is_empty()  # True if zero rows
+```
+
+| Property/Method | DataFrame | LazyFrame | JoinedDataFrame |
+|----------------|-----------|-----------|-----------------|
+| `height` | Yes | No (requires materialization) | No (cast_schema first) |
+| `len()` | Yes | No | No |
+| `width` | Yes | Yes (from schema) | No |
+| `shape` | Yes | No | No |
+| `is_empty()` | Yes | No | No |
+
+`width` raises `TypeError` on `DataFrame[Any]` (schema erased) — use `cast_schema()` first.
+
+## Typed row iteration
+
+`iter_rows_as(row_type)` iterates rows as typed Python objects:
+
+```python
+# Using Schema.Row (frozen dataclass)
+for row in df.iter_rows_as(Users.Row):
+    print(row.name, row.age)  # typed attribute access
+
+# Using dict
+for row in df.iter_rows_as(dict):
+    print(row["name"], row["age"])
+```
+
+`iter_rows_as` accepts any callable that takes `**kwargs`:
+
+- `Schema.Row` — frozen dataclass with typed attributes (recommended)
+- `dict` — plain dictionary
+- Custom dataclasses, `NamedTuple`, Pydantic models, etc.
+
+`iter_rows_as` is only available on `DataFrame` — not `LazyFrame` (would require materialization) and not `JoinedDataFrame` (use `cast_schema()` first).
+
 ## Validation
 
 Validate that data conforms to the schema:
@@ -100,7 +144,7 @@ Validate that data conforms to the schema:
 df.validate()  # raises SchemaError on mismatch
 ```
 
-Checks column existence and data types. See [Validation](validation.md) for the global toggle and auto-validation at IO boundaries.
+Checks column existence and data types. Enable auto-validation at data boundaries with `COLNADE_VALIDATE=1` or `colnade.set_validation(True)`.
 
 ## What Colnade validates
 

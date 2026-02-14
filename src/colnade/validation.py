@@ -83,6 +83,90 @@ def _get_dtype_python_types() -> dict[type, tuple[type, ...]]:
     return _DTYPE_PYTHON_TYPES
 
 
+# ---------------------------------------------------------------------------
+# Dtype → Python type mapping for Row dataclass fields
+# ---------------------------------------------------------------------------
+
+_DTYPE_ROW_TYPES: dict[type, type] | None = None
+
+
+def _get_dtype_row_types() -> dict[type, type]:
+    """Lazy-init the dtype-to-Python-type mapping for Row generation."""
+    global _DTYPE_ROW_TYPES
+    if _DTYPE_ROW_TYPES is not None:
+        return _DTYPE_ROW_TYPES
+
+    from colnade import dtypes
+
+    _DTYPE_ROW_TYPES = {
+        dtypes.Bool: bool,
+        dtypes.UInt8: int,
+        dtypes.UInt16: int,
+        dtypes.UInt32: int,
+        dtypes.UInt64: int,
+        dtypes.Int8: int,
+        dtypes.Int16: int,
+        dtypes.Int32: int,
+        dtypes.Int64: int,
+        dtypes.Float32: float,
+        dtypes.Float64: float,
+        dtypes.Utf8: str,
+        dtypes.Binary: bytes,
+        dtypes.Date: datetime.date,
+        dtypes.Time: datetime.time,
+        dtypes.Datetime: datetime.datetime,
+        dtypes.Duration: datetime.timedelta,
+    }
+    return _DTYPE_ROW_TYPES
+
+
+def dtype_to_python_type(dtype: Any) -> type:
+    """Map a Colnade dtype annotation to a Python type for Row dataclass fields.
+
+    Handles nullable unions (``UInt64 | None`` → ``int | None``),
+    ``List[T]`` → ``list``, ``Struct[S]`` → ``dict``.
+    Returns ``object`` for unrecognised dtypes.
+    """
+    import types as _types
+    import typing
+
+    is_nullable = False
+    inner_dtype = dtype
+
+    # Handle nullable unions: T | None
+    if isinstance(dtype, _types.UnionType):
+        args = [a for a in dtype.__args__ if a is not type(None)]
+        if len(args) == 1:
+            inner_dtype = args[0]
+            is_nullable = True
+        else:
+            return object  # multi-type union, fallback
+
+    # Handle parameterized nested types (List[T], Struct[S])
+    inner_origin = typing.get_origin(inner_dtype)
+    if inner_origin is not None:
+        from colnade.dtypes import List, Struct
+
+        if inner_origin is Struct:
+            py_type: type = dict
+        elif inner_origin is List:
+            py_type = list
+        else:
+            py_type = object
+    else:
+        mapping = _get_dtype_row_types()
+        py_type = mapping.get(inner_dtype, object)
+
+    if is_nullable:
+        return py_type | None  # type: ignore[return-value]
+    return py_type
+
+
+# ---------------------------------------------------------------------------
+# Literal type checking
+# ---------------------------------------------------------------------------
+
+
 def check_literal_type(value: Any, dtype: Any, context: str = "") -> None:
     """Check that a Python literal is compatible with a Colnade dtype.
 

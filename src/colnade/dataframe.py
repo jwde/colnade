@@ -16,9 +16,11 @@ See AGENTS.md "Column[DType] Annotation Pattern" for details.
 from __future__ import annotations
 
 from collections.abc import Iterator
-from typing import TYPE_CHECKING, Any, Generic, overload
+from typing import TYPE_CHECKING, Any, Generic, TypeVar, overload
 
 from colnade.schema import S2, S3, Column, S, Schema, SchemaError
+
+R = TypeVar("R")
 
 if TYPE_CHECKING:
     from typing import Literal
@@ -146,6 +148,52 @@ class DataFrame(Generic[S]):
     def to_native(self) -> Any:
         """Return the underlying backend-native data object (e.g. pl.DataFrame)."""
         return self._data
+
+    # --- Introspection ---
+
+    @property
+    def height(self) -> int:
+        """Return the number of rows."""
+        return _require_backend(self._backend).row_count(self._data)
+
+    def __len__(self) -> int:
+        """Return the number of rows."""
+        return self.height
+
+    @property
+    def width(self) -> int:
+        """Return the number of columns.
+
+        Raises ``TypeError`` on ``DataFrame[Any]`` (schema erased).
+        Use ``cast_schema()`` first to bind to a named schema.
+        """
+        if self._schema is None:
+            msg = (
+                "width is not available on DataFrame[Any] (schema erased). "
+                "Use cast_schema() first to bind to a named schema."
+            )
+            raise TypeError(msg)
+        return len(self._schema._columns)
+
+    @property
+    def shape(self) -> tuple[int, int]:
+        """Return ``(rows, columns)``."""
+        return (self.height, self.width)
+
+    def is_empty(self) -> bool:
+        """Return ``True`` if the DataFrame has zero rows."""
+        return self.height == 0
+
+    def iter_rows_as(self, row_type: type[R]) -> Iterator[R]:
+        """Iterate rows, constructing *row_type* instances via ``row_type(**row_dict)``.
+
+        Works with ``Schema.Row`` (frozen dataclass), ``dict``, plain
+        dataclasses, ``NamedTuple``, Pydantic models, or any callable
+        accepting ``**kwargs``.
+        """
+        backend = _require_backend(self._backend)
+        for d in backend.iter_row_dicts(self._data):
+            yield row_type(**d)
 
     # --- Schema-preserving operations (return DataFrame[S]) ---
 
@@ -423,6 +471,23 @@ class LazyFrame(Generic[S]):
     def to_native(self) -> Any:
         """Return the underlying backend-native data object (e.g. pl.LazyFrame)."""
         return self._data
+
+    # --- Introspection ---
+
+    @property
+    def width(self) -> int:
+        """Return the number of columns.
+
+        Derivable from the schema without materializing. Raises ``TypeError``
+        on ``LazyFrame[Any]`` (schema erased).
+        """
+        if self._schema is None:
+            msg = (
+                "width is not available on LazyFrame[Any] (schema erased). "
+                "Use cast_schema() first to bind to a named schema."
+            )
+            raise TypeError(msg)
+        return len(self._schema._columns)
 
     # --- Schema-preserving operations (return LazyFrame[S]) ---
 

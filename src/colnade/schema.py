@@ -545,6 +545,30 @@ class ListAccessor(Generic[DType]):
 
 
 # ---------------------------------------------------------------------------
+# Row dataclass generation
+# ---------------------------------------------------------------------------
+
+
+def _build_row_class(schema_name: str, columns: dict[str, Column[Any]]) -> type:
+    """Build a frozen dataclass representing a single row of the schema."""
+    import dataclasses
+
+    from colnade.validation import dtype_to_python_type
+
+    fields: list[tuple[str, type]] = []
+    for col_name, col in columns.items():
+        py_type = dtype_to_python_type(col.dtype)
+        fields.append((col_name, py_type))
+
+    return dataclasses.make_dataclass(
+        f"{schema_name}Row",
+        fields,
+        frozen=True,
+        slots=True,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Schema metaclass
 # ---------------------------------------------------------------------------
 
@@ -612,6 +636,10 @@ class SchemaMeta(type(Protocol)):  # type(Protocol) is typing._ProtocolMeta (CPy
             columns[col_name] = descriptor
 
         cls._columns = columns  # type: ignore[attr-defined]
+
+        # Generate Row dataclass for non-base schemas with columns
+        if name != "Schema" and columns:
+            cls.Row = _build_row_class(name, columns)  # type: ignore[attr-defined]
 
         # Register non-base schemas
         if name != "Schema":
@@ -685,3 +713,5 @@ class Schema(Protocol, metaclass=SchemaMeta):
 
     # Populated by SchemaMeta; declared here for type checker visibility
     _columns: dict[str, Column[Any]]
+    if TYPE_CHECKING:
+        Row: type

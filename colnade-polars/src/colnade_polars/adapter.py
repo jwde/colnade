@@ -317,6 +317,14 @@ class PolarsBackend:
                 null_violations=null_violations if null_violations else None,
             )
 
+    # --- Row access ---
+
+    def row_count(self, source: Any) -> int:
+        return source.height
+
+    def iter_row_dicts(self, source: Any) -> Iterator[dict[str, Any]]:
+        return source.iter_rows(named=True)
+
     # --- Arrow boundary ---
 
     def to_arrow_batches(

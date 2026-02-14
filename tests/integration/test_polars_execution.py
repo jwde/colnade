@@ -318,3 +318,93 @@ class TestValidate:
         with pytest.raises(SchemaError) as exc_info:
             df.validate()
         assert len(exc_info.value.type_mismatches) > 0
+
+
+# ---------------------------------------------------------------------------
+# Introspection properties
+# ---------------------------------------------------------------------------
+
+
+class TestIntrospection:
+    def test_height(self) -> None:
+        df = _users_df()
+        assert df.height == 5
+
+    def test_len(self) -> None:
+        df = _users_df()
+        assert len(df) == 5
+
+    def test_width(self) -> None:
+        df = _users_df()
+        assert df.width == 3
+
+    def test_shape(self) -> None:
+        df = _users_df()
+        assert df.shape == (5, 3)
+
+    def test_is_empty_false(self) -> None:
+        df = _users_df()
+        assert df.is_empty() is False
+
+    def test_is_empty_true(self) -> None:
+        data = pl.DataFrame(
+            {
+                "id": pl.Series([], dtype=pl.UInt64),
+                "name": pl.Series([], dtype=pl.Utf8),
+                "age": pl.Series([], dtype=pl.UInt64),
+            }
+        )
+        df = DataFrame(_data=data, _schema=Users, _backend=PolarsBackend())
+        assert df.is_empty() is True
+
+    def test_height_after_filter(self) -> None:
+        df = _users_df().filter(Users.age > 30)
+        assert df.height == 2
+
+    def test_lazyframe_width(self) -> None:
+        lf = _users_df().lazy()
+        assert lf.width == 3
+
+
+# ---------------------------------------------------------------------------
+# iter_rows_as
+# ---------------------------------------------------------------------------
+
+
+class TestIterRowsAs:
+    def test_iter_rows_as_dict(self) -> None:
+        df = _users_df()
+        rows = list(df.iter_rows_as(dict))
+        assert len(rows) == 5
+        assert rows[0] == {"id": 1, "name": "Alice", "age": 30}
+
+    def test_iter_rows_as_schema_row(self) -> None:
+        df = _users_df()
+        rows = list(df.iter_rows_as(Users.Row))
+        assert len(rows) == 5
+        assert rows[0].id == 1
+        assert rows[0].name == "Alice"
+        assert rows[0].age == 30
+
+    def test_iter_rows_as_schema_row_type(self) -> None:
+        df = _users_df()
+        rows = list(df.iter_rows_as(Users.Row))
+        assert type(rows[0]).__name__ == "UsersRow"
+
+    def test_iter_rows_as_empty(self) -> None:
+        data = pl.DataFrame(
+            {
+                "id": pl.Series([], dtype=pl.UInt64),
+                "name": pl.Series([], dtype=pl.Utf8),
+                "age": pl.Series([], dtype=pl.UInt64),
+            }
+        )
+        df = DataFrame(_data=data, _schema=Users, _backend=PolarsBackend())
+        rows = list(df.iter_rows_as(Users.Row))
+        assert rows == []
+
+    def test_iter_rows_as_after_filter(self) -> None:
+        df = _users_df().filter(Users.age > 35)
+        rows = list(df.iter_rows_as(Users.Row))
+        assert len(rows) == 1
+        assert rows[0].name == "Eve"

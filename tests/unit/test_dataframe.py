@@ -45,6 +45,12 @@ class AgeStats(Schema):
 class _MockBackend:
     """Backend stub for unit tests. Returns the first positional arg (source)."""
 
+    def row_count(self, source: object) -> int:  # noqa: ANN001
+        return 0
+
+    def iter_row_dicts(self, source: object) -> list[dict[str, object]]:  # noqa: ANN001
+        return []
+
     def __getattr__(self, name: str):  # noqa: ANN204
         def _method(*args, **kwargs):  # noqa: ANN002, ANN003, ANN202
             return args[0] if args else None
@@ -425,6 +431,237 @@ class TestLazyGroupBy:
         lf: LazyFrame[Users] = LazyFrame(_schema=Users, _backend=_BACKEND)
         gb = lf.group_by(Users.age, Users.name)
         assert gb._keys == (Users.age, Users.name)
+
+
+# ---------------------------------------------------------------------------
+# Introspection properties (DataFrame)
+# ---------------------------------------------------------------------------
+
+
+class TestDataFrameIntrospection:
+    def setup_method(self) -> None:
+        self.df: DataFrame[Users] = DataFrame(_schema=Users, _backend=_BACKEND)
+
+    def test_height_returns_int(self) -> None:
+        assert self.df.height == 0
+        assert isinstance(self.df.height, int)
+
+    def test_len_returns_int(self) -> None:
+        assert len(self.df) == 0
+        assert isinstance(len(self.df), int)
+
+    def test_len_equals_height(self) -> None:
+        assert len(self.df) == self.df.height
+
+    def test_width_returns_column_count(self) -> None:
+        assert self.df.width == 3  # id, name, age
+
+    def test_shape_returns_tuple(self) -> None:
+        assert self.df.shape == (0, 3)
+
+    def test_is_empty_returns_bool(self) -> None:
+        assert self.df.is_empty() is True
+        assert isinstance(self.df.is_empty(), bool)
+
+    def test_width_no_schema_raises_type_error(self) -> None:
+        df: DataFrame[Users] = DataFrame(_backend=_BACKEND)  # schema=None
+        with pytest.raises(TypeError, match="width is not available"):
+            df.width  # noqa: B018
+
+    def test_shape_no_schema_raises_type_error(self) -> None:
+        df: DataFrame[Users] = DataFrame(_backend=_BACKEND)
+        with pytest.raises(TypeError, match="width is not available"):
+            df.shape  # noqa: B018
+
+    def test_height_no_backend_raises(self) -> None:
+        df = DataFrame(_schema=Users)
+        with pytest.raises(RuntimeError, match="requires a backend"):
+            df.height  # noqa: B018
+
+    def test_len_no_backend_raises(self) -> None:
+        df = DataFrame(_schema=Users)
+        with pytest.raises(RuntimeError, match="requires a backend"):
+            len(df)
+
+    def test_shape_no_backend_raises(self) -> None:
+        df = DataFrame(_schema=Users)
+        with pytest.raises(RuntimeError, match="requires a backend"):
+            df.shape  # noqa: B018
+
+    def test_is_empty_no_backend_raises(self) -> None:
+        df = DataFrame(_schema=Users)
+        with pytest.raises(RuntimeError, match="requires a backend"):
+            df.is_empty()
+
+
+# ---------------------------------------------------------------------------
+# Introspection properties (LazyFrame)
+# ---------------------------------------------------------------------------
+
+
+class TestLazyFrameIntrospection:
+    def test_width_returns_column_count(self) -> None:
+        lf: LazyFrame[Users] = LazyFrame(_schema=Users, _backend=_BACKEND)
+        assert lf.width == 3
+
+    def test_width_no_schema_raises_type_error(self) -> None:
+        lf: LazyFrame[Users] = LazyFrame(_backend=_BACKEND)
+        with pytest.raises(TypeError, match="width is not available"):
+            lf.width  # noqa: B018
+
+
+# ---------------------------------------------------------------------------
+# LazyFrame restrictions (no height, shape, is_empty, __len__, iter_rows_as)
+# ---------------------------------------------------------------------------
+
+
+class TestLazyFrameIntrospectionRestrictions:
+    def test_no_height(self) -> None:
+        assert not hasattr(LazyFrame, "height")
+
+    def test_no_shape(self) -> None:
+        assert not hasattr(LazyFrame, "shape")
+
+    def test_no_is_empty(self) -> None:
+        assert not hasattr(LazyFrame, "is_empty")
+
+    def test_no_iter_rows_as(self) -> None:
+        assert not hasattr(LazyFrame, "iter_rows_as")
+
+    def test_no_len(self) -> None:
+        lf = LazyFrame(_schema=Users, _backend=_BACKEND)
+        with pytest.raises(TypeError):
+            len(lf)
+
+
+# ---------------------------------------------------------------------------
+# iter_rows_as
+# ---------------------------------------------------------------------------
+
+
+class TestIterRowsAs:
+    def test_returns_iterator(self) -> None:
+        df: DataFrame[Users] = DataFrame(_schema=Users, _backend=_BACKEND)
+        result = df.iter_rows_as(dict)
+        assert hasattr(result, "__iter__")
+        assert hasattr(result, "__next__")
+
+    def test_yields_nothing_for_empty(self) -> None:
+        df: DataFrame[Users] = DataFrame(_schema=Users, _backend=_BACKEND)
+        rows = list(df.iter_rows_as(dict))
+        assert rows == []
+
+    def test_no_backend_raises(self) -> None:
+        df = DataFrame(_schema=Users)
+        with pytest.raises(RuntimeError, match="requires a backend"):
+            list(df.iter_rows_as(dict))
+
+    def test_incompatible_row_type_raises(self) -> None:
+        """Passing a type that can't accept **kwargs raises TypeError at iteration."""
+
+        class _MockBackendWithRows:
+            def row_count(self, source: object) -> int:  # noqa: ANN001
+                return 1
+
+            def iter_row_dicts(self, source: object) -> list[dict[str, object]]:  # noqa: ANN001
+                return [{"id": 1, "name": "Alice", "age": 25}]
+
+            def __getattr__(self, name: str):  # noqa: ANN204
+                def _method(*args, **kwargs):  # noqa: ANN002, ANN003, ANN202
+                    return args[0] if args else None
+
+                return _method
+
+        df: DataFrame[Users] = DataFrame(_schema=Users, _backend=_MockBackendWithRows())
+        with pytest.raises(TypeError):
+            list(df.iter_rows_as(int))  # int() does not accept **kwargs
+
+
+# ---------------------------------------------------------------------------
+# JoinedDataFrame / JoinedLazyFrame introspection restrictions
+# ---------------------------------------------------------------------------
+
+
+from colnade import JoinedDataFrame, JoinedLazyFrame  # noqa: E402
+
+
+class TestJoinedIntrospectionRestrictions:
+    def test_joined_df_no_height(self) -> None:
+        assert not hasattr(JoinedDataFrame, "height")
+
+    def test_joined_df_no_width(self) -> None:
+        assert not hasattr(JoinedDataFrame, "width")
+
+    def test_joined_df_no_shape(self) -> None:
+        assert not hasattr(JoinedDataFrame, "shape")
+
+    def test_joined_df_no_is_empty(self) -> None:
+        assert not hasattr(JoinedDataFrame, "is_empty")
+
+    def test_joined_df_no_iter_rows_as(self) -> None:
+        assert not hasattr(JoinedDataFrame, "iter_rows_as")
+
+    def test_joined_lf_no_height(self) -> None:
+        assert not hasattr(JoinedLazyFrame, "height")
+
+    def test_joined_lf_no_width(self) -> None:
+        assert not hasattr(JoinedLazyFrame, "width")
+
+    def test_joined_lf_no_shape(self) -> None:
+        assert not hasattr(JoinedLazyFrame, "shape")
+
+    def test_joined_lf_no_is_empty(self) -> None:
+        assert not hasattr(JoinedLazyFrame, "is_empty")
+
+    def test_joined_lf_no_iter_rows_as(self) -> None:
+        assert not hasattr(JoinedLazyFrame, "iter_rows_as")
+
+    def test_joined_df_no_len(self) -> None:
+        jdf = JoinedDataFrame(_backend=_BACKEND)
+        with pytest.raises(TypeError):
+            len(jdf)
+
+    def test_joined_lf_no_len(self) -> None:
+        jlf = JoinedLazyFrame(_backend=_BACKEND)
+        with pytest.raises(TypeError):
+            len(jlf)
+
+
+# ---------------------------------------------------------------------------
+# Untyped frame introspection restrictions
+# ---------------------------------------------------------------------------
+
+
+class TestUntypedIntrospectionRestrictions:
+    def test_untyped_df_no_height(self) -> None:
+        assert not hasattr(UntypedDataFrame, "height")
+
+    def test_untyped_df_no_width(self) -> None:
+        assert not hasattr(UntypedDataFrame, "width")
+
+    def test_untyped_df_no_shape(self) -> None:
+        assert not hasattr(UntypedDataFrame, "shape")
+
+    def test_untyped_df_no_is_empty(self) -> None:
+        assert not hasattr(UntypedDataFrame, "is_empty")
+
+    def test_untyped_df_no_iter_rows_as(self) -> None:
+        assert not hasattr(UntypedDataFrame, "iter_rows_as")
+
+    def test_untyped_lf_no_height(self) -> None:
+        assert not hasattr(UntypedLazyFrame, "height")
+
+    def test_untyped_lf_no_width(self) -> None:
+        assert not hasattr(UntypedLazyFrame, "width")
+
+    def test_untyped_lf_no_shape(self) -> None:
+        assert not hasattr(UntypedLazyFrame, "shape")
+
+    def test_untyped_lf_no_is_empty(self) -> None:
+        assert not hasattr(UntypedLazyFrame, "is_empty")
+
+    def test_untyped_lf_no_iter_rows_as(self) -> None:
+        assert not hasattr(UntypedLazyFrame, "iter_rows_as")
 
 
 # ---------------------------------------------------------------------------

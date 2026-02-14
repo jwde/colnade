@@ -87,3 +87,9 @@ class BackendProtocol(Protocol):
         batches: Iterator[Any],
         schema: type[Schema],
     ) -> Any: ...
+
+    # --- Row access ---
+
+    def row_count(self, source: Any) -> int: ...
+
+    def iter_row_dicts(self, source: Any) -> Iterator[dict[str, Any]]: ...
