@@ -69,8 +69,10 @@ def map_colnade_dtype(colnade_type: Any) -> pl.DataType:
     - List[T] → pl.List with recursively mapped element type
     """
     # Handle nullable unions: T | None → strip None, map T
+    import types as _types
+
     origin = typing.get_origin(colnade_type)
-    if origin is typing.Union:
+    if origin is typing.Union or isinstance(colnade_type, _types.UnionType):
         args = [a for a in typing.get_args(colnade_type) if a is not type(None)]
         if len(args) == 1:
             return map_colnade_dtype(args[0])

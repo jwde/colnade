@@ -164,6 +164,12 @@ class Column(Generic[DType]):
 
         return ColumnRef(column=self)
 
+    def _check_literal(self, value: Any, context: str = "") -> None:
+        """Validate a literal value against this column's dtype (if validation enabled)."""
+        from colnade.validation import check_literal_type
+
+        check_literal_type(value, self.dtype, context or f"{self.schema.__name__}.{self.name}")
+
     def _binop(self, other: Any, op: str) -> BinOp[Any]:
         """Create a BinOp with this column as the left operand."""
         from colnade.expr import BinOp, ColumnRef, Literal
@@ -175,6 +181,7 @@ class Column(Generic[DType]):
         elif isinstance(other, Column):
             right = ColumnRef(column=other)
         else:
+            self._check_literal(other)
             right = Literal(value=other)
         return BinOp(left=left, right=right, op=op)
 
@@ -182,6 +189,7 @@ class Column(Generic[DType]):
         """Create a BinOp with this column as the right operand (reverse ops)."""
         from colnade.expr import BinOp, ColumnRef, Literal
 
+        self._check_literal(other)
         return BinOp(left=Literal(value=other), right=ColumnRef(column=self), op=op)
 
     # --- Comparison operators → BinOp[Bool] ---
@@ -362,6 +370,7 @@ class Column(Generic[DType]):
         if isinstance(value, _Expr):
             fill_arg = value
         else:
+            self._check_literal(value, f"{self.schema.__name__}.{self.name}.fill_null()")
             from colnade.expr import Literal
 
             fill_arg = Literal(value=value)
@@ -382,6 +391,8 @@ class Column(Generic[DType]):
     def fill_nan(self, value: Any) -> FunctionCall[DType]:
         from colnade.expr import ColumnRef, FunctionCall, Literal
 
+        if not isinstance(value, Literal):
+            self._check_literal(value, f"{self.schema.__name__}.{self.name}.fill_nan()")
         fill_arg = value if isinstance(value, Literal) else Literal(value=value)
         return FunctionCall(name="fill_nan", args=(ColumnRef(column=self), fill_arg))
 

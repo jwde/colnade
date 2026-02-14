@@ -7,6 +7,7 @@ from pathlib import Path
 import polars as pl
 import pytest
 
+import colnade.validation
 from colnade import Column, DataFrame, LazyFrame, Schema, SchemaError, UInt64, Utf8
 from colnade_polars.io import (
     read_csv,
@@ -122,6 +123,12 @@ class TestCsvRoundtrip:
 
 
 class TestSchemaMismatch:
+    def setup_method(self) -> None:
+        colnade.validation.set_validation(True)
+
+    def teardown_method(self) -> None:
+        colnade.validation._validation_enabled = None
+
     def test_read_parquet_wrong_schema(self, tmp_path: Path) -> None:
         path = str(tmp_path / "users.parquet")
         _sample_data().write_parquet(path)

@@ -53,6 +53,7 @@ from colnade.expr import (
     lit,
 )
 from colnade.schema import Column, ListAccessor, Schema, SchemaError, mapped_from
+from colnade.validation import is_validation_enabled, set_validation
 
 __all__ = [
     # Backend
@@ -119,4 +120,7 @@ __all__ = [
     # Parameterized nested types
     "Struct",
     "List",
+    # Validation
+    "set_validation",
+    "is_validation_enabled",
 ]

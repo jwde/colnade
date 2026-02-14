@@ -61,6 +61,29 @@ This prevents silently mapping nullable data into a non-nullable schema.
 
 ## Known limitations
 
+### Literal value types in expressions
+
+Python's type system cannot enforce that literal values match column dtypes. All operator and method parameters accept `Any`:
+
+```python
+Users.age.fill_null(1.0)  # NOT caught — float for UInt8 column
+Users.age + "hello"       # NOT caught — string added to integer
+Users.name > 42           # NOT caught — int compared to string
+```
+
+This is a fundamental limitation — Python lacks type-level functions to map `Column[UInt8]` → `fill_null(value: int)`. It would require associated types or conditional types, which Python does not support.
+
+**Runtime alternative:** Enable `COLNADE_VALIDATE=1` or `set_validation(True)` and these mismatches are caught at expression construction time:
+
+```python
+import colnade
+colnade.set_validation(True)
+
+Users.age.fill_null(1.0)
+# TypeError: Type mismatch in Users.age.fill_null(): got float value 1.0,
+#            expected int for dtype UInt8
+```
+
 ### Wrong-schema columns in expressions
 
 Expressions erase their source schema. `Orders.amount > 100` and `Users.age > 18` both produce `Expr[Bool]`. The type checker cannot distinguish them:

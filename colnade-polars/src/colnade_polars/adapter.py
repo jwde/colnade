@@ -297,10 +297,24 @@ class PolarsBackend:
                 )
                 type_mismatches[col_name] = (expected_name, actual_colnade)
 
-        if missing or type_mismatches:
+        # Check nullability — non-nullable columns should have no nulls
+        null_violations: list[str] = []
+        if isinstance(source, pl.DataFrame):
+            import types
+
+            for col_name, col in expected_columns.items():
+                if col_name not in actual_names:
+                    continue
+                if isinstance(col.dtype, types.UnionType):
+                    continue
+                if source[col_name].null_count() > 0:
+                    null_violations.append(col_name)
+
+        if missing or type_mismatches or null_violations:
             raise SchemaError(
                 missing_columns=missing if missing else None,
                 type_mismatches=type_mismatches if type_mismatches else None,
+                null_violations=null_violations if null_violations else None,
             )
 
     # --- Arrow boundary ---
