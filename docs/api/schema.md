@@ -1,6 +1,6 @@
-# colnade.schema
+# colnade core
 
-Schema base class, Column descriptors, and supporting utilities.
+Schema base class, Column descriptors, backend protocol, and supporting utilities.
 
 ## Schema
 
@@ -29,3 +29,19 @@ Schema base class, Column descriptors, and supporting utilities.
 ::: colnade.schema.SchemaMeta
     options:
       members: false
+
+## BackendProtocol
+
+::: colnade._protocols.BackendProtocol
+
+## ArrowBatch
+
+::: colnade.arrow.ArrowBatch
+
+## set_validation
+
+::: colnade.validation.set_validation
+
+## is_validation_enabled
+
+::: colnade.validation.is_validation_enabled

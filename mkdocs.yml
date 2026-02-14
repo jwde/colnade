@@ -93,7 +93,7 @@ nav:
       - Full Pipeline: tutorials/full-pipeline.md
   - API Reference:
       - Overview: api/index.md
-      - colnade.schema: api/schema.md
+      - colnade core: api/schema.md
       - colnade.dataframe: api/dataframe.md
       - colnade.expr: api/expressions.md
       - colnade.dtypes: api/types.md

@@ -100,7 +100,7 @@ Validate that data conforms to the schema:
 df.validate()  # raises SchemaError on mismatch
 ```
 
-Checks column existence and data types. See [Validation](validation.md) for the global toggle and auto-validation at IO boundaries.
+Checks column existence and data types. Enable auto-validation at data boundaries with `COLNADE_VALIDATE=1` or `colnade.set_validation(True)`.
 
 ## What Colnade validates
 
