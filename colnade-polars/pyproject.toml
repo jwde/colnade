@@ -23,6 +23,7 @@ classifiers = [
 dependencies = [
     "colnade>=0.1.0",
     "polars>=0.20",
+    "pyarrow>=12.0",
 ]
 
 [project.urls]

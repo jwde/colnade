@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from typing import Any
 
 import polars as pl
@@ -302,3 +302,33 @@ class PolarsBackend:
                 missing_columns=missing if missing else None,
                 type_mismatches=type_mismatches if type_mismatches else None,
             )
+
+    # --- Arrow boundary ---
+
+    def to_arrow_batches(
+        self,
+        source: Any,
+        batch_size: int | None,
+    ) -> Iterator[Any]:
+        """Convert a Polars DataFrame to an iterator of Arrow RecordBatches."""
+        import pyarrow as pa  # noqa: F811
+
+        table: pa.Table = source.to_arrow()
+        if batch_size is not None:
+            yield from table.to_batches(max_chunksize=batch_size)
+        else:
+            yield from table.to_batches()
+
+    def from_arrow_batches(
+        self,
+        batches: Iterator[Any],
+        schema: type[Any],
+    ) -> Any:
+        """Reconstruct a Polars DataFrame from Arrow RecordBatches."""
+        import pyarrow as pa  # noqa: F811
+
+        batch_list = list(batches)
+        if not batch_list:
+            return pl.DataFrame()
+        table = pa.Table.from_batches(batch_list)
+        return pl.from_arrow(table)

@@ -1,6 +1,7 @@
 """Colnade: A statically type-safe DataFrame abstraction layer."""
 
 from colnade._protocols import BackendProtocol
+from colnade.arrow import ArrowBatch
 from colnade.dataframe import (
     DataFrame,
     GroupBy,
@@ -56,6 +57,8 @@ from colnade.schema import Column, ListAccessor, Schema, SchemaError, mapped_fro
 __all__ = [
     # Backend
     "BackendProtocol",
+    # Arrow boundary
+    "ArrowBatch",
     # Schema layer
     "Schema",
     "Column",

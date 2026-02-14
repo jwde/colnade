@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from typing import TYPE_CHECKING, Any, Protocol
 
 if TYPE_CHECKING:
@@ -73,3 +73,17 @@ class BackendProtocol(Protocol):
     # --- Validation ---
 
     def validate_schema(self, source: Any, schema: type[Schema]) -> None: ...
+
+    # --- Arrow boundary ---
+
+    def to_arrow_batches(
+        self,
+        source: Any,
+        batch_size: int | None,
+    ) -> Iterator[Any]: ...
+
+    def from_arrow_batches(
+        self,
+        batches: Iterator[Any],
+        schema: type[Schema],
+    ) -> Any: ...
