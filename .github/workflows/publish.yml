@@ -15,15 +15,20 @@ jobs:
       - uses: astral-sh/setup-uv@v5
 
       - name: Build colnade
-        run: uv build
+        run: uv build --out dist-colnade/
 
       - name: Build colnade-polars
-        run: uv build --package colnade-polars
+        run: uv build --package colnade-polars --out dist-colnade-polars/
 
       - uses: actions/upload-artifact@v4
         with:
-          name: dist
-          path: dist/
+          name: dist-colnade
+          path: dist-colnade/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-colnade-polars
+          path: dist-colnade-polars/
 
   publish-colnade:
     needs: build
@@ -34,7 +39,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: dist
+          name: dist-colnade
           path: dist/
 
       - name: Publish colnade to PyPI
@@ -52,7 +57,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: dist
+          name: dist-colnade-polars
           path: dist/
 
       - name: Publish colnade-polars to PyPI
