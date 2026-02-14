@@ -7,6 +7,7 @@ from typing import Any, TypeVar
 import polars as pl
 
 from colnade import DataFrame, LazyFrame, Schema
+from colnade.validation import is_validation_enabled
 from colnade_polars.adapter import PolarsBackend
 from colnade_polars.conversion import map_colnade_dtype
 
@@ -22,7 +23,8 @@ def read_parquet(path: str, schema: type[S]) -> DataFrame[S]:
     """Read a Parquet file into a typed DataFrame."""
     backend = PolarsBackend()
     data = pl.read_parquet(path)
-    backend.validate_schema(data, schema)
+    if is_validation_enabled():
+        backend.validate_schema(data, schema)
     return DataFrame(_data=data, _schema=schema, _backend=backend)
 
 
@@ -30,7 +32,8 @@ def scan_parquet(path: str, schema: type[S]) -> LazyFrame[S]:
     """Lazily scan a Parquet file into a typed LazyFrame."""
     backend = PolarsBackend()
     data = pl.scan_parquet(path)
-    backend.validate_schema(data, schema)
+    if is_validation_enabled():
+        backend.validate_schema(data, schema)
     return LazyFrame(_data=data, _schema=schema, _backend=backend)
 
 

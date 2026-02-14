@@ -354,9 +354,14 @@ class DataFrame(Generic[S]):
         Unwraps each ``ArrowBatch[S]`` to its raw ``pa.RecordBatch`` and
         delegates to the backend's ``from_arrow_batches()`` method.
         """
+        from colnade.validation import is_validation_enabled
+
         raw_batches = (batch.to_pyarrow() for batch in batches)
         data = backend.from_arrow_batches(raw_batches, schema)
-        return DataFrame(_data=data, _schema=schema, _backend=backend)
+        df: DataFrame[S] = DataFrame(_data=data, _schema=schema, _backend=backend)
+        if is_validation_enabled():
+            df.validate()
+        return df
 
 
 # ---------------------------------------------------------------------------
@@ -586,6 +591,8 @@ class LazyFrame(Generic[S]):
 
     def validate(self) -> LazyFrame[S]:
         """Validate that the data conforms to the schema."""
+        if self._backend and self._schema:
+            self._backend.validate_schema(self._data, self._schema)
         return self
 
 
