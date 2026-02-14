@@ -608,6 +608,29 @@ class SchemaMeta(type(Protocol)):  # type(Protocol) is typing._ProtocolMeta (CPy
 
         return cls
 
+    @staticmethod
+    def _dtype_name(dtype: Any) -> str:
+        if hasattr(dtype, "__name__"):
+            return dtype.__name__
+        return str(dtype)
+
+    def __repr__(cls) -> str:
+        columns = getattr(cls, "_columns", {})
+        if not columns:
+            return cls.__name__
+        cols = ", ".join(f"{c.name}: {SchemaMeta._dtype_name(c.dtype)}" for c in columns.values())
+        return f"{cls.__name__}({cols})"
+
+    def _repr_html_(cls) -> str:
+        columns = getattr(cls, "_columns", {})
+        if not columns:
+            return f"<b>{cls.__name__}</b>"
+        rows = "".join(
+            f"<tr><td>{c.name}</td><td>{SchemaMeta._dtype_name(c.dtype)}</td></tr>"
+            for c in columns.values()
+        )
+        return f"<b>{cls.__name__}</b><table><tr><th>Column</th><th>Type</th></tr>{rows}</table>"
+
 
 # ---------------------------------------------------------------------------
 # Schema base class
