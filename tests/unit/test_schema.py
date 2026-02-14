@@ -285,3 +285,34 @@ class TestSchemaMetaRobustness:
                 raise AssertionError("RuntimeError should have propagated")
             except RuntimeError:
                 pass  # Expected
+
+
+# ---------------------------------------------------------------------------
+# Schema repr
+# ---------------------------------------------------------------------------
+
+
+class TestSchemaRepr:
+    def test_repr_with_columns(self) -> None:
+        r = repr(Users)
+        assert r.startswith("Users(")
+        assert "id: UInt64" in r
+        assert "name: Utf8" in r
+
+    def test_repr_empty_schema(self) -> None:
+        assert repr(Empty) == "Empty"
+
+    def test_repr_html_with_columns(self) -> None:
+        html = Users._repr_html_()
+        assert "<b>Users</b>" in html
+        assert "<th>Column</th>" in html
+        assert "<td>id</td>" in html
+        assert "<td>UInt64</td>" in html
+
+    def test_repr_html_empty_schema(self) -> None:
+        assert Empty._repr_html_() == "<b>Empty</b>"
+
+    def test_repr_inherited_schema(self) -> None:
+        r = repr(EnrichedUsers)
+        assert "normalized_age: Float64" in r
+        assert "id: UInt64" in r
