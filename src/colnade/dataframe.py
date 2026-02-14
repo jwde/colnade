@@ -14,6 +14,7 @@ See AGENTS.md "Column[DType] Annotation Pattern" for details.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from typing import TYPE_CHECKING, Any, Generic, overload
 
 from colnade.schema import S2, S3, Column, S, Schema, SchemaError
@@ -22,6 +23,7 @@ if TYPE_CHECKING:
     from typing import Literal
 
     from colnade._protocols import BackendProtocol
+    from colnade.arrow import ArrowBatch
     from colnade.dtypes import Bool
     from colnade.expr import AliasedExpr, Expr, JoinCondition, SortExpr
 
@@ -309,9 +311,37 @@ class DataFrame(Generic[S]):
             self._backend.validate_schema(self._data, self._schema)
         return self
 
-    def to_batches(self, batch_size: int | None = None) -> Any:
-        """Convert to Arrow batches (see #22)."""
-        raise NotImplementedError("to_batches requires PyArrow boundary support (#22)")
+    def to_batches(self, batch_size: int | None = None) -> Iterator[ArrowBatch[S]]:
+        """Convert to an iterator of typed Arrow batches.
+
+        Delegates to the backend's ``to_arrow_batches()`` method, wrapping
+        each raw ``pa.RecordBatch`` in an ``ArrowBatch[S]`` to preserve
+        schema type information across the boundary.
+        """
+        from colnade.arrow import ArrowBatch
+
+        if self._backend is None:
+            msg = "to_batches() requires a backend"
+            raise RuntimeError(msg)
+
+        for raw_batch in self._backend.to_arrow_batches(self._data, batch_size):
+            yield ArrowBatch(_batch=raw_batch, _schema=self._schema)
+
+    @classmethod
+    def from_batches(
+        cls,
+        batches: Iterator[ArrowBatch[S]],
+        schema: type[S],
+        backend: BackendProtocol,
+    ) -> DataFrame[S]:
+        """Create a DataFrame from an iterator of typed Arrow batches.
+
+        Unwraps each ``ArrowBatch[S]`` to its raw ``pa.RecordBatch`` and
+        delegates to the backend's ``from_arrow_batches()`` method.
+        """
+        raw_batches = (batch.to_pyarrow() for batch in batches)
+        data = backend.from_arrow_batches(raw_batches, schema)
+        return DataFrame(_data=data, _schema=schema, _backend=backend)
 
 
 # ---------------------------------------------------------------------------

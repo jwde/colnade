@@ -238,12 +238,12 @@ class TestConversion:
         result = df.validate()
         assert result is df
 
-    def test_to_batches_not_implemented(self) -> None:
+    def test_to_batches_no_backend_raises(self) -> None:
         import pytest
 
         df: DataFrame[Users] = DataFrame(_schema=Users)
-        with pytest.raises(NotImplementedError):
-            df.to_batches()
+        with pytest.raises(RuntimeError, match="requires a backend"):
+            list(df.to_batches())
 
 
 # ---------------------------------------------------------------------------
