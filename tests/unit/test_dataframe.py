@@ -528,6 +528,11 @@ class TestLazyFrameIntrospectionRestrictions:
     def test_no_iter_rows_as(self) -> None:
         assert not hasattr(LazyFrame, "iter_rows_as")
 
+    def test_no_len(self) -> None:
+        lf = LazyFrame(_schema=Users, _backend=_BACKEND)
+        with pytest.raises(TypeError):
+            len(lf)
+
 
 # ---------------------------------------------------------------------------
 # iter_rows_as
@@ -550,6 +555,26 @@ class TestIterRowsAs:
         df = DataFrame(_schema=Users)
         with pytest.raises(RuntimeError, match="requires a backend"):
             list(df.iter_rows_as(dict))
+
+    def test_incompatible_row_type_raises(self) -> None:
+        """Passing a type that can't accept **kwargs raises TypeError at iteration."""
+
+        class _MockBackendWithRows:
+            def row_count(self, source: object) -> int:  # noqa: ANN001
+                return 1
+
+            def iter_row_dicts(self, source: object) -> list[dict[str, object]]:  # noqa: ANN001
+                return [{"id": 1, "name": "Alice", "age": 25}]
+
+            def __getattr__(self, name: str):  # noqa: ANN204
+                def _method(*args, **kwargs):  # noqa: ANN002, ANN003, ANN202
+                    return args[0] if args else None
+
+                return _method
+
+        df: DataFrame[Users] = DataFrame(_schema=Users, _backend=_MockBackendWithRows())
+        with pytest.raises(TypeError):
+            list(df.iter_rows_as(int))  # int() does not accept **kwargs
 
 
 # ---------------------------------------------------------------------------
@@ -590,6 +615,53 @@ class TestJoinedIntrospectionRestrictions:
 
     def test_joined_lf_no_iter_rows_as(self) -> None:
         assert not hasattr(JoinedLazyFrame, "iter_rows_as")
+
+    def test_joined_df_no_len(self) -> None:
+        jdf = JoinedDataFrame(_backend=_BACKEND)
+        with pytest.raises(TypeError):
+            len(jdf)
+
+    def test_joined_lf_no_len(self) -> None:
+        jlf = JoinedLazyFrame(_backend=_BACKEND)
+        with pytest.raises(TypeError):
+            len(jlf)
+
+
+# ---------------------------------------------------------------------------
+# Untyped frame introspection restrictions
+# ---------------------------------------------------------------------------
+
+
+class TestUntypedIntrospectionRestrictions:
+    def test_untyped_df_no_height(self) -> None:
+        assert not hasattr(UntypedDataFrame, "height")
+
+    def test_untyped_df_no_width(self) -> None:
+        assert not hasattr(UntypedDataFrame, "width")
+
+    def test_untyped_df_no_shape(self) -> None:
+        assert not hasattr(UntypedDataFrame, "shape")
+
+    def test_untyped_df_no_is_empty(self) -> None:
+        assert not hasattr(UntypedDataFrame, "is_empty")
+
+    def test_untyped_df_no_iter_rows_as(self) -> None:
+        assert not hasattr(UntypedDataFrame, "iter_rows_as")
+
+    def test_untyped_lf_no_height(self) -> None:
+        assert not hasattr(UntypedLazyFrame, "height")
+
+    def test_untyped_lf_no_width(self) -> None:
+        assert not hasattr(UntypedLazyFrame, "width")
+
+    def test_untyped_lf_no_shape(self) -> None:
+        assert not hasattr(UntypedLazyFrame, "shape")
+
+    def test_untyped_lf_no_is_empty(self) -> None:
+        assert not hasattr(UntypedLazyFrame, "is_empty")
+
+    def test_untyped_lf_no_iter_rows_as(self) -> None:
+        assert not hasattr(UntypedLazyFrame, "iter_rows_as")
 
 
 # ---------------------------------------------------------------------------

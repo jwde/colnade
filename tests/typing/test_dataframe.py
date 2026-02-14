@@ -329,3 +329,21 @@ def check_neg_shape_not_triple() -> None:
     """shape returns tuple[int, int], NOT tuple[int, int, int]."""
     df: DataFrame[Users] = DataFrame(_schema=Users)
     _: tuple[int, int, int] = df.shape  # type: ignore[invalid-assignment]
+
+
+def check_neg_width_not_str() -> None:
+    """width returns int, NOT str."""
+    df: DataFrame[Users] = DataFrame(_schema=Users)
+    _: str = df.width  # type: ignore[invalid-assignment]
+
+
+def check_neg_is_empty_not_int() -> None:
+    """is_empty() returns bool, NOT int."""
+    df: DataFrame[Users] = DataFrame(_schema=Users)
+    _: str = df.is_empty()  # type: ignore[invalid-assignment]
+
+
+def check_neg_lazyframe_width_not_str() -> None:
+    """LazyFrame.width returns int, NOT str."""
+    lf: LazyFrame[Users] = LazyFrame(_schema=Users)
+    _: str = lf.width  # type: ignore[invalid-assignment]

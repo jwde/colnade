@@ -421,3 +421,16 @@ class TestSchemaRow:
 
     def test_only_private_schema_no_row(self) -> None:
         assert not hasattr(OnlyPrivate, "Row")
+
+    def test_row_missing_field_raises(self) -> None:
+        with pytest.raises(TypeError):
+            NullableSchema.Row(id=1)  # missing 'name'
+
+    def test_row_extra_field_raises(self) -> None:
+        with pytest.raises(TypeError):
+            NullableSchema.Row(id=1, name="Alice", extra=99)
+
+    def test_row_delete_attr_raises(self) -> None:
+        row = NullableSchema.Row(id=1, name="Alice")
+        with pytest.raises(AttributeError):
+            del row.id
