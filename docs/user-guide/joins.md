@@ -30,14 +30,40 @@ users.join(orders, on=Users.id == Orders.user_id, how="outer")
 users.join(orders, on=Users.id == Orders.user_id, how="cross")
 ```
 
-## JoinedDataFrame
+## JoinedDataFrame — a transitional type
 
-`JoinedDataFrame[S, S2]` accepts columns from either schema. All schema-preserving operations return `JoinedDataFrame[S, S2]`:
+`JoinedDataFrame[S, S2]` is a **transitional** type. It holds data from two schemas but does not itself satisfy a single schema contract. Before you can use schema-dependent operations like `group_by()`, `head()`, `tail()`, or `sample()`, you must call `cast_schema()` to flatten the join result into a `DataFrame[S3]`.
+
+Available operations on `JoinedDataFrame`:
+
+| Operation | Returns | Description |
+|-----------|---------|-------------|
+| `filter()` | `JoinedDataFrame[S, S2]` | Filter rows using columns from either schema |
+| `sort()` | `JoinedDataFrame[S, S2]` | Sort rows |
+| `limit()` | `JoinedDataFrame[S, S2]` | Limit to first n rows |
+| `unique()` | `JoinedDataFrame[S, S2]` | Deduplicate by columns |
+| `drop_nulls()` | `JoinedDataFrame[S, S2]` | Drop rows with nulls |
+| `with_columns()` | `JoinedDataFrame[S, S2]` | Add or overwrite columns |
+| `select()` | `DataFrame[Any]` | Select columns (untyped) |
+| `cast_schema()` | `DataFrame[S3]` | Flatten to a single schema |
+| `lazy()` | `JoinedLazyFrame[S, S2]` | Convert to lazy |
+| `untyped()` | `UntypedDataFrame` | Drop type information |
+
+Operations **not** available on joined frames (use `cast_schema()` first):
+
+- `group_by()` — requires a single schema
+- `head()`, `tail()`, `sample()` — materialized-only ops on `DataFrame`
 
 ```python
-joined.filter(Users.age > 25)           # filter by left schema column
-joined.filter(Orders.amount >= 100)     # filter by right schema column
-joined.sort(Users.name)                 # sort
+# Typical workflow: join → filter → cast_schema → group_by
+result = (
+    users.join(orders, on=Users.id == Orders.user_id)
+    .filter(Orders.amount >= 100)
+    .cast_schema(UserOrders)
+    .group_by(UserOrders.user_name)
+    .agg(UserOrders.amount.sum().alias(UserOrders.amount))
+    .cast_schema(UserTotals)
+)
 ```
 
 ## Flattening with cast_schema
@@ -79,3 +105,17 @@ result = joined.cast_schema(Output, mapping={
 ```
 
 Explicit mapping takes the highest precedence, overriding both `mapped_from` and name matching.
+
+## Lazy joins
+
+`LazyFrame` joins work the same way but produce `JoinedLazyFrame[S, S2]`:
+
+```python
+joined_lazy = users_lazy.join(orders_lazy, on=Users.id == Orders.user_id)
+# JoinedLazyFrame[Users, Orders]
+
+result = joined_lazy.cast_schema(UserOrders).collect()
+# DataFrame[UserOrders]
+```
+
+`JoinedLazyFrame` has the same restrictions as `JoinedDataFrame` — no `group_by()`, `head()`, `tail()`, or `sample()`. Use `cast_schema()` first.

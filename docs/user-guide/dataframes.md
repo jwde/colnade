@@ -77,6 +77,21 @@ The `extra` parameter controls extra columns in the source:
 - `extra="drop"` (default) — silently drop extra columns
 - `extra="forbid"` — raise `SchemaError` if extra columns exist
 
+## Group by
+
+`group_by()` is available on `DataFrame[S]` and `LazyFrame[S]` — but **not** on `JoinedDataFrame` or `JoinedLazyFrame`. If you need to aggregate joined data, first `cast_schema()` to flatten to a single schema:
+
+```python
+# Join → cast_schema → group_by → cast_schema
+totals = (
+    users.join(orders, on=Users.id == Orders.user_id)
+    .cast_schema(UserOrders)
+    .group_by(UserOrders.user_name)
+    .agg(UserOrders.amount.sum().alias(UserOrders.amount))
+    .cast_schema(UserTotals)
+)
+```
+
 ## Validation
 
 Validate that data conforms to the schema:
@@ -85,7 +100,29 @@ Validate that data conforms to the schema:
 df.validate()  # raises SchemaError on mismatch
 ```
 
-Checks column existence and data types.
+Checks column existence and data types. See [Validation](validation.md) for the global toggle and auto-validation at IO boundaries.
+
+## What Colnade validates
+
+Colnade provides type safety at two levels:
+
+### Static analysis (ty, pyright, mypy)
+
+- **Schema-aware return types** — `df.filter(...)` returns `DataFrame[Users]`, not just `DataFrame`
+- **Type boundary enforcement** — `JoinedDataFrame[S, S2]` is a distinct type from `DataFrame[S]`. You cannot pass a joined frame where a `DataFrame` is expected — you must `cast_schema()` first
+- **Schema-transforming operations** — `select()` and `group_by().agg()` return `DataFrame[Any]`, requiring `cast_schema()` to regain a named schema
+- **Join conditions** — cross-schema `==` returns `JoinCondition`, same-schema `==` returns `BinOp[Bool]`
+
+### Runtime validation (df.validate())
+
+- **Column existence** — missing columns raise `SchemaError`
+- **Data types** — type mismatches raise `SchemaError`
+- **Null violations** — non-nullable columns with null values raise `SchemaError`
+- **Extra columns** — optionally flagged via `extra="forbid"` on `cast_schema()`
+
+### Current limitations
+
+Column type parameters carry the data type (`Column[UInt64]`) but not the schema they belong to. This means the type checker cannot statically verify that `df.filter(Orders.amount > 5)` is invalid when `df` is a `DataFrame[Users]`. This limitation exists because Python 3.10 lacks `TypeVar` defaults (PEP 696). Schema enforcement at the column level would require `Column[DType, Schema]`, which is planned for future versions.
 
 ## Untyped escape hatch
 

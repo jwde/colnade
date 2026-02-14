@@ -671,11 +671,12 @@ class LazyGroupBy(Generic[S]):
 
 
 class JoinedDataFrame(Generic[S, S2]):
-    """A typed DataFrame resulting from a join of two schemas.
+    """A transitional typed DataFrame resulting from a join of two schemas.
 
-    Operations accept columns from either schema S or S2. Schema-preserving
-    operations return ``JoinedDataFrame[S, S2]``. Schema-transforming operations
-    (select) return ``DataFrame[Any]`` and require ``cast_schema()`` to bind.
+    Operations accept columns from either schema S or S2. Available operations
+    are limited to filtering, sorting, and other row-level transforms. Use
+    ``cast_schema()`` to flatten into a ``DataFrame[S3]`` before group_by,
+    head/tail/sample, or passing to functions that expect a single schema.
     """
 
     __slots__ = ("_data", "_schema_left", "_schema_right", "_backend")
@@ -739,21 +740,6 @@ class JoinedDataFrame(Generic[S, S2]):
     def limit(self, n: int) -> JoinedDataFrame[S, S2]:
         """Limit to the first n rows."""
         data = _require_backend(self._backend).limit(self._data, n)
-        return self._joined(data)
-
-    def head(self, n: int = 5) -> JoinedDataFrame[S, S2]:
-        """Return the first n rows (materialized only)."""
-        data = _require_backend(self._backend).head(self._data, n)
-        return self._joined(data)
-
-    def tail(self, n: int = 5) -> JoinedDataFrame[S, S2]:
-        """Return the last n rows (materialized only)."""
-        data = _require_backend(self._backend).tail(self._data, n)
-        return self._joined(data)
-
-    def sample(self, n: int) -> JoinedDataFrame[S, S2]:
-        """Return a random sample of n rows (materialized only)."""
-        data = _require_backend(self._backend).sample(self._data, n)
         return self._joined(data)
 
     def unique(self, *columns: Column[Any]) -> JoinedDataFrame[S, S2]:
@@ -869,12 +855,6 @@ class JoinedDataFrame(Generic[S, S2]):
         data = _require_backend(self._backend).select(self._data, columns)
         return DataFrame(_data=data, _schema=None, _backend=self._backend)
 
-    # --- GroupBy ---
-
-    def group_by(self, *keys: Column[Any]) -> GroupBy[Any]:
-        """Group by columns from either schema for aggregation."""
-        return GroupBy(_data=self._data, _schema=None, _keys=keys, _backend=self._backend)
-
     # --- Schema transition ---
 
     def cast_schema(
@@ -921,10 +901,11 @@ class JoinedDataFrame(Generic[S, S2]):
 
 
 class JoinedLazyFrame(Generic[S, S2]):
-    """A typed lazy query plan resulting from a join of two schemas.
+    """A transitional typed lazy query plan resulting from a join of two schemas.
 
-    Same operations as JoinedDataFrame except: no head(), tail(), sample()
-    (materialized-only ops). Use collect() to materialize.
+    Available operations are limited to filtering, sorting, and other row-level
+    transforms. Use ``cast_schema()`` to flatten into a ``LazyFrame[S3]``
+    before group_by or passing to functions that expect a single schema.
     """
 
     __slots__ = ("_data", "_schema_left", "_schema_right", "_backend")
@@ -1102,12 +1083,6 @@ class JoinedLazyFrame(Generic[S, S2]):
         """Select columns. Returns LazyFrame[Any] — use cast_schema() to bind."""
         data = _require_backend(self._backend).select(self._data, columns)
         return LazyFrame(_data=data, _schema=None, _backend=self._backend)
-
-    # --- GroupBy ---
-
-    def group_by(self, *keys: Column[Any]) -> LazyGroupBy[Any]:
-        """Group by columns from either schema for aggregation."""
-        return LazyGroupBy(_data=self._data, _schema=None, _keys=keys, _backend=self._backend)
 
     # --- Schema transition ---
 

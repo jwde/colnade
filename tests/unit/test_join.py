@@ -8,12 +8,10 @@ from colnade import (
     BinOp,
     Column,
     DataFrame,
-    GroupBy,
     JoinCondition,
     JoinedDataFrame,
     JoinedLazyFrame,
     LazyFrame,
-    LazyGroupBy,
     Schema,
     UInt64,
     UntypedDataFrame,
@@ -137,18 +135,6 @@ class TestJoinedDataFrame:
         result = self.joined.limit(10)
         assert isinstance(result, JoinedDataFrame)
 
-    def test_head_returns_joined(self) -> None:
-        result = self.joined.head()
-        assert isinstance(result, JoinedDataFrame)
-
-    def test_tail_returns_joined(self) -> None:
-        result = self.joined.tail()
-        assert isinstance(result, JoinedDataFrame)
-
-    def test_sample_returns_joined(self) -> None:
-        result = self.joined.sample(5)
-        assert isinstance(result, JoinedDataFrame)
-
     def test_unique_returns_joined(self) -> None:
         result = self.joined.unique(Users.id)
         assert isinstance(result, JoinedDataFrame)
@@ -169,10 +155,6 @@ class TestJoinedDataFrame:
     def test_select_single_column(self) -> None:
         result = self.joined.select(Users.name)
         assert isinstance(result, DataFrame)
-
-    def test_group_by_returns_groupby(self) -> None:
-        gb = self.joined.group_by(Users.age)
-        assert isinstance(gb, GroupBy)
 
 
 # ---------------------------------------------------------------------------
@@ -269,14 +251,24 @@ class TestJoinedLazyFrame:
         result = self.joined.untyped()
         assert result._backend is _BACKEND
 
-    def test_group_by_returns_lazy_groupby(self) -> None:
-        gb = self.joined.group_by(Users.age)
-        assert isinstance(gb, LazyGroupBy)
-
 
 # ---------------------------------------------------------------------------
-# JoinedLazyFrame restrictions
+# Joined frame restrictions — methods that require cast_schema first
 # ---------------------------------------------------------------------------
+
+
+class TestJoinedDataFrameRestrictions:
+    def test_no_head(self) -> None:
+        assert not hasattr(JoinedDataFrame, "head")
+
+    def test_no_tail(self) -> None:
+        assert not hasattr(JoinedDataFrame, "tail")
+
+    def test_no_sample(self) -> None:
+        assert not hasattr(JoinedDataFrame, "sample")
+
+    def test_no_group_by(self) -> None:
+        assert not hasattr(JoinedDataFrame, "group_by")
 
 
 class TestJoinedLazyFrameRestrictions:
@@ -288,6 +280,9 @@ class TestJoinedLazyFrameRestrictions:
 
     def test_no_sample(self) -> None:
         assert not hasattr(JoinedLazyFrame, "sample")
+
+    def test_no_group_by(self) -> None:
+        assert not hasattr(JoinedLazyFrame, "group_by")
 
 
 # ---------------------------------------------------------------------------
