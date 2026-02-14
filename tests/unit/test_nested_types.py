@@ -274,3 +274,71 @@ class TestNestedNullability:
         result = Users.friends.list.len()
         assert isinstance(result, ListOp)
         assert result.op == "len"
+
+
+# ---------------------------------------------------------------------------
+# Null/NaN methods on Expr subclasses (not just Column)
+# ---------------------------------------------------------------------------
+
+
+class TestExprNullMethods:
+    """Verify null/NaN methods work on StructFieldAccess, ListOp, BinOp, etc."""
+
+    def test_struct_field_is_null(self) -> None:
+        from colnade import UnaryOp
+
+        e = Users.address.field(Address.city).is_null()
+        assert isinstance(e, UnaryOp) and e.op == "is_null"
+        assert isinstance(e.operand, StructFieldAccess)
+
+    def test_struct_field_is_not_null(self) -> None:
+        from colnade import UnaryOp
+
+        e = Users.address.field(Address.city).is_not_null()
+        assert isinstance(e, UnaryOp) and e.op == "is_not_null"
+        assert isinstance(e.operand, StructFieldAccess)
+
+    def test_struct_field_fill_null(self) -> None:
+        from colnade import FunctionCall
+
+        e = Users.address.field(Address.city).fill_null("unknown")
+        assert isinstance(e, FunctionCall) and e.name == "fill_null"
+        assert isinstance(e.args[0], StructFieldAccess)
+
+    def test_list_op_is_null(self) -> None:
+        from colnade import UnaryOp
+
+        e = Users.tags.list.get(0).is_null()
+        assert isinstance(e, UnaryOp) and e.op == "is_null"
+        assert isinstance(e.operand, ListOp)
+
+    def test_list_op_fill_null(self) -> None:
+        from colnade import FunctionCall
+
+        e = Users.tags.list.get(0).fill_null("default")
+        assert isinstance(e, FunctionCall) and e.name == "fill_null"
+
+    def test_binop_is_null(self) -> None:
+        from colnade import BinOp, UnaryOp
+
+        e = (Users.scores.list.sum() + 1).is_null()
+        assert isinstance(e, UnaryOp) and e.op == "is_null"
+        assert isinstance(e.operand, BinOp)
+
+    def test_expr_is_nan(self) -> None:
+        from colnade import UnaryOp
+
+        e = Users.scores.list.sum().is_nan()
+        assert isinstance(e, UnaryOp) and e.op == "is_nan"
+
+    def test_expr_fill_nan(self) -> None:
+        from colnade import FunctionCall
+
+        e = Users.scores.list.sum().fill_nan(0.0)
+        assert isinstance(e, FunctionCall) and e.name == "fill_nan"
+
+    def test_expr_assert_non_null(self) -> None:
+        from colnade import FunctionCall
+
+        e = Users.address.field(Address.city).assert_non_null()
+        assert isinstance(e, FunctionCall) and e.name == "assert_non_null"
