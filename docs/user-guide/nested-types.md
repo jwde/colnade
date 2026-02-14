@@ -72,10 +72,10 @@ Users.scores.list.max()
 df.filter(Users.tags.list.contains("python"))
 
 # Compute tag counts
-df.with_columns(Users.tags.list.len().alias(tag_count_col))
+df.with_columns(Users.tags.list.len().alias(Users.tags))
 
 # Sum scores per row
-df.with_columns(Users.scores.list.sum().alias(total_score_col))
+df.with_columns(Users.scores.list.sum().alias(Users.scores))
 ```
 
 ## Nullable nested types

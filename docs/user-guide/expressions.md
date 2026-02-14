@@ -62,6 +62,11 @@ Users.name.n_unique()   # unique count (returns UInt32)
 Use `.alias()` to bind aggregation results to output columns:
 
 ```python
+class Stats(Schema):
+    name: Column[Utf8]
+    avg_score: Column[Float64]
+    user_count: Column[UInt32]
+
 df.group_by(Users.name).agg(
     Users.score.mean().alias(Stats.avg_score),
     Users.id.count().alias(Stats.user_count),
@@ -131,7 +136,7 @@ Bind an expression result to a target column:
 
 ```python
 (Users.score * 2).alias(Users.score)           # overwrite score
-Users.score.mean().alias(Stats.avg_score)      # alias aggregation
+Users.score.mean().alias(Users.score)            # alias aggregation
 ```
 
 ## Casting

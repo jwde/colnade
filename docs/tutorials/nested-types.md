@@ -45,7 +45,7 @@ Access list methods via the `.list` property:
 ```python
 # Count elements in each list
 tag_counts = df.with_columns(
-    UserProfile.tags.list.len().alias(tag_count_col)
+    UserProfile.tags.list.len().alias(UserProfile.tags)
 )
 
 # Check if list contains a value
@@ -55,12 +55,12 @@ python_users = df.filter(
 
 # Get element by index (0-based)
 first_tags = df.with_columns(
-    UserProfile.tags.list.get(0).alias(first_tag_col)
+    UserProfile.tags.list.get(0).alias(UserProfile.tags)
 )
 
 # Aggregate list elements (numeric lists)
 score_totals = df.with_columns(
-    UserProfile.scores.list.sum().alias(total_score_col)
+    UserProfile.scores.list.sum().alias(UserProfile.scores)
 )
 ```
 

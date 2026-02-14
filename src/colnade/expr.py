@@ -114,6 +114,35 @@ class Expr(Generic[DType]):
         """Sort ascending."""
         return SortExpr(expr=self, descending=False)
 
+    # --- Null handling ---
+
+    def is_null(self) -> UnaryOp[Bool]:
+        """Check if values are null."""
+        return UnaryOp(operand=self, op="is_null")
+
+    def is_not_null(self) -> UnaryOp[Bool]:
+        """Check if values are not null."""
+        return UnaryOp(operand=self, op="is_not_null")
+
+    def fill_null(self, value: Any) -> FunctionCall[DType]:
+        """Replace null values."""
+        return FunctionCall(name="fill_null", args=(self, _wrap(value)))
+
+    def assert_non_null(self) -> FunctionCall[DType]:
+        """Assert values are non-null (runtime check)."""
+        return FunctionCall(name="assert_non_null", args=(self,))
+
+    # --- NaN handling ---
+
+    def is_nan(self) -> UnaryOp[Bool]:
+        """Check if values are NaN."""
+        return UnaryOp(operand=self, op="is_nan")
+
+    def fill_nan(self, value: Any) -> FunctionCall[DType]:
+        """Replace NaN values."""
+        fill_arg = value if isinstance(value, Literal) else Literal(value=value)
+        return FunctionCall(name="fill_nan", args=(self, fill_arg))
+
     # --- Window ---
 
     def over(self, *partition_by: Column[Any]) -> FunctionCall[DType]:

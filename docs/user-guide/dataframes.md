@@ -47,7 +47,7 @@ selected = df.select(Users.name, Users.score)  # DataFrame[Any]
 
 # group_by + agg — aggregate
 grouped = df.group_by(Users.name).agg(
-    Users.score.mean().alias(stats_col)
+    Users.score.mean().alias(Users.score)
 )  # DataFrame[Any]
 ```
 
