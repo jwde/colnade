@@ -4,25 +4,39 @@ Colnade is organized into four layers. Understanding these layers helps you use 
 
 ## Architecture
 
-```
-┌──────────────────────────────────────────────────────┐
-│                    User Code                         │
-│  (schemas, transforms, pipeline definitions)         │
-├──────────────────────────────────────────────────────┤
-│              colnade (core library)                  │
-│  ┌────────────┐  ┌──────────────┐  ┌──────────────┐ │
-│  │   Schema    │  │  Expression  │  │  DataFrame   │ │
-│  │   Layer     │  │    DSL       │  │  Interface   │ │
-│  └────────────┘  └──────────────┘  └──────────────┘ │
-├──────────────────────────────────────────────────────┤
-│                 Backend Adapters                      │
-│  ┌────────┐ ┌──────────┐ ┌─────┐ ┌────────────────┐ │
-│  │ Polars │ │ Snowpark │ │ Ray │ │ DuckDB / etc.  │ │
-│  └────────┘ └──────────┘ └─────┘ └────────────────┘ │
-├──────────────────────────────────────────────────────┤
-│              Execution Engines                        │
-│  (Polars, Snowflake, Ray Data, DuckDB, etc.)         │
-└──────────────────────────────────────────────────────┘
+```mermaid
+block-beta
+  columns 4
+
+  block:user:4
+    columns 4
+    A["User Code<br/><i>schemas, transforms, pipelines</i>"]:4
+  end
+
+  space:4
+
+  block:core:4
+    columns 3
+    B["Schema Layer"] C["Expression DSL"] D["DataFrame Interface"]
+  end
+
+  space:4
+
+  block:adapters:4
+    columns 4
+    E["Polars"] F["Pandas"] G["DuckDB"] H["Spark"]
+  end
+
+  space:4
+
+  block:engines:4
+    columns 4
+    I["Execution Engines<br/><i>Polars, Pandas, DuckDB, Spark, etc.</i>"]:4
+  end
+
+  user --> core
+  core --> adapters
+  adapters --> engines
 ```
 
 ## Schema Layer
