@@ -62,6 +62,40 @@ class TestDataFrameConstruction:
         df = DataFrame()
         assert repr(df) == "DataFrame[Any]"
 
+    def test_repr_includes_data_preview(self) -> None:
+        class FakeData:
+            def __repr__(self) -> str:
+                return "shape: (3, 2)\n| id | name |"
+
+        df = DataFrame(_data=FakeData(), _schema=Users)
+        r = repr(df)
+        assert r.startswith("DataFrame[Users]\n")
+        assert "shape: (3, 2)" in r
+
+    def test_repr_html_delegates_to_data(self) -> None:
+        class FakeData:
+            def _repr_html_(self) -> str:
+                return "<table>rows</table>"
+
+        df = DataFrame(_data=FakeData(), _schema=Users)
+        html = df._repr_html_()
+        assert html is not None
+        assert "<b>DataFrame[Users]</b>" in html
+        assert "<table>rows</table>" in html
+
+    def test_repr_html_returns_none_without_data(self) -> None:
+        df = DataFrame(_schema=Users)
+        assert df._repr_html_() is None
+
+    def test_to_native_returns_inner_data(self) -> None:
+        sentinel = object()
+        df = DataFrame(_data=sentinel, _schema=Users)
+        assert df.to_native() is sentinel
+
+    def test_to_native_returns_none_when_no_data(self) -> None:
+        df = DataFrame(_schema=Users)
+        assert df.to_native() is None
+
 
 # ---------------------------------------------------------------------------
 # Schema-preserving operations
@@ -261,6 +295,21 @@ class TestLazyFrame:
     def test_repr_without_schema(self) -> None:
         lf = LazyFrame()
         assert repr(lf) == "LazyFrame[Any]"
+
+    def test_repr_includes_data_preview(self) -> None:
+        class FakeData:
+            def __repr__(self) -> str:
+                return "naive query plan"
+
+        lf = LazyFrame(_data=FakeData(), _schema=Users)
+        r = repr(lf)
+        assert r.startswith("LazyFrame[Users]\n")
+        assert "naive query plan" in r
+
+    def test_to_native_returns_inner_data(self) -> None:
+        sentinel = object()
+        lf = LazyFrame(_data=sentinel, _schema=Users)
+        assert lf.to_native() is sentinel
 
     def test_filter_returns_lazyframe(self) -> None:
         result = self.lf.filter(Users.age > 18)
