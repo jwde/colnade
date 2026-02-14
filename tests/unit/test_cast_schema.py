@@ -19,6 +19,24 @@ from colnade import (
 from colnade.schema import _MappedFrom
 
 # ---------------------------------------------------------------------------
+# Minimal mock backend — returns source data unchanged for all operations
+# ---------------------------------------------------------------------------
+
+
+class _MockBackend:
+    """Backend stub for unit tests. Returns the first positional arg (source)."""
+
+    def __getattr__(self, name: str):  # noqa: ANN204
+        def _method(*args, **kwargs):  # noqa: ANN002, ANN003, ANN202
+            return args[0] if args else None
+
+        return _method
+
+
+_BACKEND = _MockBackend()
+
+
+# ---------------------------------------------------------------------------
 # Test fixture schemas
 # ---------------------------------------------------------------------------
 
@@ -156,7 +174,7 @@ class TestSchemaError:
 
 class TestCastSchemaNameMatching:
     def setup_method(self) -> None:
-        self.df: DataFrame[Users] = DataFrame(_schema=Users)
+        self.df: DataFrame[Users] = DataFrame(_schema=Users, _backend=_BACKEND)
 
     def test_name_match_succeeds(self) -> None:
         result = self.df.cast_schema(UsersSummary)
@@ -187,7 +205,7 @@ class TestCastSchemaNameMatching:
 
 class TestCastSchemaMappedFrom:
     def setup_method(self) -> None:
-        self.df: DataFrame[Users] = DataFrame(_schema=Users)
+        self.df: DataFrame[Users] = DataFrame(_schema=Users, _backend=_BACKEND)
 
     def test_mapped_from_resolves(self) -> None:
         result = self.df.cast_schema(RenamedUsers)
@@ -207,7 +225,7 @@ class TestCastSchemaMappedFrom:
 
 class TestCastSchemaExplicitMapping:
     def setup_method(self) -> None:
-        self.df: DataFrame[Users] = DataFrame(_schema=Users)
+        self.df: DataFrame[Users] = DataFrame(_schema=Users, _backend=_BACKEND)
 
     def test_explicit_mapping_resolves(self) -> None:
         result = self.df.cast_schema(
@@ -234,7 +252,7 @@ class TestCastSchemaExplicitMapping:
 
 class TestCastSchemaOnJoined:
     def setup_method(self) -> None:
-        self.joined = JoinedDataFrame(_schema_left=Users, _schema_right=Orders)
+        self.joined = JoinedDataFrame(_schema_left=Users, _schema_right=Orders, _backend=_BACKEND)
 
     def test_name_match_across_both_schemas(self) -> None:
         result = self.joined.cast_schema(JoinTarget)
@@ -283,19 +301,19 @@ class TestCastSchemaOnJoined:
 
 class TestCastSchemaOnLazy:
     def test_lazyframe_cast_schema_returns_lazyframe(self) -> None:
-        lf: LazyFrame[Users] = LazyFrame(_schema=Users)
+        lf: LazyFrame[Users] = LazyFrame(_schema=Users, _backend=_BACKEND)
         result = lf.cast_schema(UsersSummary)
         assert isinstance(result, LazyFrame)
         assert result._schema is UsersSummary
 
     def test_joined_lazyframe_cast_schema_returns_lazyframe(self) -> None:
-        jlf = JoinedLazyFrame(_schema_left=Users, _schema_right=Orders)
+        jlf = JoinedLazyFrame(_schema_left=Users, _schema_right=Orders, _backend=_BACKEND)
         result = jlf.cast_schema(JoinTarget)
         assert isinstance(result, LazyFrame)
         assert result._schema is JoinTarget
 
     def test_joined_lazyframe_not_joined_after_cast(self) -> None:
-        jlf = JoinedLazyFrame(_schema_left=Users, _schema_right=Orders)
+        jlf = JoinedLazyFrame(_schema_left=Users, _schema_right=Orders, _backend=_BACKEND)
         result = jlf.cast_schema(JoinTarget)
         assert not isinstance(result, JoinedLazyFrame)
 
@@ -308,7 +326,7 @@ class TestCastSchemaOnLazy:
 class TestCastSchemaOnUntyped:
     def test_none_schema_skips_validation(self) -> None:
         """DataFrame[Any] from select() has _schema=None — cast_schema just sets schema."""
-        df: DataFrame[Users] = DataFrame(_schema=None)
+        df: DataFrame[Users] = DataFrame(_schema=None, _backend=_BACKEND)
         result = df.cast_schema(UsersSummary)
         assert isinstance(result, DataFrame)
         assert result._schema is UsersSummary

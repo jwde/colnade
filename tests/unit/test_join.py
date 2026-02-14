@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from colnade import (
     BinOp,
     Column,
@@ -32,6 +34,24 @@ class Orders(Schema):
     id: Column[UInt64]
     user_id: Column[UInt64]
     amount: Column[UInt64]
+
+
+# ---------------------------------------------------------------------------
+# Minimal mock backend — returns source data unchanged for all operations
+# ---------------------------------------------------------------------------
+
+
+class _MockBackend:
+    """Backend stub for unit tests. Returns the first positional arg (source)."""
+
+    def __getattr__(self, name: str):  # noqa: ANN204
+        def _method(*args, **kwargs):  # noqa: ANN002, ANN003, ANN202
+            return args[0] if args else None
+
+        return _method
+
+
+_BACKEND = _MockBackend()
 
 
 # ---------------------------------------------------------------------------
@@ -79,8 +99,8 @@ class TestJoinCondition:
 
 class TestJoinedDataFrame:
     def setup_method(self) -> None:
-        self.users_df: DataFrame[Users] = DataFrame(_schema=Users)
-        self.orders_df: DataFrame[Orders] = DataFrame(_schema=Orders)
+        self.users_df: DataFrame[Users] = DataFrame(_schema=Users, _backend=_BACKEND)
+        self.orders_df: DataFrame[Orders] = DataFrame(_schema=Orders, _backend=_BACKEND)
         self.cond = Users.id == Orders.user_id
         assert isinstance(self.cond, JoinCondition)
         self.joined = self.users_df.join(self.orders_df, on=self.cond)
@@ -93,7 +113,8 @@ class TestJoinedDataFrame:
         assert self.joined._schema_right is Orders
 
     def test_repr(self) -> None:
-        assert repr(self.joined) == "JoinedDataFrame[Users, Orders]"
+        jdf = JoinedDataFrame(_schema_left=Users, _schema_right=Orders)
+        assert repr(jdf) == "JoinedDataFrame[Users, Orders]"
 
     def test_to_native(self) -> None:
         assert self.joined.to_native() is self.joined._data
@@ -112,18 +133,6 @@ class TestJoinedDataFrame:
 
     def test_limit_returns_joined(self) -> None:
         result = self.joined.limit(10)
-        assert isinstance(result, JoinedDataFrame)
-
-    def test_head_returns_joined(self) -> None:
-        result = self.joined.head()
-        assert isinstance(result, JoinedDataFrame)
-
-    def test_tail_returns_joined(self) -> None:
-        result = self.joined.tail()
-        assert isinstance(result, JoinedDataFrame)
-
-    def test_sample_returns_joined(self) -> None:
-        result = self.joined.sample(5)
         assert isinstance(result, JoinedDataFrame)
 
     def test_unique_returns_joined(self) -> None:
@@ -155,7 +164,7 @@ class TestJoinedDataFrame:
 
 class TestJoinedDataFrameConversions:
     def setup_method(self) -> None:
-        self.joined = JoinedDataFrame(_schema_left=Users, _schema_right=Orders)
+        self.joined = JoinedDataFrame(_schema_left=Users, _schema_right=Orders, _backend=_BACKEND)
 
     def test_lazy_returns_joined_lazyframe(self) -> None:
         result = self.joined.lazy()
@@ -167,6 +176,10 @@ class TestJoinedDataFrameConversions:
         result = self.joined.untyped()
         assert isinstance(result, UntypedDataFrame)
 
+    def test_untyped_preserves_backend(self) -> None:
+        result = self.joined.untyped()
+        assert result._backend is _BACKEND
+
 
 # ---------------------------------------------------------------------------
 # JoinedLazyFrame — construction and operations
@@ -175,8 +188,8 @@ class TestJoinedDataFrameConversions:
 
 class TestJoinedLazyFrame:
     def setup_method(self) -> None:
-        self.users_lf: LazyFrame[Users] = LazyFrame(_schema=Users)
-        self.orders_lf: LazyFrame[Orders] = LazyFrame(_schema=Orders)
+        self.users_lf: LazyFrame[Users] = LazyFrame(_schema=Users, _backend=_BACKEND)
+        self.orders_lf: LazyFrame[Orders] = LazyFrame(_schema=Orders, _backend=_BACKEND)
         self.cond = Users.id == Orders.user_id
         assert isinstance(self.cond, JoinCondition)
         self.joined = self.users_lf.join(self.orders_lf, on=self.cond)
@@ -189,7 +202,8 @@ class TestJoinedLazyFrame:
         assert self.joined._schema_right is Orders
 
     def test_repr(self) -> None:
-        assert repr(self.joined) == "JoinedLazyFrame[Users, Orders]"
+        jlf = JoinedLazyFrame(_schema_left=Users, _schema_right=Orders)
+        assert repr(jlf) == "JoinedLazyFrame[Users, Orders]"
 
     def test_to_native(self) -> None:
         assert self.joined.to_native() is self.joined._data
@@ -233,10 +247,28 @@ class TestJoinedLazyFrame:
         result = self.joined.untyped()
         assert isinstance(result, UntypedLazyFrame)
 
+    def test_untyped_preserves_backend(self) -> None:
+        result = self.joined.untyped()
+        assert result._backend is _BACKEND
+
 
 # ---------------------------------------------------------------------------
-# JoinedLazyFrame restrictions
+# Joined frame restrictions — methods that require cast_schema first
 # ---------------------------------------------------------------------------
+
+
+class TestJoinedDataFrameRestrictions:
+    def test_no_head(self) -> None:
+        assert not hasattr(JoinedDataFrame, "head")
+
+    def test_no_tail(self) -> None:
+        assert not hasattr(JoinedDataFrame, "tail")
+
+    def test_no_sample(self) -> None:
+        assert not hasattr(JoinedDataFrame, "sample")
+
+    def test_no_group_by(self) -> None:
+        assert not hasattr(JoinedDataFrame, "group_by")
 
 
 class TestJoinedLazyFrameRestrictions:
@@ -249,6 +281,9 @@ class TestJoinedLazyFrameRestrictions:
     def test_no_sample(self) -> None:
         assert not hasattr(JoinedLazyFrame, "sample")
 
+    def test_no_group_by(self) -> None:
+        assert not hasattr(JoinedLazyFrame, "group_by")
+
 
 # ---------------------------------------------------------------------------
 # Join how parameter
@@ -257,8 +292,8 @@ class TestJoinedLazyFrameRestrictions:
 
 class TestJoinHow:
     def setup_method(self) -> None:
-        self.users_df: DataFrame[Users] = DataFrame(_schema=Users)
-        self.orders_df: DataFrame[Orders] = DataFrame(_schema=Orders)
+        self.users_df: DataFrame[Users] = DataFrame(_schema=Users, _backend=_BACKEND)
+        self.orders_df: DataFrame[Orders] = DataFrame(_schema=Orders, _backend=_BACKEND)
         self.cond = Users.id == Orders.user_id
         assert isinstance(self.cond, JoinCondition)
 
@@ -281,3 +316,38 @@ class TestJoinHow:
     def test_default_is_inner(self) -> None:
         result = self.users_df.join(self.orders_df, on=self.cond)
         assert isinstance(result, JoinedDataFrame)
+
+
+# ---------------------------------------------------------------------------
+# No-backend RuntimeError tests for joined frames
+# ---------------------------------------------------------------------------
+
+
+class TestJoinedNoBackendRaises:
+    def test_joined_dataframe_filter(self) -> None:
+        jdf = JoinedDataFrame(_schema_left=Users, _schema_right=Orders)
+        with pytest.raises(RuntimeError, match="requires a backend"):
+            jdf.filter(Users.age > 18)
+
+    def test_joined_dataframe_lazy(self) -> None:
+        jdf = JoinedDataFrame(_schema_left=Users, _schema_right=Orders)
+        with pytest.raises(RuntimeError, match="requires a backend"):
+            jdf.lazy()
+
+    def test_joined_lazyframe_collect(self) -> None:
+        jlf = JoinedLazyFrame(_schema_left=Users, _schema_right=Orders)
+        with pytest.raises(RuntimeError, match="requires a backend"):
+            jlf.collect()
+
+    def test_joined_lazyframe_select(self) -> None:
+        jlf = JoinedLazyFrame(_schema_left=Users, _schema_right=Orders)
+        with pytest.raises(RuntimeError, match="requires a backend"):
+            jlf.select(Users.name)
+
+    def test_join_without_backend(self) -> None:
+        df = DataFrame(_schema=Users)
+        other = DataFrame(_schema=Orders)
+        cond = Users.id == Orders.user_id
+        assert isinstance(cond, JoinCondition)
+        with pytest.raises(RuntimeError, match="requires a backend"):
+            df.join(other, on=cond)
