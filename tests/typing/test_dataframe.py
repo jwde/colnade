@@ -283,3 +283,49 @@ def check_neg_lazy_groupby_not_lazyframe() -> None:
     """LazyGroupBy[Users] is NOT assignable to LazyFrame[Users]."""
     lgb: LazyGroupBy[Users] = LazyGroupBy(_schema=Users)
     _: LazyFrame[Users] = lgb  # type: ignore[invalid-assignment]
+
+
+# ---------------------------------------------------------------------------
+# Introspection — positive type tests
+# ---------------------------------------------------------------------------
+
+
+def check_height_type(df: DataFrame[Users]) -> int:
+    return df.height
+
+
+def check_len_type(df: DataFrame[Users]) -> int:
+    return len(df)
+
+
+def check_width_type(df: DataFrame[Users]) -> int:
+    return df.width
+
+
+def check_shape_type(df: DataFrame[Users]) -> tuple[int, int]:
+    return df.shape
+
+
+def check_is_empty_type(df: DataFrame[Users]) -> bool:
+    return df.is_empty()
+
+
+def check_lazyframe_width_type(lf: LazyFrame[Users]) -> int:
+    return lf.width
+
+
+# ---------------------------------------------------------------------------
+# Introspection — negative regression guards
+# ---------------------------------------------------------------------------
+
+
+def check_neg_height_not_str() -> None:
+    """height returns int, NOT str."""
+    df: DataFrame[Users] = DataFrame(_schema=Users)
+    _: str = df.height  # type: ignore[invalid-assignment]
+
+
+def check_neg_shape_not_triple() -> None:
+    """shape returns tuple[int, int], NOT tuple[int, int, int]."""
+    df: DataFrame[Users] = DataFrame(_schema=Users)
+    _: tuple[int, int, int] = df.shape  # type: ignore[invalid-assignment]

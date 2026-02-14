@@ -2,12 +2,18 @@
 
 from __future__ import annotations
 
+import dataclasses
+import datetime
 import types
 import warnings
 from unittest.mock import patch
 
+import pytest
+
 from colnade import (
+    Binary,
     Column,
+    Date,
     Datetime,
     Float64,
     Schema,
@@ -316,3 +322,102 @@ class TestSchemaRepr:
         r = repr(EnrichedUsers)
         assert "normalized_age: Float64" in r
         assert "id: UInt64" in r
+
+
+# ---------------------------------------------------------------------------
+# Schema.Row auto-generated dataclass
+# ---------------------------------------------------------------------------
+
+
+class RowTestSchema(Schema):
+    id: Column[UInt64]
+    name: Column[Utf8]
+    score: Column[Float64]
+    data: Column[Binary]
+    created: Column[Date]
+    updated: Column[Datetime]
+
+
+class NullableSchema(Schema):
+    id: Column[UInt64]
+    name: Column[Utf8 | None]
+
+
+class TestSchemaRow:
+    def test_row_exists(self) -> None:
+        assert hasattr(Users, "Row")
+
+    def test_row_is_dataclass(self) -> None:
+        assert dataclasses.is_dataclass(Users.Row)
+
+    def test_row_is_frozen(self) -> None:
+        row = Users.Row(id=1, name="Alice", age=10, score=1.0)
+        with pytest.raises(dataclasses.FrozenInstanceError):
+            row.id = 2  # type: ignore[misc]
+
+    def test_row_has_slots(self) -> None:
+        assert hasattr(Users.Row, "__slots__")
+
+    def test_row_class_name(self) -> None:
+        assert Users.Row.__name__ == "UsersRow"
+
+    def test_row_field_names_match_columns(self) -> None:
+        fields = {f.name for f in dataclasses.fields(Users.Row)}
+        assert fields == set(Users._columns.keys())
+
+    def test_row_field_types_simple(self) -> None:
+        field_types = {f.name: f.type for f in dataclasses.fields(RowTestSchema.Row)}
+        assert field_types["id"] is int
+        assert field_types["name"] is str
+        assert field_types["score"] is float
+        assert field_types["data"] is bytes
+        assert field_types["created"] is datetime.date
+        assert field_types["updated"] is datetime.datetime
+
+    def test_row_nullable_field_type(self) -> None:
+        field_types = {f.name: f.type for f in dataclasses.fields(NullableSchema.Row)}
+        assert field_types["id"] is int
+        # name should be str | None
+        name_type = field_types["name"]
+        assert isinstance(name_type, types.UnionType)
+        assert str in name_type.__args__
+        assert type(None) in name_type.__args__
+
+    def test_row_construction(self) -> None:
+        row = RowTestSchema.Row(
+            id=42,
+            name="Alice",
+            score=3.14,
+            data=b"hello",
+            created=datetime.date(2024, 1, 1),
+            updated=datetime.datetime(2024, 1, 1, 12, 0, 0),
+        )
+        assert row.id == 42
+        assert row.name == "Alice"
+        assert row.score == 3.14
+
+    def test_row_equality(self) -> None:
+        r1 = NullableSchema.Row(id=1, name="Alice")
+        r2 = NullableSchema.Row(id=1, name="Alice")
+        assert r1 == r2
+
+    def test_row_repr(self) -> None:
+        row = NullableSchema.Row(id=1, name="Bob")
+        r = repr(row)
+        assert "NullableSchemaRow" in r
+        assert "id=1" in r
+        assert "name='Bob'" in r
+
+    def test_inherited_schema_row_has_all_fields(self) -> None:
+        assert hasattr(EnrichedUsers, "Row")
+        fields = {f.name for f in dataclasses.fields(EnrichedUsers.Row)}
+        assert fields == set(EnrichedUsers._columns.keys())
+
+    def test_inherited_schema_row_class_name(self) -> None:
+        assert EnrichedUsers.Row.__name__ == "EnrichedUsersRow"
+
+    def test_empty_schema_no_row(self) -> None:
+        assert not hasattr(Empty, "Row")
+
+    def test_only_private_schema_no_row(self) -> None:
+        assert not hasattr(OnlyPrivate, "Row")

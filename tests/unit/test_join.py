@@ -44,6 +44,12 @@ class Orders(Schema):
 class _MockBackend:
     """Backend stub for unit tests. Returns the first positional arg (source)."""
 
+    def row_count(self, source: object) -> int:  # noqa: ANN001
+        return 0
+
+    def iter_row_dicts(self, source: object) -> list[dict[str, object]]:  # noqa: ANN001
+        return []
+
     def __getattr__(self, name: str):  # noqa: ANN204
         def _method(*args, **kwargs):  # noqa: ANN002, ANN003, ANN202
             return args[0] if args else None

@@ -92,6 +92,52 @@ When you call `df.cast_schema(UserSummary)`, the `user_name` column is populated
 !!! note "Nullability checking"
     `mapped_from` preserves the source column's type. Mapping a nullable column (`Column[UInt64 | None]`) to a non-nullable annotation (`Column[UInt64]`) is a type error caught by the type checker.
 
+## Schema.Row
+
+Each schema with at least one column automatically generates a frozen dataclass called `Row` for typed row access:
+
+```python
+class Users(Schema):
+    id: Column[UInt64]
+    name: Column[Utf8]
+    age: Column[UInt64]
+
+# Users.Row is a frozen dataclass:
+row = Users.Row(id=1, name="Alice", age=30)
+row.id    # 1 (int)
+row.name  # "Alice" (str)
+```
+
+### DType to Python type mapping
+
+| DType | Python type |
+|-------|-------------|
+| `Bool` | `bool` |
+| `UInt8`, `UInt16`, `UInt32`, `UInt64` | `int` |
+| `Int8`, `Int16`, `Int32`, `Int64` | `int` |
+| `Float32`, `Float64` | `float` |
+| `Utf8` | `str` |
+| `Binary` | `bytes` |
+| `Date` | `datetime.date` |
+| `Time` | `datetime.time` |
+| `Datetime` | `datetime.datetime` |
+| `Duration` | `datetime.timedelta` |
+| `List[T]` | `list` |
+| `Struct[S]` | `dict` |
+
+Nullable columns (`Column[UInt64 | None]`) produce `int | None` fields.
+
+### Properties
+
+- Row classes are **frozen** (immutable) and use **slots** for memory efficiency
+- Class name follows the pattern `"{SchemaName}Row"` (e.g., `UsersRow`)
+- Inherited schemas include all parent columns in their Row
+- Empty schemas (no columns) do not generate a Row
+
+### Usage with iter_rows_as
+
+`Schema.Row` is designed for use with `DataFrame.iter_rows_as()` — see [DataFrames](dataframes.md#typed-row-iteration).
+
 ## SchemaError
 
 Schema validation raises `SchemaError` with structured information:
