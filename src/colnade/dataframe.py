@@ -111,7 +111,22 @@ class DataFrame(Generic[S]):
 
     def __repr__(self) -> str:
         schema_name = self._schema.__name__ if self._schema else "Any"
-        return f"DataFrame[{schema_name}]"
+        header = f"DataFrame[{schema_name}]"
+        if self._data is not None and hasattr(self._data, "__repr__"):
+            return f"{header}\n{self._data!r}"
+        return header
+
+    def _repr_html_(self) -> str | None:
+        """Rich HTML representation for Jupyter notebooks."""
+        schema_name = self._schema.__name__ if self._schema else "Any"
+        header = f"<b>DataFrame[{schema_name}]</b>"
+        if self._data is not None and hasattr(self._data, "_repr_html_"):
+            return f"{header}\n{self._data._repr_html_()}"
+        return None
+
+    def to_native(self) -> Any:
+        """Return the underlying backend-native data object (e.g. pl.DataFrame)."""
+        return self._data
 
     # --- Schema-preserving operations (return DataFrame[S]) ---
 
@@ -371,7 +386,22 @@ class LazyFrame(Generic[S]):
 
     def __repr__(self) -> str:
         schema_name = self._schema.__name__ if self._schema else "Any"
-        return f"LazyFrame[{schema_name}]"
+        header = f"LazyFrame[{schema_name}]"
+        if self._data is not None and hasattr(self._data, "__repr__"):
+            return f"{header}\n{self._data!r}"
+        return header
+
+    def _repr_html_(self) -> str | None:
+        """Rich HTML representation for Jupyter notebooks."""
+        schema_name = self._schema.__name__ if self._schema else "Any"
+        header = f"<b>LazyFrame[{schema_name}]</b>"
+        if self._data is not None and hasattr(self._data, "_repr_html_"):
+            return f"{header}\n{self._data._repr_html_()}"
+        return None
+
+    def to_native(self) -> Any:
+        """Return the underlying backend-native data object (e.g. pl.LazyFrame)."""
+        return self._data
 
     # --- Schema-preserving operations (return LazyFrame[S]) ---
 
@@ -649,7 +679,23 @@ class JoinedDataFrame(Generic[S, S2]):
     def __repr__(self) -> str:
         left = self._schema_left.__name__ if self._schema_left else "Any"
         right = self._schema_right.__name__ if self._schema_right else "Any"
-        return f"JoinedDataFrame[{left}, {right}]"
+        header = f"JoinedDataFrame[{left}, {right}]"
+        if self._data is not None and hasattr(self._data, "__repr__"):
+            return f"{header}\n{self._data!r}"
+        return header
+
+    def _repr_html_(self) -> str | None:
+        """Rich HTML representation for Jupyter notebooks."""
+        left = self._schema_left.__name__ if self._schema_left else "Any"
+        right = self._schema_right.__name__ if self._schema_right else "Any"
+        header = f"<b>JoinedDataFrame[{left}, {right}]</b>"
+        if self._data is not None and hasattr(self._data, "_repr_html_"):
+            return f"{header}\n{self._data._repr_html_()}"
+        return None
+
+    def to_native(self) -> Any:
+        """Return the underlying backend-native data object (e.g. pl.DataFrame)."""
+        return self._data
 
     # --- Schema-preserving operations (return JoinedDataFrame[S, S2]) ---
 
@@ -877,7 +923,23 @@ class JoinedLazyFrame(Generic[S, S2]):
     def __repr__(self) -> str:
         left = self._schema_left.__name__ if self._schema_left else "Any"
         right = self._schema_right.__name__ if self._schema_right else "Any"
-        return f"JoinedLazyFrame[{left}, {right}]"
+        header = f"JoinedLazyFrame[{left}, {right}]"
+        if self._data is not None and hasattr(self._data, "__repr__"):
+            return f"{header}\n{self._data!r}"
+        return header
+
+    def _repr_html_(self) -> str | None:
+        """Rich HTML representation for Jupyter notebooks."""
+        left = self._schema_left.__name__ if self._schema_left else "Any"
+        right = self._schema_right.__name__ if self._schema_right else "Any"
+        header = f"<b>JoinedLazyFrame[{left}, {right}]</b>"
+        if self._data is not None and hasattr(self._data, "_repr_html_"):
+            return f"{header}\n{self._data._repr_html_()}"
+        return None
+
+    def to_native(self) -> Any:
+        """Return the underlying backend-native data object (e.g. pl.LazyFrame)."""
+        return self._data
 
     # --- Schema-preserving operations (return JoinedLazyFrame[S, S2]) ---
 

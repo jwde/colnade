@@ -95,6 +95,9 @@ class TestJoinedDataFrame:
     def test_repr(self) -> None:
         assert repr(self.joined) == "JoinedDataFrame[Users, Orders]"
 
+    def test_to_native(self) -> None:
+        assert self.joined.to_native() is self.joined._data
+
     def test_filter_returns_joined(self) -> None:
         result = self.joined.filter(Users.age > 18)
         assert isinstance(result, JoinedDataFrame)
@@ -187,6 +190,9 @@ class TestJoinedLazyFrame:
 
     def test_repr(self) -> None:
         assert repr(self.joined) == "JoinedLazyFrame[Users, Orders]"
+
+    def test_to_native(self) -> None:
+        assert self.joined.to_native() is self.joined._data
 
     def test_filter_returns_joined_lazy(self) -> None:
         result = self.joined.filter(Users.age > 18)
