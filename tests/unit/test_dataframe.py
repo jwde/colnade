@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from colnade import (
     AliasedExpr,
     Bool,
@@ -33,6 +35,24 @@ class Users(Schema):
 class AgeStats(Schema):
     age: Column[UInt8]
     count: Column[UInt64]
+
+
+# ---------------------------------------------------------------------------
+# Minimal mock backend — returns source data unchanged for all operations
+# ---------------------------------------------------------------------------
+
+
+class _MockBackend:
+    """Backend stub for unit tests. Returns the first positional arg (source)."""
+
+    def __getattr__(self, name: str):  # noqa: ANN204
+        def _method(*args, **kwargs):  # noqa: ANN002, ANN003, ANN202
+            return args[0] if args else None
+
+        return _method
+
+
+_BACKEND = _MockBackend()
 
 
 # ---------------------------------------------------------------------------
@@ -104,7 +124,7 @@ class TestDataFrameConstruction:
 
 class TestSchemaPreservingOps:
     def setup_method(self) -> None:
-        self.df: DataFrame[Users] = DataFrame(_schema=Users)
+        self.df: DataFrame[Users] = DataFrame(_schema=Users, _backend=_BACKEND)
 
     def test_filter_returns_dataframe(self) -> None:
         predicate: Expr[Bool] = Users.age > 18
@@ -186,7 +206,7 @@ class TestSchemaPreservingOps:
 
 class TestSchemaTransformingOps:
     def setup_method(self) -> None:
-        self.df: DataFrame[Users] = DataFrame(_schema=Users)
+        self.df: DataFrame[Users] = DataFrame(_schema=Users, _backend=_BACKEND)
 
     def test_select_single_column(self) -> None:
         result = self.df.select(Users.name)
@@ -215,28 +235,28 @@ class TestSchemaTransformingOps:
 
 class TestGroupBy:
     def test_group_by_returns_groupby(self) -> None:
-        df: DataFrame[Users] = DataFrame(_schema=Users)
+        df: DataFrame[Users] = DataFrame(_schema=Users, _backend=_BACKEND)
         gb = df.group_by(Users.age)
         assert isinstance(gb, GroupBy)
 
     def test_group_by_keys_stored(self) -> None:
-        df: DataFrame[Users] = DataFrame(_schema=Users)
+        df: DataFrame[Users] = DataFrame(_schema=Users, _backend=_BACKEND)
         gb = df.group_by(Users.age, Users.name)
         assert gb._keys == (Users.age, Users.name)
 
     def test_group_by_schema_stored(self) -> None:
-        df: DataFrame[Users] = DataFrame(_schema=Users)
+        df: DataFrame[Users] = DataFrame(_schema=Users, _backend=_BACKEND)
         gb = df.group_by(Users.age)
         assert gb._schema is Users
 
     def test_agg_returns_dataframe(self) -> None:
-        df: DataFrame[Users] = DataFrame(_schema=Users)
+        df: DataFrame[Users] = DataFrame(_schema=Users, _backend=_BACKEND)
         result = df.group_by(Users.age).agg(Users.id.count().alias("count"))
         assert isinstance(result, DataFrame)
         assert result._schema is None
 
     def test_agg_multiple_exprs(self) -> None:
-        df: DataFrame[Users] = DataFrame(_schema=Users)
+        df: DataFrame[Users] = DataFrame(_schema=Users, _backend=_BACKEND)
         result = df.group_by(Users.age).agg(
             Users.id.count().alias("count"),
             Users.name.count().alias("name_count"),
@@ -251,18 +271,23 @@ class TestGroupBy:
 
 class TestConversion:
     def test_lazy_returns_lazyframe(self) -> None:
-        df: DataFrame[Users] = DataFrame(_schema=Users)
+        df: DataFrame[Users] = DataFrame(_schema=Users, _backend=_BACKEND)
         result = df.lazy()
         assert isinstance(result, LazyFrame)
         assert result._schema is Users
 
     def test_untyped_returns_untyped(self) -> None:
-        df: DataFrame[Users] = DataFrame(_schema=Users)
+        df: DataFrame[Users] = DataFrame(_schema=Users, _backend=_BACKEND)
         result = df.untyped()
         assert isinstance(result, UntypedDataFrame)
 
+    def test_untyped_preserves_backend(self) -> None:
+        df: DataFrame[Users] = DataFrame(_schema=Users, _backend=_BACKEND)
+        result = df.untyped()
+        assert result._backend is _BACKEND
+
     def test_collect_returns_dataframe(self) -> None:
-        lf: LazyFrame[Users] = LazyFrame(_schema=Users)
+        lf: LazyFrame[Users] = LazyFrame(_schema=Users, _backend=_BACKEND)
         result = lf.collect()
         assert isinstance(result, DataFrame)
         assert result._schema is Users
@@ -273,8 +298,6 @@ class TestConversion:
         assert result is df
 
     def test_to_batches_no_backend_raises(self) -> None:
-        import pytest
-
         df: DataFrame[Users] = DataFrame(_schema=Users)
         with pytest.raises(RuntimeError, match="requires a backend"):
             list(df.to_batches())
@@ -287,10 +310,11 @@ class TestConversion:
 
 class TestLazyFrame:
     def setup_method(self) -> None:
-        self.lf: LazyFrame[Users] = LazyFrame(_schema=Users)
+        self.lf: LazyFrame[Users] = LazyFrame(_schema=Users, _backend=_BACKEND)
 
     def test_repr_with_schema(self) -> None:
-        assert repr(self.lf) == "LazyFrame[Users]"
+        lf = LazyFrame(_schema=Users)
+        assert repr(lf) == "LazyFrame[Users]"
 
     def test_repr_without_schema(self) -> None:
         lf = LazyFrame()
@@ -356,9 +380,14 @@ class TestLazyFrame:
         result = self.lf.untyped()
         assert isinstance(result, UntypedLazyFrame)
 
+    def test_untyped_preserves_backend(self) -> None:
+        result = self.lf.untyped()
+        assert result._backend is _BACKEND
+
     def test_validate_returns_self(self) -> None:
-        result = self.lf.validate()
-        assert result is self.lf
+        lf = LazyFrame(_schema=Users)
+        result = lf.validate()
+        assert result is lf
 
 
 # ---------------------------------------------------------------------------
@@ -387,13 +416,13 @@ class TestLazyFrameRestrictions:
 
 class TestLazyGroupBy:
     def test_lazy_groupby_agg_returns_lazyframe(self) -> None:
-        lf: LazyFrame[Users] = LazyFrame(_schema=Users)
+        lf: LazyFrame[Users] = LazyFrame(_schema=Users, _backend=_BACKEND)
         result = lf.group_by(Users.age).agg(Users.id.count().alias("count"))
         assert isinstance(result, LazyFrame)
         assert result._schema is None
 
     def test_lazy_groupby_keys_stored(self) -> None:
-        lf: LazyFrame[Users] = LazyFrame(_schema=Users)
+        lf: LazyFrame[Users] = LazyFrame(_schema=Users, _backend=_BACKEND)
         gb = lf.group_by(Users.age, Users.name)
         assert gb._keys == (Users.age, Users.name)
 
@@ -405,7 +434,7 @@ class TestLazyGroupBy:
 
 class TestUntypedDataFrame:
     def setup_method(self) -> None:
-        self.udf = UntypedDataFrame()
+        self.udf = UntypedDataFrame(_backend=_BACKEND)
 
     def test_select_returns_untyped(self) -> None:
         result = self.udf.select("name", "age")
@@ -440,6 +469,15 @@ class TestUntypedDataFrame:
         assert isinstance(result, DataFrame)
         assert result._schema is Users
 
+    def test_to_typed_preserves_backend(self) -> None:
+        result = self.udf.to_typed(Users)
+        assert result._backend is _BACKEND
+
+    def test_no_backend_raises(self) -> None:
+        udf = UntypedDataFrame()
+        with pytest.raises(RuntimeError, match="requires a backend"):
+            udf.select("name")
+
 
 # ---------------------------------------------------------------------------
 # UntypedLazyFrame
@@ -448,7 +486,7 @@ class TestUntypedDataFrame:
 
 class TestUntypedLazyFrame:
     def setup_method(self) -> None:
-        self.ulf = UntypedLazyFrame()
+        self.ulf = UntypedLazyFrame(_backend=_BACKEND)
 
     def test_select_returns_untyped_lazy(self) -> None:
         result = self.ulf.select("name")
@@ -478,3 +516,80 @@ class TestUntypedLazyFrame:
         result = self.ulf.to_typed(Users)
         assert isinstance(result, LazyFrame)
         assert result._schema is Users
+
+    def test_to_typed_preserves_backend(self) -> None:
+        result = self.ulf.to_typed(Users)
+        assert result._backend is _BACKEND
+
+    def test_no_backend_raises(self) -> None:
+        ulf = UntypedLazyFrame()
+        with pytest.raises(RuntimeError, match="requires a backend"):
+            ulf.select("name")
+
+
+# ---------------------------------------------------------------------------
+# No-backend RuntimeError tests
+# ---------------------------------------------------------------------------
+
+
+class TestNoBackendRaisesRuntimeError:
+    """Operations on frames without a backend must raise RuntimeError."""
+
+    def test_dataframe_filter(self) -> None:
+        df = DataFrame(_schema=Users)
+        with pytest.raises(RuntimeError, match="requires a backend"):
+            df.filter(Users.age > 18)
+
+    def test_dataframe_sort(self) -> None:
+        df = DataFrame(_schema=Users)
+        with pytest.raises(RuntimeError, match="requires a backend"):
+            df.sort(Users.name)
+
+    def test_dataframe_limit(self) -> None:
+        df = DataFrame(_schema=Users)
+        with pytest.raises(RuntimeError, match="requires a backend"):
+            df.limit(10)
+
+    def test_dataframe_head(self) -> None:
+        df = DataFrame(_schema=Users)
+        with pytest.raises(RuntimeError, match="requires a backend"):
+            df.head()
+
+    def test_dataframe_select(self) -> None:
+        df = DataFrame(_schema=Users)
+        with pytest.raises(RuntimeError, match="requires a backend"):
+            df.select(Users.name)
+
+    def test_dataframe_lazy(self) -> None:
+        df = DataFrame(_schema=Users)
+        with pytest.raises(RuntimeError, match="requires a backend"):
+            df.lazy()
+
+    def test_dataframe_cast_schema(self) -> None:
+        df = DataFrame(_schema=Users)
+        with pytest.raises(RuntimeError, match="requires a backend"):
+            df.cast_schema(AgeStats)
+
+    def test_lazyframe_filter(self) -> None:
+        lf = LazyFrame(_schema=Users)
+        with pytest.raises(RuntimeError, match="requires a backend"):
+            lf.filter(Users.age > 18)
+
+    def test_lazyframe_collect(self) -> None:
+        lf = LazyFrame(_schema=Users)
+        with pytest.raises(RuntimeError, match="requires a backend"):
+            lf.collect()
+
+    def test_groupby_agg(self) -> None:
+        df = DataFrame(_schema=Users, _backend=_BACKEND)
+        gb = df.group_by(Users.age)
+        gb._backend = None  # simulate missing backend
+        with pytest.raises(RuntimeError, match="requires a backend"):
+            gb.agg(Users.id.count().alias("count"))
+
+    def test_lazy_groupby_agg(self) -> None:
+        lf = LazyFrame(_schema=Users, _backend=_BACKEND)
+        lgb = lf.group_by(Users.age)
+        lgb._backend = None
+        with pytest.raises(RuntimeError, match="requires a backend"):
+            lgb.agg(Users.id.count().alias("count"))
