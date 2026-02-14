@@ -15,10 +15,10 @@ jobs:
       - uses: astral-sh/setup-uv@v5
 
       - name: Build colnade
-        run: uv build --out dist-colnade/
+        run: uv build --out-dir dist-colnade/
 
       - name: Build colnade-polars
-        run: uv build --package colnade-polars --out dist-colnade-polars/
+        run: uv build --package colnade-polars --out-dir dist-colnade-polars/
 
       - uses: actions/upload-artifact@v4
         with:
