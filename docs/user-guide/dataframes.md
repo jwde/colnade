@@ -213,9 +213,52 @@ When validation is enabled, data boundaries and `df.validate()` check:
 - **Null violations** — non-nullable columns with null values raise `SchemaError`
 - **Extra columns** — optionally flagged via `extra="forbid"` on `cast_schema()`
 
-### Level 3: On your data values (coming soon)
+### Level 3: On your data values (value-level constraints)
 
-Value-level constraints will validate domain invariants — ranges, patterns, uniqueness — using field metadata.
+Value-level constraints validate domain invariants using `Field()` metadata:
+
+```python
+from colnade import Column, Schema, UInt64, Utf8, Float64
+from colnade.constraints import Field, schema_check
+
+class Users(Schema):
+    id: Column[UInt64] = Field(unique=True)
+    age: Column[UInt64] = Field(ge=0, le=150)
+    name: Column[Utf8] = Field(min_length=1)
+    email: Column[Utf8] = Field(pattern=r"^[^@]+@[^@]+\.[^@]+$")
+    score: Column[Float64] = Field(ge=0.0, le=100.0)
+    status: Column[Utf8] = Field(isin=["active", "inactive"])
+```
+
+Available constraints:
+
+| Constraint | Types | Meaning |
+|-----------|-------|---------|
+| `ge` | Numeric, temporal | Value >= bound |
+| `gt` | Numeric, temporal | Value > bound |
+| `le` | Numeric, temporal | Value <= bound |
+| `lt` | Numeric, temporal | Value < bound |
+| `min_length` | String | String length >= n |
+| `max_length` | String | String length <= n |
+| `pattern` | String | Matches regex |
+| `unique` | Any | No duplicate values |
+| `isin` | Any | Value in allowed set |
+
+`Field()` is a superset of `mapped_from()` — use `Field(ge=0, mapped_from=Source.age)` to combine constraints with column mapping.
+
+Cross-column constraints use `@schema_check`:
+
+```python
+class Events(Schema):
+    start: Column[UInt64]
+    end: Column[UInt64]
+
+    @schema_check
+    def start_before_end(cls):
+        return Events.start <= Events.end
+```
+
+Value constraints are checked by `df.validate()` (always) and by auto-validation when the level is `"full"`. Structural-level auto-validation skips value checks for performance.
 
 ### Current limitations
 

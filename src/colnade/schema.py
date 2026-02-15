@@ -86,11 +86,13 @@ class SchemaError(Exception):
         extra_columns: list[str] | None = None,
         type_mismatches: dict[str, tuple[str, str]] | None = None,
         null_violations: list[str] | None = None,
+        value_violations: list[Any] | None = None,
     ) -> None:
         self.missing_columns = missing_columns or []
         self.extra_columns = extra_columns or []
         self.type_mismatches = type_mismatches or {}
         self.null_violations = null_violations or []
+        self.value_violations = value_violations or []
         super().__init__(self._build_message())
 
     def _build_message(self) -> str:
@@ -107,6 +109,14 @@ class SchemaError(Exception):
             parts.append(f"Type mismatches: {'; '.join(mismatches)}")
         if self.null_violations:
             parts.append(f"Null violations: {', '.join(self.null_violations)}")
+        if self.value_violations:
+            violations = []
+            for v in self.value_violations:
+                sample = repr(v.sample_values[:5])
+                violations.append(
+                    f"{v.column} [{v.constraint}]: {v.got_count} violations, sample={sample}"
+                )
+            parts.append(f"Value violations: {'; '.join(violations)}")
         return " | ".join(parts) if parts else "Schema validation failed"
 
 
@@ -134,7 +144,7 @@ class Column(Generic[DType]):
     tree nodes (AST) for backend translation.
     """
 
-    __slots__ = ("name", "dtype", "schema", "_mapped_from")
+    __slots__ = ("name", "dtype", "schema", "_mapped_from", "_field_info")
 
     def __init__(
         self,
@@ -142,11 +152,13 @@ class Column(Generic[DType]):
         dtype: Any,
         schema: type,
         _mapped_from: Column[Any] | None = None,
+        _field_info: Any | None = None,
     ) -> None:
         self.name = name
         self.dtype = dtype
         self.schema = schema
         self._mapped_from = _mapped_from
+        self._field_info = _field_info
 
     def __repr__(self) -> str:
         return f"Column({self.name!r}, dtype={self.dtype}, schema={self.schema.__name__})"
@@ -618,24 +630,51 @@ class SchemaMeta(type(Protocol)):  # type(Protocol) is typing._ProtocolMeta (CPy
                 annotations.update(getattr(base, "__annotations__", {}))
 
         # Build Column descriptors for non-private annotations
+        from colnade.constraints import FieldInfo, SchemaCheck
+
         columns: dict[str, Column[Any]] = {}
         for col_name, col_type in annotations.items():
             if col_name.startswith("_"):
                 continue
             # Extract dtype from Column[DType] annotations
             dtype = _extract_dtype(col_type)
-            # Check for mapped_from() default in namespace
+            # Check for mapped_from() or Field() default in namespace,
+            # falling back to the parent Column descriptor for inherited columns.
             source_col: Column[Any] | None = None
+            field_info: FieldInfo | None = None
             default = namespace.get(col_name)
             if isinstance(default, _MappedFrom):
                 source_col = default.source
+            elif isinstance(default, FieldInfo):
+                field_info = default
+                if default.mapped_from is not None:
+                    source_col = default.mapped_from
+            elif default is None:
+                # Inherited column — look up parent descriptor via MRO
+                for base in cls.__mro__[1:]:
+                    parent_col = base.__dict__.get(col_name)
+                    if isinstance(parent_col, Column):
+                        source_col = parent_col._mapped_from
+                        field_info = parent_col._field_info
+                        break
             descriptor: Column[Any] = Column(
-                name=col_name, dtype=dtype, schema=cls, _mapped_from=source_col
+                name=col_name,
+                dtype=dtype,
+                schema=cls,
+                _mapped_from=source_col,
+                _field_info=field_info,
             )
             setattr(cls, col_name, descriptor)
             columns[col_name] = descriptor
 
         cls._columns = columns  # type: ignore[attr-defined]
+
+        # Collect @schema_check methods (current class + inherited from bases)
+        checks: list[SchemaCheck] = []
+        for base in reversed(cls.__mro__[1:]):
+            checks.extend(getattr(base, "_schema_checks", []))
+        checks.extend(v for v in namespace.values() if isinstance(v, SchemaCheck))
+        cls._schema_checks = checks  # type: ignore[attr-defined]
 
         # Generate Row dataclass for non-base schemas with columns
         if name != "Schema" and columns:
@@ -713,5 +752,6 @@ class Schema(Protocol, metaclass=SchemaMeta):
 
     # Populated by SchemaMeta; declared here for type checker visibility
     _columns: dict[str, Column[Any]]
+    _schema_checks: list[Any]
     if TYPE_CHECKING:
         Row: type

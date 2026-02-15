@@ -38,6 +38,22 @@ Schema base class, Column descriptors, backend protocol, and supporting utilitie
 
 ::: colnade.arrow.ArrowBatch
 
+## Field
+
+::: colnade.constraints.Field
+
+## FieldInfo
+
+::: colnade.constraints.FieldInfo
+
+## ValueViolation
+
+::: colnade.constraints.ValueViolation
+
+## schema_check
+
+::: colnade.constraints.schema_check
+
 ## set_validation
 
 ::: colnade.validation.set_validation

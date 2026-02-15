@@ -2,6 +2,7 @@
 
 from colnade._protocols import BackendProtocol
 from colnade.arrow import ArrowBatch
+from colnade.constraints import Field, FieldInfo, ValueViolation, schema_check
 from colnade.dataframe import (
     DataFrame,
     GroupBy,
@@ -124,4 +125,9 @@ __all__ = [
     "set_validation",
     "is_validation_enabled",
     "get_validation_level",
+    # Constraints
+    "Field",
+    "FieldInfo",
+    "ValueViolation",
+    "schema_check",
 ]

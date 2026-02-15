@@ -7,7 +7,7 @@ from typing import Any, TypeVar
 import polars as pl
 
 from colnade import DataFrame, LazyFrame, Schema
-from colnade.validation import is_validation_enabled
+from colnade.validation import get_validation_level, is_validation_enabled
 from colnade_polars.adapter import PolarsBackend
 from colnade_polars.conversion import map_colnade_dtype
 
@@ -25,6 +25,8 @@ def read_parquet(path: str, schema: type[S]) -> DataFrame[S]:
     data = pl.read_parquet(path)
     if is_validation_enabled():
         backend.validate_schema(data, schema)
+        if get_validation_level() == "full":
+            backend.validate_field_constraints(data, schema)
     return DataFrame(_data=data, _schema=schema, _backend=backend)
 
 
@@ -34,6 +36,8 @@ def scan_parquet(path: str, schema: type[S]) -> LazyFrame[S]:
     data = pl.scan_parquet(path)
     if is_validation_enabled():
         backend.validate_schema(data, schema)
+        if get_validation_level() == "full":
+            backend.validate_field_constraints(data, schema)
     return LazyFrame(_data=data, _schema=schema, _backend=backend)
 
 
