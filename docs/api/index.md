@@ -15,3 +15,4 @@
 |--------|-------------|
 | [`colnade_polars`](polars.md) | Polars backend: PolarsBackend, I/O functions, dtype mapping |
 | [`colnade_pandas`](pandas.md) | Pandas backend: PandasBackend, I/O functions, dtype mapping |
+| [`colnade_dask`](dask.md) | Dask backend: DaskBackend, I/O functions, scan functions |
