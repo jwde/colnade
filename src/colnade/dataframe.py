@@ -401,9 +401,7 @@ class DataFrame(Generic[S]):
 
         _require_backend(self._backend)
         result = fn(self._data)
-        df: DataFrame[S] = DataFrame(
-            _data=result, _schema=self._schema, _backend=self._backend
-        )
+        df: DataFrame[S] = DataFrame(_data=result, _schema=self._schema, _backend=self._backend)
         if is_validation_enabled():
             df.validate()
         return df
