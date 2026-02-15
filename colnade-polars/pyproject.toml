@@ -21,7 +21,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries",
 ]
 dependencies = [
-    "colnade>=0.1.0",
+    "colnade>=0.2.0",
     "polars>=0.20",
     "pyarrow>=12.0",
 ]
