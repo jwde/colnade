@@ -45,3 +45,7 @@ Schema base class, Column descriptors, backend protocol, and supporting utilitie
 ## is_validation_enabled
 
 ::: colnade.validation.is_validation_enabled
+
+## get_validation_level
+
+::: colnade.validation.get_validation_level

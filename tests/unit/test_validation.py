@@ -8,7 +8,12 @@ from unittest.mock import patch
 import pytest
 
 from colnade import Column, Schema, UInt64, Utf8
-from colnade.validation import check_literal_type, is_validation_enabled, set_validation
+from colnade.validation import (
+    check_literal_type,
+    get_validation_level,
+    is_validation_enabled,
+    set_validation,
+)
 
 
 class TestValidationToggle:
@@ -17,12 +22,12 @@ class TestValidationToggle:
         set_validation.__wrapped__ if hasattr(set_validation, "__wrapped__") else None
         import colnade.validation
 
-        colnade.validation._validation_enabled = None
+        colnade.validation._validation_level = None
 
     def test_default_is_disabled(self) -> None:
         import colnade.validation
 
-        colnade.validation._validation_enabled = None
+        colnade.validation._validation_level = None
         with patch.dict(os.environ, {}, clear=True):
             assert is_validation_enabled() is False
 
@@ -37,35 +42,35 @@ class TestValidationToggle:
     def test_env_var_1(self) -> None:
         import colnade.validation
 
-        colnade.validation._validation_enabled = None
+        colnade.validation._validation_level = None
         with patch.dict(os.environ, {"COLNADE_VALIDATE": "1"}):
             assert is_validation_enabled() is True
 
     def test_env_var_true(self) -> None:
         import colnade.validation
 
-        colnade.validation._validation_enabled = None
+        colnade.validation._validation_level = None
         with patch.dict(os.environ, {"COLNADE_VALIDATE": "true"}):
             assert is_validation_enabled() is True
 
     def test_env_var_yes(self) -> None:
         import colnade.validation
 
-        colnade.validation._validation_enabled = None
+        colnade.validation._validation_level = None
         with patch.dict(os.environ, {"COLNADE_VALIDATE": "yes"}):
             assert is_validation_enabled() is True
 
     def test_env_var_TRUE_case_insensitive(self) -> None:
         import colnade.validation
 
-        colnade.validation._validation_enabled = None
+        colnade.validation._validation_level = None
         with patch.dict(os.environ, {"COLNADE_VALIDATE": "TRUE"}):
             assert is_validation_enabled() is True
 
     def test_env_var_invalid(self) -> None:
         import colnade.validation
 
-        colnade.validation._validation_enabled = None
+        colnade.validation._validation_level = None
         with patch.dict(os.environ, {"COLNADE_VALIDATE": "nope"}):
             assert is_validation_enabled() is False
 
@@ -79,6 +84,91 @@ class TestValidationToggle:
 
         assert hasattr(colnade, "set_validation")
         assert hasattr(colnade, "is_validation_enabled")
+        assert hasattr(colnade, "get_validation_level")
+
+
+class TestValidationLevels:
+    def teardown_method(self) -> None:
+        import colnade.validation
+
+        colnade.validation._validation_level = None
+
+    def test_default_level_is_off(self) -> None:
+        import colnade.validation
+
+        colnade.validation._validation_level = None
+        with patch.dict(os.environ, {}, clear=True):
+            assert get_validation_level() == "off"
+
+    def test_set_level_off(self) -> None:
+        set_validation("off")
+        assert get_validation_level() == "off"
+        assert is_validation_enabled() is False
+
+    def test_set_level_structural(self) -> None:
+        set_validation("structural")
+        assert get_validation_level() == "structural"
+        assert is_validation_enabled() is True
+
+    def test_set_level_full(self) -> None:
+        set_validation("full")
+        assert get_validation_level() == "full"
+        assert is_validation_enabled() is True
+
+    def test_set_bool_true_maps_to_structural(self) -> None:
+        set_validation(True)
+        assert get_validation_level() == "structural"
+
+    def test_set_bool_false_maps_to_off(self) -> None:
+        set_validation(False)
+        assert get_validation_level() == "off"
+
+    def test_set_invalid_string_raises(self) -> None:
+        with pytest.raises(ValueError, match="Invalid validation level"):
+            set_validation("invalid")  # type: ignore[arg-type]
+
+    def test_env_var_structural(self) -> None:
+        import colnade.validation
+
+        colnade.validation._validation_level = None
+        with patch.dict(os.environ, {"COLNADE_VALIDATE": "structural"}):
+            assert get_validation_level() == "structural"
+            assert is_validation_enabled() is True
+
+    def test_env_var_full(self) -> None:
+        import colnade.validation
+
+        colnade.validation._validation_level = None
+        with patch.dict(os.environ, {"COLNADE_VALIDATE": "full"}):
+            assert get_validation_level() == "full"
+            assert is_validation_enabled() is True
+
+    def test_env_var_off(self) -> None:
+        import colnade.validation
+
+        colnade.validation._validation_level = None
+        with patch.dict(os.environ, {"COLNADE_VALIDATE": "off"}):
+            assert get_validation_level() == "off"
+            assert is_validation_enabled() is False
+
+    def test_env_var_1_maps_to_structural(self) -> None:
+        import colnade.validation
+
+        colnade.validation._validation_level = None
+        with patch.dict(os.environ, {"COLNADE_VALIDATE": "1"}):
+            assert get_validation_level() == "structural"
+
+    def test_env_var_FULL_case_insensitive(self) -> None:
+        import colnade.validation
+
+        colnade.validation._validation_level = None
+        with patch.dict(os.environ, {"COLNADE_VALIDATE": "FULL"}):
+            assert get_validation_level() == "full"
+
+    def test_set_overrides_env_var_level(self) -> None:
+        with patch.dict(os.environ, {"COLNADE_VALIDATE": "full"}):
+            set_validation("off")
+            assert get_validation_level() == "off"
 
 
 # ---------------------------------------------------------------------------
@@ -98,7 +188,7 @@ class TestCheckLiteralType:
     def teardown_method(self) -> None:
         import colnade.validation
 
-        colnade.validation._validation_enabled = None
+        colnade.validation._validation_level = None
 
     def test_int_for_uint64_ok(self) -> None:
         check_literal_type(42, UInt64)
@@ -129,7 +219,7 @@ class TestLiteralCheckInExpressions:
     def teardown_method(self) -> None:
         import colnade.validation
 
-        colnade.validation._validation_enabled = None
+        colnade.validation._validation_level = None
 
     def test_column_add_wrong_type_raises(self) -> None:
         with pytest.raises(TypeError, match="str.*UInt64"):

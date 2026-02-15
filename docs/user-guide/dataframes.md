@@ -144,7 +144,34 @@ Validate that data conforms to the schema:
 df.validate()  # raises SchemaError on mismatch
 ```
 
-Checks column existence and data types. Enable auto-validation at data boundaries with `COLNADE_VALIDATE=1` or `colnade.set_validation(True)`.
+Checks column existence, data types, and nullability constraints.
+
+### Validation levels
+
+| Level | Behavior |
+|-------|----------|
+| `"off"` | No runtime checks. Trust the type checker. Zero overhead. (default) |
+| `"structural"` | Check columns exist, dtypes match, nullability. Also checks literal type compatibility in expressions. |
+| `"full"` | Structural checks plus value-level constraints from `Field()` metadata. |
+
+Enable auto-validation at data boundaries:
+
+```python
+import colnade
+
+colnade.set_validation("structural")  # or "full"
+# Boolean still works: set_validation(True) → "structural"
+```
+
+Or via environment variable:
+
+```bash
+COLNADE_VALIDATE=structural pytest tests/
+COLNADE_VALIDATE=full pytest tests/
+# Legacy: COLNADE_VALIDATE=1 → "structural"
+```
+
+`df.validate()` always runs the full level of checks regardless of the toggle — calling it explicitly signals intent.
 
 ## What Colnade validates
 
