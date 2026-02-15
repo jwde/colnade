@@ -20,6 +20,12 @@ jobs:
       - name: Build colnade-polars
         run: uv build --package colnade-polars --out-dir dist-colnade-polars/
 
+      - name: Build colnade-pandas
+        run: uv build --package colnade-pandas --out-dir dist-colnade-pandas/
+
+      - name: Build colnade-dask
+        run: uv build --package colnade-dask --out-dir dist-colnade-dask/
+
       - uses: actions/upload-artifact@v4
         with:
           name: dist-colnade
@@ -29,6 +35,16 @@ jobs:
         with:
           name: dist-colnade-polars
           path: dist-colnade-polars/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-colnade-pandas
+          path: dist-colnade-pandas/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-colnade-dask
+          path: dist-colnade-dask/
 
   publish-colnade:
     needs: build
@@ -61,6 +77,42 @@ jobs:
           path: dist/
 
       - name: Publish colnade-polars to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
+          skip-existing: true
+
+  publish-colnade-pandas:
+    needs: publish-colnade
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist-colnade-pandas
+          path: dist/
+
+      - name: Publish colnade-pandas to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
+          skip-existing: true
+
+  publish-colnade-dask:
+    needs: publish-colnade-pandas
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist-colnade-dask
+          path: dist/
+
+      - name: Publish colnade-dask to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist/

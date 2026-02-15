@@ -163,7 +163,7 @@ wheels = [
 
 [[package]]
 name = "colnade"
-version = "0.2.0"
+version = "0.3.0"
 source = { editable = "." }
 dependencies = [
     { name = "typing-extensions" },
@@ -239,7 +239,7 @@ requires-dist = [
 
 [[package]]
 name = "colnade-polars"
-version = "0.2.0"
+version = "0.3.0"
 source = { editable = "colnade-polars" }
 dependencies = [
     { name = "colnade" },
