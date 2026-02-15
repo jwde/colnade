@@ -15,7 +15,7 @@ See AGENTS.md "Column[DType] Annotation Pattern" for details.
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from typing import TYPE_CHECKING, Any, Generic, TypeVar, overload
 
 from colnade.schema import S2, S3, Column, S, Schema, SchemaError
@@ -385,6 +385,27 @@ class DataFrame(Generic[S]):
         """Drop type information — string-based escape hatch."""
         return UntypedDataFrame(_data=self._data, _backend=self._backend)
 
+    def with_raw(self, fn: Callable[[Any], Any]) -> DataFrame[S]:
+        """Apply a function to the raw engine DataFrame and re-wrap.
+
+        The function receives the underlying engine DataFrame (e.g.
+        ``pl.DataFrame``, ``pd.DataFrame``) and must return the same type.
+        The result is wrapped back into ``DataFrame[S]`` with the same
+        schema and backend.  If validation is enabled, the result is
+        validated before returning.
+
+        Use this instead of ``untyped()`` when you need a bounded escape
+        hatch — like Rust's ``unsafe`` block.
+        """
+        from colnade.validation import is_validation_enabled
+
+        _require_backend(self._backend)
+        result = fn(self._data)
+        df: DataFrame[S] = DataFrame(_data=result, _schema=self._schema, _backend=self._backend)
+        if is_validation_enabled():
+            df.validate()
+        return df
+
     # --- Validation ---
 
     def validate(self) -> DataFrame[S]:
@@ -667,6 +688,20 @@ class LazyFrame(Generic[S]):
     def untyped(self) -> UntypedLazyFrame:
         """Drop type information — string-based escape hatch."""
         return UntypedLazyFrame(_data=self._data, _backend=self._backend)
+
+    def with_raw(self, fn: Callable[[Any], Any]) -> LazyFrame[S]:
+        """Apply a function to the raw engine LazyFrame and re-wrap.
+
+        The function receives the underlying engine LazyFrame and must
+        return the same type.  The result is wrapped back into
+        ``LazyFrame[S]`` with the same schema and backend.
+
+        Validation is deferred — it runs at ``collect()`` time if enabled,
+        not at ``with_raw()`` time.
+        """
+        _require_backend(self._backend)
+        result = fn(self._data)
+        return LazyFrame(_data=result, _schema=self._schema, _backend=self._backend)
 
     # --- Validation ---
 
