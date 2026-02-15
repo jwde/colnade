@@ -57,7 +57,7 @@ Works with [ty](https://github.com/astral-sh/ty), mypy, and pyright. No plugins,
 - **Type-safe column references** — `Users.naem` is a type error, not a runtime crash
 - **Schema-preserving operations** — `filter`, `sort`, `with_columns` preserve `DataFrame[S]`
 - **Typed expressions** — `Users.age > 18` produces `Expr[Bool]`, `Users.score * 2` produces `Expr[Float64]`
-- **Backend agnostic** — works with Polars today, with adapters for other engines
+- **Backend agnostic** — works with Polars, Pandas, and Dask
 - **Generic utility functions** — write `def f(df: DataFrame[S]) -> DataFrame[S]` that works with any schema
 - **Struct and List support** — typed access to nested data structures
 - **No plugins or codegen** — works with standard type checkers out of the box
