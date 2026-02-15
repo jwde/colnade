@@ -103,7 +103,7 @@ class TestSchemaMismatch:
         colnade.validation.set_validation(True)
 
     def teardown_method(self) -> None:
-        colnade.validation._validation_enabled = None
+        colnade.validation._validation_level = None
 
     def test_read_parquet_wrong_schema(self, tmp_path: Path) -> None:
         path = str(tmp_path / "users.parquet")

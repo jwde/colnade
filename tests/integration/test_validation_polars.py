@@ -135,10 +135,10 @@ class TestLazyFrameValidate:
 
 class TestValidationToggle:
     def setup_method(self) -> None:
-        colnade.validation._validation_enabled = None
+        colnade.validation._validation_level = None
 
     def teardown_method(self) -> None:
-        colnade.validation._validation_enabled = None
+        colnade.validation._validation_level = None
 
     def test_read_parquet_no_validation_by_default(self, tmp_path) -> None:
         """With validation off, mismatched parquet loads without error."""

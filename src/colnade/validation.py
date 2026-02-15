@@ -4,18 +4,26 @@ Validation is **off** by default for zero overhead in production.
 Enable it via environment variable (ideal for CI) or programmatically::
 
     # Environment variable
-    COLNADE_VALIDATE=1 pytest tests/
+    COLNADE_VALIDATE=structural pytest tests/
+    COLNADE_VALIDATE=full pytest tests/
 
     # Programmatic
     import colnade
-    colnade.set_validation(True)
+    colnade.set_validation("structural")
+    colnade.set_validation("full")
 
-When enabled:
+Three validation levels are supported:
 
-- Data boundaries (``read_parquet``, ``from_batches``, etc.) validate
-  that loaded data matches the declared schema.
-- Expression construction checks that literal values are type-compatible
-  with the column dtype (e.g., ``float`` rejected for ``UInt8`` column).
+- ``"off"`` — No runtime checks. Trust the type checker. Zero overhead.
+- ``"structural"`` — Check columns exist, dtypes match, nullability.
+  Also checks literal type compatibility in expressions.
+- ``"full"`` — Structural checks plus value-level constraints
+  (e.g., ``Field(ge=0, le=150)``). Currently equivalent to
+  ``"structural"`` until value constraints are implemented.
+
+The boolean API is still supported for backward compatibility:
+``set_validation(True)`` maps to ``"structural"``,
+``set_validation(False)`` maps to ``"off"``.
 
 ``DataFrame.validate()`` and ``LazyFrame.validate()`` always run
 explicitly regardless of this toggle.
@@ -30,20 +38,46 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     pass
 
-_validation_enabled: bool | None = None
+_validation_level: str | None = None
+_VALID_LEVELS = ("off", "structural", "full")
+
+
+def get_validation_level() -> str:
+    """Return the current validation level: ``"off"``, ``"structural"``, or ``"full"``."""
+    if _validation_level is not None:
+        return _validation_level
+    env = os.environ.get("COLNADE_VALIDATE", "").lower()
+    if env in _VALID_LEVELS:
+        return env
+    if env in ("1", "true", "yes"):
+        return "structural"
+    return "off"
 
 
 def is_validation_enabled() -> bool:
-    """Return whether automatic validation at data boundaries is enabled."""
-    if _validation_enabled is not None:
-        return _validation_enabled
-    return os.environ.get("COLNADE_VALIDATE", "").lower() in ("1", "true", "yes")
+    """Return whether automatic validation at data boundaries is enabled.
+
+    Returns ``True`` when the validation level is ``"structural"`` or ``"full"``.
+    """
+    return get_validation_level() != "off"
 
 
-def set_validation(enabled: bool) -> None:
-    """Enable or disable automatic validation at data boundaries."""
-    global _validation_enabled
-    _validation_enabled = enabled
+def set_validation(enabled: bool | str) -> None:
+    """Set the validation level.
+
+    Accepts a level string (``"off"``, ``"structural"``, ``"full"``) or a
+    boolean for backward compatibility (``True`` → ``"structural"``,
+    ``False`` → ``"off"``).
+    """
+    global _validation_level
+    if isinstance(enabled, bool):
+        _validation_level = "structural" if enabled else "off"
+    elif isinstance(enabled, str) and enabled in _VALID_LEVELS:
+        _validation_level = enabled
+    else:
+        raise ValueError(
+            f"Invalid validation level: {enabled!r}. Use one of {_VALID_LEVELS} or a bool."
+        )
 
 
 # ---------------------------------------------------------------------------
