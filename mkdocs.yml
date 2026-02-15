@@ -38,6 +38,7 @@ plugins:
             - src
             - colnade-polars/src
             - colnade-pandas/src
+            - colnade-dask/src
           options:
             show_source: false
             show_root_heading: true
@@ -100,4 +101,5 @@ nav:
       - colnade.dtypes: api/types.md
       - colnade_polars: api/polars.md
       - colnade_pandas: api/pandas.md
+      - colnade_dask: api/dask.md
   - Comparison: comparison.md

@@ -20,6 +20,7 @@ PACKAGES: dict[str, str] = {
     "colnade": "src/colnade/__init__.py",
     "colnade_polars": "colnade-polars/src/colnade_polars/__init__.py",
     "colnade_pandas": "colnade-pandas/src/colnade_pandas/__init__.py",
+    "colnade_dask": "colnade-dask/src/colnade_dask/__init__.py",
 }
 
 
@@ -47,6 +48,7 @@ def main() -> int:
     sys.path.insert(0, str(root / "src"))
     sys.path.insert(0, str(root / "colnade-polars" / "src"))
     sys.path.insert(0, str(root / "colnade-pandas" / "src"))
+    sys.path.insert(0, str(root / "colnade-dask" / "src"))
 
     missing: list[tuple[str, str]] = []
 
