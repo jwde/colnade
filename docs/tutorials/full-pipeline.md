@@ -30,7 +30,7 @@ class UserRevenue(Schema):
 ## Step 1: Read typed data
 
 ```python
-from colnade_polars.io import read_parquet
+from colnade_polars import read_parquet
 
 users = read_parquet("users.parquet", Users)
 orders = read_parquet("orders.parquet", Orders)

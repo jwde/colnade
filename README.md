@@ -12,7 +12,13 @@ Works with [ty](https://github.com/astral-sh/ty), mypy, and pyright. No plugins,
 pip install colnade colnade-polars
 ```
 
-Colnade requires Python 3.10+. The `colnade-polars` package provides the Polars backend adapter.
+Colnade requires Python 3.10+. Install the backend adapter for your engine:
+
+| Backend | Install |
+|---------|---------|
+| Polars | `pip install colnade-polars` |
+| Pandas | `pip install colnade-pandas` |
+| Dask | `pip install colnade-dask` |
 
 ## Quick Start
 
@@ -210,14 +216,15 @@ assignable to `Column[UInt8]`
 
 ## Comparison with Existing Solutions
 
-| Feature | Colnade | Pandera | StaticFrame | Patito |
-|---------|---------|---------|-------------|--------|
-| Column refs checked statically | Yes | No | No | No |
-| Schema preserved through ops | Yes | Nominal only | No | No |
-| Works with existing engines | Yes | Yes | No | Polars only |
-| No plugins or code gen | Yes | No (mypy plugin) | Yes | Yes |
-| Generic utility functions | Yes | No | No | No |
-| Struct/List typed access | Yes | No | No | No |
+| Feature | Colnade | Pandera | StaticFrame | Patito | Narwhals |
+|---------|---------|---------|-------------|--------|----------|
+| Column refs checked statically | Yes | No | No | No | No |
+| Schema preserved through ops | Yes | Nominal only | No | No | No |
+| Works with existing engines | Yes | Yes | No | Polars only | Yes |
+| No plugins or code gen | Yes | No (mypy plugin) | Yes | Yes | Yes |
+| Generic utility functions | Yes | No | No | No | No |
+| Struct/List typed access | Yes | No | No | No | No |
+| Lazy execution support | Yes | No | No | No | Yes |
 
 ## Documentation
 

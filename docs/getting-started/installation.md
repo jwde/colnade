@@ -11,13 +11,21 @@
 pip install colnade colnade-polars
 ```
 
-`colnade` provides the core abstraction layer. `colnade-polars` provides the Polars backend adapter.
+`colnade` provides the core abstraction layer. Install the backend adapter for your engine:
+
+| Backend | Install |
+|---------|---------|
+| Polars | `pip install colnade-polars` |
+| Pandas | `pip install colnade-pandas` |
+| Dask | `pip install colnade-dask` |
 
 ## Install with uv
 
 ```bash
 uv add colnade colnade-polars
 ```
+
+Or substitute `colnade-pandas` / `colnade-dask` for your preferred backend.
 
 ## Install from source
 

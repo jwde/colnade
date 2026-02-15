@@ -14,8 +14,7 @@ graph TD
   D --> E
   E --> F["Polars"]
   E --> G["Pandas"]
-  E --> H["DuckDB"]
-  E --> I["Spark"]
+  E --> H["Dask"]
 ```
 
 ## Schema Layer
@@ -63,9 +62,13 @@ After a schema-transforming operation, use `cast_schema()` to bind to a new name
 
 Backends translate expression trees and execute operations. The core library defines a `BackendProtocol`; each adapter implements it for a specific engine.
 
-Currently available: **`colnade-polars`** (Polars backend)
+Available adapters:
 
-When you call `read_parquet("data.parquet", Users)`, the Polars backend is automatically attached. All subsequent operations on the DataFrame delegate to Polars under the hood.
+- **`colnade-polars`** — Polars backend (eager + lazy)
+- **`colnade-pandas`** — Pandas backend (eager)
+- **`colnade-dask`** — Dask backend (lazy, distributed)
+
+When you call `read_parquet("data.parquet", Users)`, the backend is automatically attached. All subsequent operations on the DataFrame delegate to the underlying engine.
 
 ## The Type Safety Model
 
