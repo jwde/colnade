@@ -14,3 +14,4 @@
 | Module | Description |
 |--------|-------------|
 | [`colnade_polars`](polars.md) | Polars backend: PolarsBackend, I/O functions, dtype mapping |
+| [`colnade_pandas`](pandas.md) | Pandas backend: PandasBackend, I/O functions, dtype mapping |
