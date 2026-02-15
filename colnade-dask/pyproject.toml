@@ -21,7 +21,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries",
 ]
 dependencies = [
-    "colnade>=0.2.0",
+    "colnade>=0.3.0",
     "colnade-pandas>=0.1.0",
     "dask[dataframe]>=2024.1",
     "pyarrow>=12.0",
