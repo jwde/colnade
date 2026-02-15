@@ -77,6 +77,24 @@ The `extra` parameter controls extra columns in the source:
 - `extra="drop"` (default) — silently drop extra columns
 - `extra="forbid"` — raise `SchemaError` if extra columns exist
 
+### cast_schema is a trust boundary
+
+`cast_schema` is analogous to a type cast in Go or Rust — it asserts that the data conforms to the target schema. The type checker verifies that expressions reference valid columns on the *input* schema, but `cast_schema` is a promise about the *output*. If you `.select()` the wrong columns, the type checker won't catch it.
+
+**Mitigations:**
+
+- **Use `mapped_from`** on output schema fields to create static links between input and output columns. The more fields that declare their provenance, the narrower the trust gap:
+
+    ```python
+    class UserRevenue(Schema):
+        user_name: Column[Utf8] = mapped_from(Users.name)
+        user_id: Column[UInt64] = mapped_from(Users.id)
+        total_amount: Column[Float64]  # only this field is "trust me"
+    ```
+
+- **Use `extra="forbid"`** to catch unexpected columns that might indicate a wrong select.
+- **Enable validation** — with validation on, `df.validate()` after `cast_schema` verifies structural conformance at runtime. Consider calling `.cast_schema(Target).validate()` at critical pipeline boundaries.
+
 ## Group by
 
 `group_by()` is available on `DataFrame[S]` and `LazyFrame[S]` — but **not** on `JoinedDataFrame` or `JoinedLazyFrame`. If you need to aggregate joined data, first `cast_schema()` to flatten to a single schema:

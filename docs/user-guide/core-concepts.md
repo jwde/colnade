@@ -84,6 +84,8 @@ Your type checker (`ty`, `pyright`, `mypy`) catches errors before code runs:
 
 Operations within function bodies (e.g., using `Orders.amount` on a `DataFrame[Users]`) produce correct expression types but cannot be statically checked for schema membership — this is a known limitation documented in [Type Checker Integration](type-checking.md).
 
+`cast_schema()` is the primary trust boundary: the type checker verifies input expressions, but the developer asserts the output conforms. Use `mapped_from` on output schema fields and `extra="forbid"` to narrow the gap. See [DataFrames: cast_schema](dataframes.md#cast_schema-is-a-trust-boundary) for details.
+
 ### 2. At data boundaries (runtime structural validation)
 
 When validation is enabled, data boundaries (`read_parquet`, `from_batches`, `cast_schema`) verify that actual data matches your schema:
