@@ -70,12 +70,30 @@ Available adapters:
 
 When you call `read_parquet("data.parquet", Users)`, the backend is automatically attached. All subsequent operations on the DataFrame delegate to the underlying engine.
 
-## The Type Safety Model
+## The Safety Model
 
-Colnade provides compile-time safety at three levels:
+Colnade catches errors at three levels:
 
-1. **Column references** — `Users.naem` is a type error (attribute doesn't exist)
-2. **Schema boundaries** — `DataFrame[Users]` cannot be passed where `DataFrame[Orders]` is expected
-3. **Nullability** — `mapped_from` a nullable column to a non-nullable annotation is a type error
+### 1. In your editor (static analysis)
+
+Your type checker (`ty`, `pyright`, `mypy`) catches errors before code runs:
+
+- **Column references** — `Users.naem` is a type error (attribute doesn't exist)
+- **Schema boundaries** — `DataFrame[Users]` cannot be passed where `DataFrame[Orders]` is expected
+- **Nullability** — `mapped_from` a nullable column to a non-nullable annotation is a type error
 
 Operations within function bodies (e.g., using `Orders.amount` on a `DataFrame[Users]`) produce correct expression types but cannot be statically checked for schema membership — this is a known limitation documented in [Type Checker Integration](type-checking.md).
+
+### 2. At data boundaries (runtime structural validation)
+
+When validation is enabled, data boundaries (`read_parquet`, `from_batches`, `cast_schema`) verify that actual data matches your schema:
+
+- **Missing columns** — columns required by the schema but absent in the data
+- **Type mismatches** — actual dtypes don't match expected dtypes
+- **Null violations** — non-nullable columns containing null values
+
+Enable with `colnade.set_validation("structural")` or `COLNADE_VALIDATE=structural`. See [DataFrames: Validation](dataframes.md#validation) for details.
+
+### 3. On your data values (coming soon)
+
+Value-level constraints will validate domain invariants — ranges, patterns, uniqueness — using field metadata. This is planned for a future release.

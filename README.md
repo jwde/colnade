@@ -65,6 +65,14 @@ output = result.cast_schema(UserSummary)
 # output is DataFrame[UserSummary]
 ```
 
+## Safety Model
+
+Colnade catches errors at three levels:
+
+1. **In your editor** — misspelled columns, type mismatches, and schema violations are flagged by your type checker (`ty`, `pyright`, `mypy`) before code runs
+2. **At data boundaries** — runtime validation ensures files and external data match your schemas (columns, types, nullability)
+3. **On your data values** — field constraints validate domain invariants like ranges and patterns *(coming soon)*
+
 ## Key Features
 
 ### Type-safe column references

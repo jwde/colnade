@@ -175,21 +175,29 @@ COLNADE_VALIDATE=full pytest tests/
 
 ## What Colnade validates
 
-Colnade provides type safety at two levels:
+Colnade catches errors at three levels (see also [Core Concepts: Safety Model](core-concepts.md#the-safety-model)):
 
-### Static analysis (ty, pyright, mypy)
+### Level 1: In your editor (static analysis)
+
+Your type checker (`ty`, `pyright`, `mypy`) catches errors before code runs:
 
 - **Schema-aware return types** — `df.filter(...)` returns `DataFrame[Users]`, not just `DataFrame`
 - **Type boundary enforcement** — `JoinedDataFrame[S, S2]` is a distinct type from `DataFrame[S]`. You cannot pass a joined frame where a `DataFrame` is expected — you must `cast_schema()` first
 - **Schema-transforming operations** — `select()` and `group_by().agg()` return `DataFrame[Any]`, requiring `cast_schema()` to regain a named schema
 - **Join conditions** — cross-schema `==` returns `JoinCondition`, same-schema `==` returns `BinOp[Bool]`
 
-### Runtime validation (df.validate())
+### Level 2: At data boundaries (runtime structural validation)
+
+When validation is enabled, data boundaries and `df.validate()` check:
 
 - **Column existence** — missing columns raise `SchemaError`
 - **Data types** — type mismatches raise `SchemaError`
 - **Null violations** — non-nullable columns with null values raise `SchemaError`
 - **Extra columns** — optionally flagged via `extra="forbid"` on `cast_schema()`
+
+### Level 3: On your data values (coming soon)
+
+Value-level constraints will validate domain invariants — ranges, patterns, uniqueness — using field metadata.
 
 ### Current limitations
 

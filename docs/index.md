@@ -52,11 +52,18 @@ Works with [ty](https://github.com/astral-sh/ty), mypy, and pyright. No plugins,
 
 ---
 
+## Errors Caught at Three Levels
+
+1. **In your editor** — misspelled columns, type mismatches, and schema violations are flagged by your type checker before code runs
+2. **At data boundaries** — runtime validation ensures files and external data match your schemas (columns, types, nullability)
+3. **On your data values** — field constraints validate domain invariants like ranges and patterns *(coming soon)*
+
 ## Key Features
 
 - **Type-safe column references** — `Users.naem` is a type error, not a runtime crash
 - **Schema-preserving operations** — `filter`, `sort`, `with_columns` preserve `DataFrame[S]`
 - **Typed expressions** — `Users.age > 18` produces `Expr[Bool]`, `Users.score * 2` produces `Expr[Float64]`
+- **Runtime validation** — `df.validate()` checks columns, types, and nullability; auto-validate at data boundaries with a single toggle
 - **Backend agnostic** — works with Polars, Pandas, and Dask
 - **Generic utility functions** — write `def f(df: DataFrame[S]) -> DataFrame[S]` that works with any schema
 - **Struct and List support** — typed access to nested data structures
