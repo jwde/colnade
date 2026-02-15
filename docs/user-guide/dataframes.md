@@ -203,9 +203,38 @@ Value-level constraints will validate domain invariants — ranges, patterns, un
 
 Column type parameters carry the data type (`Column[UInt64]`) but not the schema they belong to. This means the type checker cannot statically verify that `df.filter(Orders.amount > 5)` is invalid when `df` is a `DataFrame[Users]`. This limitation exists because Python 3.10 lacks `TypeVar` defaults (PEP 696). Schema enforcement at the column level would require `Column[DType, Schema]`, which is planned for future versions.
 
-## Untyped escape hatch
+## Escape hatches
 
-When you need to drop type safety temporarily:
+### with_raw — scoped escape (recommended)
+
+When you need to use engine-native operations not exposed by Colnade, `with_raw` lets you operate on the raw DataFrame within a bounded scope — like Rust's `unsafe` block:
+
+```python
+# Apply a Polars-native operation, then re-enter the typed world
+result = df.with_raw(
+    lambda raw: raw.with_columns(
+        pl.col("age").map_batches(some_custom_fn)
+    )
+)
+# result is still DataFrame[Users]
+# validated automatically if validation is enabled
+```
+
+For complex multi-step logic, use a named function:
+
+```python
+def custom_transform(raw_df: pl.DataFrame) -> pl.DataFrame:
+    # complex engine-native logic here
+    return raw_df.with_columns(...)
+
+result = df.with_raw(custom_transform)
+```
+
+`with_raw` is available on `DataFrame` and `LazyFrame`, but **not** on `JoinedDataFrame` — use `cast_schema()` first.
+
+### untyped — full escape
+
+When you need to drop type safety entirely:
 
 ```python
 untyped = df.untyped()                   # UntypedDataFrame
