@@ -37,6 +37,7 @@ plugins:
           paths:
             - src
             - colnade-polars/src
+            - colnade-pandas/src
           options:
             show_source: false
             show_root_heading: true
@@ -98,4 +99,5 @@ nav:
       - colnade.expr: api/expressions.md
       - colnade.dtypes: api/types.md
       - colnade_polars: api/polars.md
+      - colnade_pandas: api/pandas.md
   - Comparison: comparison.md
