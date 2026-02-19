@@ -250,7 +250,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "colnade", editable = "." },
-    { name = "polars", specifier = ">=0.20" },
+    { name = "polars", specifier = ">=1.0" },
     { name = "pyarrow", specifier = ">=12.0" },
 ]
 

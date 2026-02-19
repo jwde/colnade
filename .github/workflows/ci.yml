@@ -28,6 +28,16 @@ jobs:
       - run: uv sync --python ${{ matrix.python-version }}
       - run: uv run pytest tests/ -v
 
+  test-min-versions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync
+      - name: Install minimum backend versions
+        run: uv pip install polars==1.0.0 pandas==2.0.0 numpy==1.24.4 "dask[dataframe]==2024.1.0"
+      - run: uv run --no-sync pytest tests/ -v
+
   typecheck:
     runs-on: ubuntu-latest
     steps:
