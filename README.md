@@ -207,6 +207,10 @@ untyped = df.untyped()  # UntypedDataFrame — string-based columns
 retyped = untyped.to_typed(Users)  # Back to DataFrame[Users]
 ```
 
+## Performance
+
+Colnade adds < 5% overhead for typical operations. The expression AST construction and translation cost is constant per operation and negligible compared to engine execution time. See [benchmarks](https://colnade.com/user-guide/performance/) for details.
+
 ## Type Checker Error Showcase
 
 Colnade catches real errors at lint time. Here are actual error messages from `ty`:
