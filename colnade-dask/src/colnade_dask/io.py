@@ -7,7 +7,7 @@ from typing import Any, TypeVar
 import dask.dataframe as dd
 
 from colnade import DataFrame, LazyFrame, Schema
-from colnade.validation import get_validation_level, is_validation_enabled
+from colnade.validation import ValidationLevel, get_validation_level, is_validation_enabled
 from colnade_dask.adapter import DaskBackend
 from colnade_pandas.conversion import map_colnade_dtype
 
@@ -25,7 +25,7 @@ def read_parquet(path: str, schema: type[S], **kwargs: Any) -> DataFrame[S]:
     data = dd.read_parquet(path, **kwargs)
     if is_validation_enabled():
         backend.validate_schema(data, schema)
-        if get_validation_level() == "full":
+        if get_validation_level() is ValidationLevel.FULL:
             backend.validate_field_constraints(data, schema)
     return DataFrame(_data=data, _schema=schema, _backend=backend)
 
@@ -40,7 +40,7 @@ def read_csv(path: str, schema: type[S], **kwargs: Any) -> DataFrame[S]:
     data = dd.read_csv(path, dtype=pd_schema, **kwargs)
     if is_validation_enabled():
         backend.validate_schema(data, schema)
-        if get_validation_level() == "full":
+        if get_validation_level() is ValidationLevel.FULL:
             backend.validate_field_constraints(data, schema)
     return DataFrame(_data=data, _schema=schema, _backend=backend)
 

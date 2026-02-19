@@ -397,14 +397,14 @@ class DataFrame(Generic[S]):
         Use this instead of ``untyped()`` when you need a bounded escape
         hatch — like Rust's ``unsafe`` block.
         """
-        from colnade.validation import get_validation_level, is_validation_enabled
+        from colnade.validation import ValidationLevel, get_validation_level, is_validation_enabled
 
         _require_backend(self._backend)
         result = fn(self._data)
         df: DataFrame[S] = DataFrame(_data=result, _schema=self._schema, _backend=self._backend)
         if is_validation_enabled() and self._backend and self._schema:
             self._backend.validate_schema(result, self._schema)
-            if get_validation_level() == "full":
+            if get_validation_level() is ValidationLevel.FULL:
                 self._backend.validate_field_constraints(result, self._schema)
         return df
 
@@ -447,14 +447,14 @@ class DataFrame(Generic[S]):
         Unwraps each ``ArrowBatch[S]`` to its raw ``pa.RecordBatch`` and
         delegates to the backend's ``from_arrow_batches()`` method.
         """
-        from colnade.validation import get_validation_level, is_validation_enabled
+        from colnade.validation import ValidationLevel, get_validation_level, is_validation_enabled
 
         raw_batches = (batch.to_pyarrow() for batch in batches)
         data = backend.from_arrow_batches(raw_batches, schema)
         df: DataFrame[S] = DataFrame(_data=data, _schema=schema, _backend=backend)
         if is_validation_enabled():
             backend.validate_schema(data, schema)
-            if get_validation_level() == "full":
+            if get_validation_level() is ValidationLevel.FULL:
                 backend.validate_field_constraints(data, schema)
         return df
 

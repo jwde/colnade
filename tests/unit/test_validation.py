@@ -9,6 +9,7 @@ import pytest
 
 from colnade import Column, Schema, UInt64, Utf8
 from colnade.validation import (
+    ValidationLevel,
     check_literal_type,
     get_validation_level,
     is_validation_enabled,
@@ -98,30 +99,30 @@ class TestValidationLevels:
 
         colnade.validation._validation_level = None
         with patch.dict(os.environ, {}, clear=True):
-            assert get_validation_level() == "off"
+            assert get_validation_level() is ValidationLevel.OFF
 
     def test_set_level_off(self) -> None:
         set_validation("off")
-        assert get_validation_level() == "off"
+        assert get_validation_level() is ValidationLevel.OFF
         assert is_validation_enabled() is False
 
     def test_set_level_structural(self) -> None:
         set_validation("structural")
-        assert get_validation_level() == "structural"
+        assert get_validation_level() is ValidationLevel.STRUCTURAL
         assert is_validation_enabled() is True
 
     def test_set_level_full(self) -> None:
         set_validation("full")
-        assert get_validation_level() == "full"
+        assert get_validation_level() is ValidationLevel.FULL
         assert is_validation_enabled() is True
 
     def test_set_bool_true_maps_to_structural(self) -> None:
         set_validation(True)
-        assert get_validation_level() == "structural"
+        assert get_validation_level() is ValidationLevel.STRUCTURAL
 
     def test_set_bool_false_maps_to_off(self) -> None:
         set_validation(False)
-        assert get_validation_level() == "off"
+        assert get_validation_level() is ValidationLevel.OFF
 
     def test_set_invalid_string_raises(self) -> None:
         with pytest.raises(ValueError, match="Invalid validation level"):
@@ -132,7 +133,7 @@ class TestValidationLevels:
 
         colnade.validation._validation_level = None
         with patch.dict(os.environ, {"COLNADE_VALIDATE": "structural"}):
-            assert get_validation_level() == "structural"
+            assert get_validation_level() is ValidationLevel.STRUCTURAL
             assert is_validation_enabled() is True
 
     def test_env_var_full(self) -> None:
@@ -140,7 +141,7 @@ class TestValidationLevels:
 
         colnade.validation._validation_level = None
         with patch.dict(os.environ, {"COLNADE_VALIDATE": "full"}):
-            assert get_validation_level() == "full"
+            assert get_validation_level() is ValidationLevel.FULL
             assert is_validation_enabled() is True
 
     def test_env_var_off(self) -> None:
@@ -148,7 +149,7 @@ class TestValidationLevels:
 
         colnade.validation._validation_level = None
         with patch.dict(os.environ, {"COLNADE_VALIDATE": "off"}):
-            assert get_validation_level() == "off"
+            assert get_validation_level() is ValidationLevel.OFF
             assert is_validation_enabled() is False
 
     def test_env_var_1_maps_to_structural(self) -> None:
@@ -156,19 +157,19 @@ class TestValidationLevels:
 
         colnade.validation._validation_level = None
         with patch.dict(os.environ, {"COLNADE_VALIDATE": "1"}):
-            assert get_validation_level() == "structural"
+            assert get_validation_level() is ValidationLevel.STRUCTURAL
 
     def test_env_var_FULL_case_insensitive(self) -> None:
         import colnade.validation
 
         colnade.validation._validation_level = None
         with patch.dict(os.environ, {"COLNADE_VALIDATE": "FULL"}):
-            assert get_validation_level() == "full"
+            assert get_validation_level() is ValidationLevel.FULL
 
     def test_set_overrides_env_var_level(self) -> None:
         with patch.dict(os.environ, {"COLNADE_VALIDATE": "full"}):
             set_validation("off")
-            assert get_validation_level() == "off"
+            assert get_validation_level() is ValidationLevel.OFF
 
 
 # ---------------------------------------------------------------------------
