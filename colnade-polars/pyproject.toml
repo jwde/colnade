@@ -22,7 +22,7 @@ classifiers = [
 ]
 dependencies = [
     "colnade>=0.3.0",
-    "polars>=0.20",
+    "polars>=1.0",
     "pyarrow>=12.0",
 ]
 

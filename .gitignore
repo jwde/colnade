@@ -16,6 +16,7 @@ htmlcov/
 *.csv
 !tests/fixtures/*.csv
 !tests/fixtures/*.parquet
+.nox/
 .venv/
 venv/
 env/
