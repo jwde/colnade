@@ -34,9 +34,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
       - run: uv sync
-      - name: Install minimum backend versions
-        run: uv pip install polars==1.0.0 pandas==2.0.0 numpy==1.24.4 "dask[dataframe]==2024.1.0"
-      - run: uv run --no-sync pytest tests/ -v
+      - run: uv run nox
 
   typecheck:
     runs-on: ubuntu-latest

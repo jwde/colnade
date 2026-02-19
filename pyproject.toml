@@ -50,6 +50,7 @@ dev-dependencies = [
     "mkdocs>=1.5",
     "mkdocs-material>=9.5",
     "mkdocstrings[python]>=0.24",
+    "nox>=2026.2.9",
 ]
 
 [tool.uv.workspace]
