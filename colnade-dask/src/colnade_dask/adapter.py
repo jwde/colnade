@@ -424,6 +424,171 @@ class DaskBackend:
                 null_violations=null_violations if null_violations else None,
             )
 
+    def validate_field_constraints(self, source: Any, schema: type[Schema]) -> None:
+        """Validate value-level constraints (Field(), @schema_check) on data."""
+        from colnade.constraints import ValueViolation, get_column_constraints, get_schema_checks
+
+        constraints = get_column_constraints(schema)
+        checks = get_schema_checks(schema)
+        if not constraints and not checks:
+            return
+
+        # Materialize Dask DataFrame for value checks
+        pdf = source.compute() if hasattr(source, "compute") else source
+        violations: list[ValueViolation] = []
+
+        for col_name, field_info in constraints.items():
+            if col_name not in pdf.columns:
+                continue
+            series = pdf[col_name].dropna()
+
+            if field_info.ge is not None:
+                mask = series < field_info.ge
+                count = int(mask.sum())
+                if count > 0:
+                    samples = series[mask].head(5).tolist()
+                    violations.append(
+                        ValueViolation(
+                            column=col_name,
+                            constraint=f"ge={field_info.ge!r}",
+                            got_count=count,
+                            sample_values=samples,
+                        )
+                    )
+
+            if field_info.gt is not None:
+                mask = series <= field_info.gt
+                count = int(mask.sum())
+                if count > 0:
+                    samples = series[mask].head(5).tolist()
+                    violations.append(
+                        ValueViolation(
+                            column=col_name,
+                            constraint=f"gt={field_info.gt!r}",
+                            got_count=count,
+                            sample_values=samples,
+                        )
+                    )
+
+            if field_info.le is not None:
+                mask = series > field_info.le
+                count = int(mask.sum())
+                if count > 0:
+                    samples = series[mask].head(5).tolist()
+                    violations.append(
+                        ValueViolation(
+                            column=col_name,
+                            constraint=f"le={field_info.le!r}",
+                            got_count=count,
+                            sample_values=samples,
+                        )
+                    )
+
+            if field_info.lt is not None:
+                mask = series >= field_info.lt
+                count = int(mask.sum())
+                if count > 0:
+                    samples = series[mask].head(5).tolist()
+                    violations.append(
+                        ValueViolation(
+                            column=col_name,
+                            constraint=f"lt={field_info.lt!r}",
+                            got_count=count,
+                            sample_values=samples,
+                        )
+                    )
+
+            if field_info.min_length is not None:
+                lengths = series.str.len()
+                mask = lengths < field_info.min_length
+                count = int(mask.sum())
+                if count > 0:
+                    samples = series[mask].head(5).tolist()
+                    violations.append(
+                        ValueViolation(
+                            column=col_name,
+                            constraint=f"min_length={field_info.min_length}",
+                            got_count=count,
+                            sample_values=samples,
+                        )
+                    )
+
+            if field_info.max_length is not None:
+                lengths = series.str.len()
+                mask = lengths > field_info.max_length
+                count = int(mask.sum())
+                if count > 0:
+                    samples = series[mask].head(5).tolist()
+                    violations.append(
+                        ValueViolation(
+                            column=col_name,
+                            constraint=f"max_length={field_info.max_length}",
+                            got_count=count,
+                            sample_values=samples,
+                        )
+                    )
+
+            if field_info.pattern is not None:
+                matches = series.str.contains(field_info.pattern, regex=True, na=False)
+                mask = ~matches
+                count = int(mask.sum())
+                if count > 0:
+                    samples = series[mask].head(5).tolist()
+                    violations.append(
+                        ValueViolation(
+                            column=col_name,
+                            constraint=f"pattern={field_info.pattern!r}",
+                            got_count=count,
+                            sample_values=samples,
+                        )
+                    )
+
+            if field_info.unique:
+                dup_mask = series.duplicated(keep=False)
+                count = int(dup_mask.sum())
+                if count > 0:
+                    samples = series[dup_mask].unique().tolist()[:5]
+                    violations.append(
+                        ValueViolation(
+                            column=col_name,
+                            constraint="unique",
+                            got_count=count,
+                            sample_values=samples,
+                        )
+                    )
+
+            if field_info.isin is not None:
+                mask = ~series.isin(field_info.isin)
+                count = int(mask.sum())
+                if count > 0:
+                    samples = series[mask].unique().tolist()[:5]
+                    violations.append(
+                        ValueViolation(
+                            column=col_name,
+                            constraint=f"isin={list(field_info.isin)!r}",
+                            got_count=count,
+                            sample_values=samples,
+                        )
+                    )
+
+        # Cross-column schema checks
+        for check in checks:
+            expr = check.fn(schema)
+            pd_mask = self.translate_expr(expr)
+            violation_count = int((~pd_mask(pdf)).sum())
+            if violation_count > 0:
+                violations.append(
+                    ValueViolation(
+                        column="(cross-column)",
+                        constraint=f"schema_check:{check.name}",
+                        got_count=violation_count,
+                        sample_values=[],
+                    )
+                )
+
+        if violations:
+            raise SchemaError(value_violations=violations)
+
     # --- Introspection ---
 
     def row_count(self, source: Any) -> int:

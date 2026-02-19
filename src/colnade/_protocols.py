@@ -74,6 +74,8 @@ class BackendProtocol(Protocol):
 
     def validate_schema(self, source: Any, schema: type[Schema]) -> None: ...
 
+    def validate_field_constraints(self, source: Any, schema: type[Schema]) -> None: ...
+
     # --- Arrow boundary ---
 
     def to_arrow_batches(

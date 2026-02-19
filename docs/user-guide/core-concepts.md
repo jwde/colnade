@@ -94,8 +94,20 @@ When validation is enabled, data boundaries (`read_parquet`, `from_batches`, `ca
 - **Type mismatches** — actual dtypes don't match expected dtypes
 - **Null violations** — non-nullable columns containing null values
 
-Enable with `colnade.set_validation("structural")` or `COLNADE_VALIDATE=structural`. See [DataFrames: Validation](dataframes.md#validation) for details.
+Enable with `colnade.set_validation(ValidationLevel.STRUCTURAL)` or `COLNADE_VALIDATE=structural`. See [DataFrames: Validation](dataframes.md#validation) for details.
 
-### 3. On your data values (coming soon)
+### 3. On your data values
 
-Value-level constraints will validate domain invariants — ranges, patterns, uniqueness — using field metadata. This is planned for a future release.
+Value-level constraints validate domain invariants using `Field()` metadata:
+
+```python
+from colnade.constraints import Field, schema_check
+
+class Users(Schema):
+    id: Column[UInt64] = Field(unique=True)
+    age: Column[UInt64] = Field(ge=0, le=150)
+    email: Column[Utf8] = Field(pattern=r"^[^@]+@[^@]+\.[^@]+$")
+    status: Column[Utf8] = Field(isin=["active", "inactive"])
+```
+
+Checked by `df.validate()` (always) and by auto-validation at the `FULL` level. See [DataFrames: Value-level constraints](dataframes.md#level-3-on-your-data-values-value-level-constraints) for the full constraint reference.

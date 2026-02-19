@@ -168,17 +168,19 @@ Checks column existence, data types, and nullability constraints.
 
 | Level | Behavior |
 |-------|----------|
-| `"off"` | No runtime checks. Trust the type checker. Zero overhead. (default) |
-| `"structural"` | Check columns exist, dtypes match, nullability. Also checks literal type compatibility in expressions. |
-| `"full"` | Structural checks plus value-level constraints from `Field()` metadata. |
+| `ValidationLevel.OFF` | No runtime checks. Trust the type checker. Zero overhead. (default) |
+| `ValidationLevel.STRUCTURAL` | Check columns exist, dtypes match, nullability. Also checks literal type compatibility in expressions. |
+| `ValidationLevel.FULL` | Structural checks plus value-level constraints from `Field()` metadata. |
 
 Enable auto-validation at data boundaries:
 
 ```python
-import colnade
+from colnade import ValidationLevel
 
-colnade.set_validation("structural")  # or "full"
-# Boolean still works: set_validation(True) → "structural"
+colnade.set_validation(ValidationLevel.STRUCTURAL)  # or FULL
+# Strings and booleans still work for convenience:
+colnade.set_validation("structural")
+colnade.set_validation(True)  # → STRUCTURAL
 ```
 
 Or via environment variable:
@@ -186,7 +188,7 @@ Or via environment variable:
 ```bash
 COLNADE_VALIDATE=structural pytest tests/
 COLNADE_VALIDATE=full pytest tests/
-# Legacy: COLNADE_VALIDATE=1 → "structural"
+# Legacy: COLNADE_VALIDATE=1 → STRUCTURAL
 ```
 
 `df.validate()` always runs the full level of checks regardless of the toggle — calling it explicitly signals intent.
@@ -213,9 +215,52 @@ When validation is enabled, data boundaries and `df.validate()` check:
 - **Null violations** — non-nullable columns with null values raise `SchemaError`
 - **Extra columns** — optionally flagged via `extra="forbid"` on `cast_schema()`
 
-### Level 3: On your data values (coming soon)
+### Level 3: On your data values (value-level constraints)
 
-Value-level constraints will validate domain invariants — ranges, patterns, uniqueness — using field metadata.
+Value-level constraints validate domain invariants using `Field()` metadata:
+
+```python
+from colnade import Column, Schema, UInt64, Utf8, Float64
+from colnade.constraints import Field, schema_check
+
+class Users(Schema):
+    id: Column[UInt64] = Field(unique=True)
+    age: Column[UInt64] = Field(ge=0, le=150)
+    name: Column[Utf8] = Field(min_length=1)
+    email: Column[Utf8] = Field(pattern=r"^[^@]+@[^@]+\.[^@]+$")
+    score: Column[Float64] = Field(ge=0.0, le=100.0)
+    status: Column[Utf8] = Field(isin=["active", "inactive"])
+```
+
+Available constraints:
+
+| Constraint | Types | Meaning |
+|-----------|-------|---------|
+| `ge` | Numeric, temporal | Value >= bound |
+| `gt` | Numeric, temporal | Value > bound |
+| `le` | Numeric, temporal | Value <= bound |
+| `lt` | Numeric, temporal | Value < bound |
+| `min_length` | String | String length >= n |
+| `max_length` | String | String length <= n |
+| `pattern` | String | Matches regex |
+| `unique` | Any | No duplicate values |
+| `isin` | Any | Value in allowed set |
+
+`Field()` is a superset of `mapped_from()` — use `Field(ge=0, mapped_from=Source.age)` to combine constraints with column mapping.
+
+Cross-column constraints use `@schema_check`:
+
+```python
+class Events(Schema):
+    start: Column[UInt64]
+    end: Column[UInt64]
+
+    @schema_check
+    def start_before_end(cls):
+        return Events.start <= Events.end
+```
+
+Value constraints are checked by `df.validate()` (always) and by auto-validation when the level is `"full"`. Structural-level auto-validation skips value checks for performance.
 
 ### Current limitations
 

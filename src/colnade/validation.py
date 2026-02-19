@@ -8,22 +8,21 @@ Enable it via environment variable (ideal for CI) or programmatically::
     COLNADE_VALIDATE=full pytest tests/
 
     # Programmatic
-    import colnade
-    colnade.set_validation("structural")
-    colnade.set_validation("full")
+    from colnade import ValidationLevel
+    colnade.set_validation(ValidationLevel.STRUCTURAL)
+    colnade.set_validation(ValidationLevel.FULL)
 
-Three validation levels are supported:
+Three validation levels are supported (see ``ValidationLevel``):
 
-- ``"off"`` — No runtime checks. Trust the type checker. Zero overhead.
-- ``"structural"`` — Check columns exist, dtypes match, nullability.
+- ``OFF`` — No runtime checks. Trust the type checker. Zero overhead.
+- ``STRUCTURAL`` — Check columns exist, dtypes match, nullability.
   Also checks literal type compatibility in expressions.
-- ``"full"`` — Structural checks plus value-level constraints
-  (e.g., ``Field(ge=0, le=150)``). Currently equivalent to
-  ``"structural"`` until value constraints are implemented.
+- ``FULL`` — Structural checks plus value-level constraints
+  (e.g., ``Field(ge=0, le=150)``).
 
-The boolean API is still supported for backward compatibility:
-``set_validation(True)`` maps to ``"structural"``,
-``set_validation(False)`` maps to ``"off"``.
+``set_validation()`` also accepts strings (``"off"``, ``"structural"``,
+``"full"``) and booleans (``True`` → ``STRUCTURAL``, ``False`` → ``OFF``)
+for backward compatibility.
 
 ``DataFrame.validate()`` and ``LazyFrame.validate()`` always run
 explicitly regardless of this toggle.
@@ -32,52 +31,72 @@ explicitly regardless of this toggle.
 from __future__ import annotations
 
 import datetime
+import enum
 import os
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    pass
-
-_validation_level: str | None = None
-_VALID_LEVELS = ("off", "structural", "full")
+from typing import Any
 
 
-def get_validation_level() -> str:
-    """Return the current validation level: ``"off"``, ``"structural"``, or ``"full"``."""
+class ValidationLevel(enum.Enum):
+    """Validation level for runtime schema checks.
+
+    - ``OFF`` — No runtime checks. Trust the type checker. Zero overhead.
+    - ``STRUCTURAL`` — Check columns exist, dtypes match, nullability.
+    - ``FULL`` — Structural checks plus value-level constraints from ``Field()``.
+    """
+
+    OFF = "off"
+    STRUCTURAL = "structural"
+    FULL = "full"
+
+
+_validation_level: ValidationLevel | None = None
+
+_STR_TO_LEVEL = {v.value: v for v in ValidationLevel}
+
+
+def get_validation_level() -> ValidationLevel:
+    """Return the current validation level."""
     if _validation_level is not None:
         return _validation_level
     env = os.environ.get("COLNADE_VALIDATE", "").lower()
-    if env in _VALID_LEVELS:
-        return env
+    level = _STR_TO_LEVEL.get(env)
+    if level is not None:
+        return level
     if env in ("1", "true", "yes"):
-        return "structural"
-    return "off"
+        return ValidationLevel.STRUCTURAL
+    return ValidationLevel.OFF
 
 
 def is_validation_enabled() -> bool:
     """Return whether automatic validation at data boundaries is enabled.
 
-    Returns ``True`` when the validation level is ``"structural"`` or ``"full"``.
+    Returns ``True`` when the validation level is ``STRUCTURAL`` or ``FULL``.
     """
-    return get_validation_level() != "off"
+    return get_validation_level() is not ValidationLevel.OFF
 
 
-def set_validation(enabled: bool | str) -> None:
+def set_validation(level: ValidationLevel | bool | str) -> None:
     """Set the validation level.
 
-    Accepts a level string (``"off"``, ``"structural"``, ``"full"``) or a
-    boolean for backward compatibility (``True`` → ``"structural"``,
-    ``False`` → ``"off"``).
+    Accepts a ``ValidationLevel`` enum, a level string
+    (``"off"``, ``"structural"``, ``"full"``), or a boolean for backward
+    compatibility (``True`` → ``STRUCTURAL``, ``False`` → ``OFF``).
     """
     global _validation_level
-    if isinstance(enabled, bool):
-        _validation_level = "structural" if enabled else "off"
-    elif isinstance(enabled, str) and enabled in _VALID_LEVELS:
-        _validation_level = enabled
+    if isinstance(level, ValidationLevel):
+        _validation_level = level
+    elif isinstance(level, bool):
+        _validation_level = ValidationLevel.STRUCTURAL if level else ValidationLevel.OFF
+    elif isinstance(level, str):
+        parsed = _STR_TO_LEVEL.get(level)
+        if parsed is None:
+            raise ValueError(
+                f"Invalid validation level: {level!r}. "
+                f"Use ValidationLevel.OFF / STRUCTURAL / FULL, a string, or a bool."
+            )
+        _validation_level = parsed
     else:
-        raise ValueError(
-            f"Invalid validation level: {enabled!r}. Use one of {_VALID_LEVELS} or a bool."
-        )
+        raise TypeError(f"Expected ValidationLevel, str, or bool, got {type(level).__name__}")
 
 
 # ---------------------------------------------------------------------------

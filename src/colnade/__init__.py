@@ -2,6 +2,7 @@
 
 from colnade._protocols import BackendProtocol
 from colnade.arrow import ArrowBatch
+from colnade.constraints import Field, FieldInfo, ValueViolation, schema_check
 from colnade.dataframe import (
     DataFrame,
     GroupBy,
@@ -53,7 +54,12 @@ from colnade.expr import (
     lit,
 )
 from colnade.schema import Column, ListAccessor, Schema, SchemaError, mapped_from
-from colnade.validation import get_validation_level, is_validation_enabled, set_validation
+from colnade.validation import (
+    ValidationLevel,
+    get_validation_level,
+    is_validation_enabled,
+    set_validation,
+)
 
 __all__ = [
     # Backend
@@ -121,7 +127,13 @@ __all__ = [
     "Struct",
     "List",
     # Validation
+    "ValidationLevel",
     "set_validation",
     "is_validation_enabled",
     "get_validation_level",
+    # Constraints
+    "Field",
+    "FieldInfo",
+    "ValueViolation",
+    "schema_check",
 ]
