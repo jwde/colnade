@@ -50,6 +50,61 @@ def _require_backend(backend: BackendProtocol | None) -> BackendProtocol:
 
 
 # ---------------------------------------------------------------------------
+# Cross-schema expression guard
+# ---------------------------------------------------------------------------
+
+
+def _validate_expr_columns(schema: type[Schema] | None, *args: Any) -> None:
+    """Check that all column refs in *args* belong to *schema*.
+
+    Only runs when validation is enabled and *schema* is not ``None``.
+    Raises :class:`SchemaError` if any referenced column name is not in
+    the schema's ``_columns`` dict.
+    """
+    if schema is None:
+        return
+    from colnade.validation import is_validation_enabled
+
+    if not is_validation_enabled():
+        return
+
+    from colnade.expr import collect_column_names
+
+    referenced = collect_column_names(*args)
+    valid = set(schema._columns)
+    unknown = referenced - valid
+    if unknown:
+        raise SchemaError(missing_columns=sorted(unknown))
+
+
+def _validate_expr_columns_joined(
+    schema_left: type[Schema] | None,
+    schema_right: type[Schema] | None,
+    *args: Any,
+) -> None:
+    """Check column refs against both schemas of a joined frame.
+
+    Columns from either schema are valid.
+    """
+    from colnade.validation import is_validation_enabled
+
+    if not is_validation_enabled():
+        return
+
+    from colnade.expr import collect_column_names
+
+    referenced = collect_column_names(*args)
+    valid: set[str] = set()
+    if schema_left is not None:
+        valid |= set(schema_left._columns)
+    if schema_right is not None:
+        valid |= set(schema_right._columns)
+    unknown = referenced - valid
+    if unknown:
+        raise SchemaError(missing_columns=sorted(unknown))
+
+
+# ---------------------------------------------------------------------------
 # cast_schema resolution helper
 # ---------------------------------------------------------------------------
 
@@ -199,11 +254,13 @@ class DataFrame(Generic[S]):
 
     def filter(self, predicate: Expr[Bool]) -> DataFrame[S]:
         """Filter rows by a boolean expression."""
+        _validate_expr_columns(self._schema, predicate)
         data = _require_backend(self._backend).filter(self._data, predicate)
         return DataFrame(_data=data, _schema=self._schema, _backend=self._backend)
 
     def sort(self, *columns: Column[Any] | SortExpr, descending: bool = False) -> DataFrame[S]:
         """Sort rows by columns or sort expressions."""
+        _validate_expr_columns(self._schema, *columns)
         data = _require_backend(self._backend).sort(self._data, columns, descending)
         return DataFrame(_data=data, _schema=self._schema, _backend=self._backend)
 
@@ -229,16 +286,19 @@ class DataFrame(Generic[S]):
 
     def unique(self, *columns: Column[Any]) -> DataFrame[S]:
         """Remove duplicate rows based on the given columns."""
+        _validate_expr_columns(self._schema, *columns)
         data = _require_backend(self._backend).unique(self._data, columns)
         return DataFrame(_data=data, _schema=self._schema, _backend=self._backend)
 
     def drop_nulls(self, *columns: Column[Any]) -> DataFrame[S]:
         """Drop rows with null values in the given columns."""
+        _validate_expr_columns(self._schema, *columns)
         data = _require_backend(self._backend).drop_nulls(self._data, columns)
         return DataFrame(_data=data, _schema=self._schema, _backend=self._backend)
 
     def with_columns(self, *exprs: AliasedExpr[Any] | Expr[Any]) -> DataFrame[S]:
         """Add or overwrite columns. Returns DataFrame[S] (optimistic)."""
+        _validate_expr_columns(self._schema, *exprs)
         data = _require_backend(self._backend).with_columns(self._data, exprs)
         return DataFrame(_data=data, _schema=self._schema, _backend=self._backend)
 
@@ -332,6 +392,7 @@ class DataFrame(Generic[S]):
 
     def select(self, *columns: Column[Any]) -> DataFrame[Any]:
         """Select columns. Returns DataFrame[Any] — use cast_schema() to bind."""
+        _validate_expr_columns(self._schema, *columns)
         data = _require_backend(self._backend).select(self._data, columns)
         return DataFrame(_data=data, _schema=None, _backend=self._backend)
 
@@ -339,6 +400,7 @@ class DataFrame(Generic[S]):
 
     def group_by(self, *keys: Column[Any]) -> GroupBy[S]:
         """Group by columns for aggregation."""
+        _validate_expr_columns(self._schema, *keys)
         return GroupBy(_data=self._data, _schema=self._schema, _keys=keys, _backend=self._backend)
 
     # --- Join ---
@@ -524,11 +586,13 @@ class LazyFrame(Generic[S]):
 
     def filter(self, predicate: Expr[Bool]) -> LazyFrame[S]:
         """Filter rows by a boolean expression."""
+        _validate_expr_columns(self._schema, predicate)
         data = _require_backend(self._backend).filter(self._data, predicate)
         return LazyFrame(_data=data, _schema=self._schema, _backend=self._backend)
 
     def sort(self, *columns: Column[Any] | SortExpr, descending: bool = False) -> LazyFrame[S]:
         """Sort rows by columns or sort expressions."""
+        _validate_expr_columns(self._schema, *columns)
         data = _require_backend(self._backend).sort(self._data, columns, descending)
         return LazyFrame(_data=data, _schema=self._schema, _backend=self._backend)
 
@@ -539,16 +603,19 @@ class LazyFrame(Generic[S]):
 
     def unique(self, *columns: Column[Any]) -> LazyFrame[S]:
         """Remove duplicate rows based on the given columns."""
+        _validate_expr_columns(self._schema, *columns)
         data = _require_backend(self._backend).unique(self._data, columns)
         return LazyFrame(_data=data, _schema=self._schema, _backend=self._backend)
 
     def drop_nulls(self, *columns: Column[Any]) -> LazyFrame[S]:
         """Drop rows with null values in the given columns."""
+        _validate_expr_columns(self._schema, *columns)
         data = _require_backend(self._backend).drop_nulls(self._data, columns)
         return LazyFrame(_data=data, _schema=self._schema, _backend=self._backend)
 
     def with_columns(self, *exprs: AliasedExpr[Any] | Expr[Any]) -> LazyFrame[S]:
         """Add or overwrite columns. Returns LazyFrame[S] (optimistic)."""
+        _validate_expr_columns(self._schema, *exprs)
         data = _require_backend(self._backend).with_columns(self._data, exprs)
         return LazyFrame(_data=data, _schema=self._schema, _backend=self._backend)
 
@@ -642,6 +709,7 @@ class LazyFrame(Generic[S]):
 
     def select(self, *columns: Column[Any]) -> LazyFrame[Any]:
         """Select columns. Returns LazyFrame[Any] — use cast_schema() to bind."""
+        _validate_expr_columns(self._schema, *columns)
         data = _require_backend(self._backend).select(self._data, columns)
         return LazyFrame(_data=data, _schema=None, _backend=self._backend)
 
@@ -649,6 +717,7 @@ class LazyFrame(Generic[S]):
 
     def group_by(self, *keys: Column[Any]) -> LazyGroupBy[S]:
         """Group by columns for aggregation."""
+        _validate_expr_columns(self._schema, *keys)
         return LazyGroupBy(
             _data=self._data, _schema=self._schema, _keys=keys, _backend=self._backend
         )
@@ -752,6 +821,7 @@ class GroupBy(Generic[S]):
 
     def agg(self, *exprs: AliasedExpr[Any]) -> DataFrame[Any]:
         """Aggregate grouped data. Returns DataFrame[Any] — use cast_schema()."""
+        _validate_expr_columns(self._schema, *exprs)
         data = _require_backend(self._backend).group_by_agg(self._data, self._keys, exprs)
         return DataFrame(_data=data, _schema=None, _backend=self._backend)
 
@@ -776,6 +846,7 @@ class LazyGroupBy(Generic[S]):
 
     def agg(self, *exprs: AliasedExpr[Any]) -> LazyFrame[Any]:
         """Aggregate grouped data. Returns LazyFrame[Any] — use cast_schema()."""
+        _validate_expr_columns(self._schema, *exprs)
         data = _require_backend(self._backend).group_by_agg(self._data, self._keys, exprs)
         return LazyFrame(_data=data, _schema=None, _backend=self._backend)
 
@@ -842,6 +913,7 @@ class JoinedDataFrame(Generic[S, S2]):
 
     def filter(self, predicate: Expr[Bool]) -> JoinedDataFrame[S, S2]:
         """Filter rows by a boolean expression."""
+        _validate_expr_columns_joined(self._schema_left, self._schema_right, predicate)
         data = _require_backend(self._backend).filter(self._data, predicate)
         return self._joined(data)
 
@@ -849,6 +921,7 @@ class JoinedDataFrame(Generic[S, S2]):
         self, *columns: Column[Any] | SortExpr, descending: bool = False
     ) -> JoinedDataFrame[S, S2]:
         """Sort rows by columns or sort expressions."""
+        _validate_expr_columns_joined(self._schema_left, self._schema_right, *columns)
         data = _require_backend(self._backend).sort(self._data, columns, descending)
         return self._joined(data)
 
@@ -859,16 +932,19 @@ class JoinedDataFrame(Generic[S, S2]):
 
     def unique(self, *columns: Column[Any]) -> JoinedDataFrame[S, S2]:
         """Remove duplicate rows based on the given columns."""
+        _validate_expr_columns_joined(self._schema_left, self._schema_right, *columns)
         data = _require_backend(self._backend).unique(self._data, columns)
         return self._joined(data)
 
     def drop_nulls(self, *columns: Column[Any]) -> JoinedDataFrame[S, S2]:
         """Drop rows with null values in the given columns."""
+        _validate_expr_columns_joined(self._schema_left, self._schema_right, *columns)
         data = _require_backend(self._backend).drop_nulls(self._data, columns)
         return self._joined(data)
 
     def with_columns(self, *exprs: AliasedExpr[Any] | Expr[Any]) -> JoinedDataFrame[S, S2]:
         """Add or overwrite columns."""
+        _validate_expr_columns_joined(self._schema_left, self._schema_right, *exprs)
         data = _require_backend(self._backend).with_columns(self._data, exprs)
         return self._joined(data)
 
@@ -967,6 +1043,7 @@ class JoinedDataFrame(Generic[S, S2]):
 
     def select(self, *columns: Column[Any]) -> DataFrame[Any]:
         """Select columns. Returns DataFrame[Any] — use cast_schema() to bind."""
+        _validate_expr_columns_joined(self._schema_left, self._schema_right, *columns)
         data = _require_backend(self._backend).select(self._data, columns)
         return DataFrame(_data=data, _schema=None, _backend=self._backend)
 
@@ -1071,6 +1148,7 @@ class JoinedLazyFrame(Generic[S, S2]):
 
     def filter(self, predicate: Expr[Bool]) -> JoinedLazyFrame[S, S2]:
         """Filter rows by a boolean expression."""
+        _validate_expr_columns_joined(self._schema_left, self._schema_right, predicate)
         data = _require_backend(self._backend).filter(self._data, predicate)
         return self._joined(data)
 
@@ -1078,6 +1156,7 @@ class JoinedLazyFrame(Generic[S, S2]):
         self, *columns: Column[Any] | SortExpr, descending: bool = False
     ) -> JoinedLazyFrame[S, S2]:
         """Sort rows by columns or sort expressions."""
+        _validate_expr_columns_joined(self._schema_left, self._schema_right, *columns)
         data = _require_backend(self._backend).sort(self._data, columns, descending)
         return self._joined(data)
 
@@ -1088,16 +1167,19 @@ class JoinedLazyFrame(Generic[S, S2]):
 
     def unique(self, *columns: Column[Any]) -> JoinedLazyFrame[S, S2]:
         """Remove duplicate rows based on the given columns."""
+        _validate_expr_columns_joined(self._schema_left, self._schema_right, *columns)
         data = _require_backend(self._backend).unique(self._data, columns)
         return self._joined(data)
 
     def drop_nulls(self, *columns: Column[Any]) -> JoinedLazyFrame[S, S2]:
         """Drop rows with null values in the given columns."""
+        _validate_expr_columns_joined(self._schema_left, self._schema_right, *columns)
         data = _require_backend(self._backend).drop_nulls(self._data, columns)
         return self._joined(data)
 
     def with_columns(self, *exprs: AliasedExpr[Any] | Expr[Any]) -> JoinedLazyFrame[S, S2]:
         """Add or overwrite columns."""
+        _validate_expr_columns_joined(self._schema_left, self._schema_right, *exprs)
         data = _require_backend(self._backend).with_columns(self._data, exprs)
         return self._joined(data)
 
@@ -1196,6 +1278,7 @@ class JoinedLazyFrame(Generic[S, S2]):
 
     def select(self, *columns: Column[Any]) -> LazyFrame[Any]:
         """Select columns. Returns LazyFrame[Any] — use cast_schema() to bind."""
+        _validate_expr_columns_joined(self._schema_left, self._schema_right, *columns)
         data = _require_backend(self._backend).select(self._data, columns)
         return LazyFrame(_data=data, _schema=None, _backend=self._backend)
 
