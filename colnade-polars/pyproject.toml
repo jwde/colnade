@@ -1,6 +1,6 @@
 [project]
 name = "colnade-polars"
-version = "0.3.0"
+version = "0.4.1"
 description = "Polars backend adapter for Colnade"
 requires-python = ">=3.10"
 license = "MIT"
@@ -21,7 +21,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries",
 ]
 dependencies = [
-    "colnade>=0.3.0",
+    "colnade>=0.4.1",
     "polars>=1.0",
     "pyarrow>=12.0",
 ]

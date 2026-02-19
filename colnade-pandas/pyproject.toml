@@ -1,6 +1,6 @@
 [project]
 name = "colnade-pandas"
-version = "0.1.0"
+version = "0.2.1"
 description = "Pandas backend adapter for Colnade"
 requires-python = ">=3.10"
 license = "MIT"
@@ -21,7 +21,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries",
 ]
 dependencies = [
-    "colnade>=0.3.0",
+    "colnade>=0.4.1",
     "pandas>=2.0",
     "pyarrow>=12.0",
 ]
