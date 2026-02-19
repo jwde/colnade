@@ -92,6 +92,63 @@ When you call `df.cast_schema(UserSummary)`, the `user_name` column is populated
 !!! note "Nullability checking"
     `mapped_from` preserves the source column's type. Mapping a nullable column (`Column[UInt64 | None]`) to a non-nullable annotation (`Column[UInt64]`) is a type error caught by the type checker.
 
+## Value-level constraints with Field()
+
+`Field()` adds domain invariants to columns. These are checked by `df.validate()` or automatically at the `FULL` validation level:
+
+```python
+from colnade import Column, Schema, UInt64, Utf8, Float64
+from colnade.constraints import Field, schema_check
+
+class Users(Schema):
+    id: Column[UInt64] = Field(unique=True)
+    age: Column[UInt64] = Field(ge=0, le=150)
+    email: Column[Utf8] = Field(pattern=r"^[^@]+@[^@]+\.[^@]+$")
+    status: Column[Utf8] = Field(isin=["active", "inactive"])
+    score: Column[Float64] = Field(ge=0.0, le=100.0)
+```
+
+Available constraints:
+
+| Constraint | Types | Description |
+|-----------|-------|-------------|
+| `ge` | numeric, temporal | Greater than or equal |
+| `gt` | numeric, temporal | Strictly greater than |
+| `le` | numeric, temporal | Less than or equal |
+| `lt` | numeric, temporal | Strictly less than |
+| `min_length` | string | Minimum string length |
+| `max_length` | string | Maximum string length |
+| `pattern` | string | Regex pattern match |
+| `unique` | any | No duplicate values |
+| `isin` | any | Value must be in allowed set |
+
+`Field()` is a superset of `mapped_from()` — use `Field(mapped_from=Source.col, ge=0)` to combine constraints with column mapping.
+
+Constraints are inherited by schema subclasses and can be overridden:
+
+```python
+class AdminUsers(Users):
+    age: Column[UInt64] = Field(ge=18, le=150)  # tighter lower bound
+```
+
+### Cross-column checks with @schema_check
+
+`@schema_check` defines constraints that span multiple columns:
+
+```python
+class Events(Schema):
+    start: Column[Datetime]
+    end: Column[Datetime]
+
+    @schema_check
+    def end_after_start(cls):
+        return Events.end >= Events.start
+```
+
+`@schema_check` methods are inherited by subclasses.
+
+See [DataFrames: Value-level constraints](dataframes.md#level-3-on-your-data-values-value-level-constraints) for validation details.
+
 ## Schema.Row
 
 Each schema with at least one column automatically generates a frozen dataclass called `Row` for typed row access:
@@ -148,7 +205,12 @@ from colnade import SchemaError
 try:
     df.validate()
 except SchemaError as e:
+    # Structural violations
     print(e.missing_columns)   # columns in schema but not in data
     print(e.type_mismatches)   # {column: (expected, actual)}
     print(e.extra_columns)     # columns in data but not in schema
+    # Value violations (from Field() and @schema_check)
+    print(e.value_violations)  # list of ValueViolation objects
 ```
+
+Each `ValueViolation` contains the column name, constraint description, violation count, and up to 5 sample values.

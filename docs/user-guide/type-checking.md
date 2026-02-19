@@ -73,16 +73,21 @@ Users.name > 42           # NOT caught — int compared to string
 
 This is a fundamental limitation — Python lacks type-level functions to map `Column[UInt8]` → `fill_null(value: int)`. It would require associated types or conditional types, which Python does not support.
 
-**Runtime alternative:** Enable `COLNADE_VALIDATE=1` or `set_validation(True)` and these mismatches are caught at expression construction time:
+**Runtime alternative:** Enable validation and these mismatches are caught at expression construction time:
 
 ```python
 import colnade
-colnade.set_validation(True)
+from colnade import ValidationLevel
+
+colnade.set_validation(ValidationLevel.STRUCTURAL)
+# or: COLNADE_VALIDATE=structural
 
 Users.age.fill_null(1.0)
 # TypeError: Type mismatch in Users.age.fill_null(): got float value 1.0,
 #            expected int for dtype UInt8
 ```
+
+Use `ValidationLevel.FULL` (or `COLNADE_VALIDATE=full`) to also enforce `Field()` value constraints at data boundaries. See [DataFrames: Validation](dataframes.md#validation) for details.
 
 ### Wrong-schema columns in expressions
 

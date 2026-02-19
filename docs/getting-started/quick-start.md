@@ -27,7 +27,7 @@ df = read_parquet("users.parquet", Users)
 # df is DataFrame[Users] — the type checker knows the schema
 ```
 
-The `read_parquet` function validates the data against the schema and returns a `DataFrame[Users]` with the Polars backend attached.
+The `read_parquet` function returns a `DataFrame[Users]` with the Polars backend attached. When [validation is enabled](../user-guide/dataframes.md#validation), it also checks that the data matches the schema.
 
 ## 3. Transform with type safety
 

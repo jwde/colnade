@@ -11,6 +11,7 @@
 | Generic utility functions | :white_check_mark: | :x: | :x: | :x: | :x: |
 | Struct/List typed access | :white_check_mark: | :x: | :x: | :x: | :x: |
 | Lazy execution support | :white_check_mark: | :x: | :x: | :x: | :white_check_mark: |
+| Value-level constraints | :white_check_mark: | :white_check_mark: | :x: | :white_check_mark: | :x: |
 
 ## Detailed Comparisons
 
