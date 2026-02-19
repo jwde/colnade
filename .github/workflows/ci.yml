@@ -28,7 +28,7 @@ jobs:
       - run: uv sync --python ${{ matrix.python-version }}
       - run: uv run pytest tests/ -v
 
-  test-min-versions:
+  test-backend-versions:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
