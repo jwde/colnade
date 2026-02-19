@@ -71,7 +71,7 @@ Colnade catches errors at three levels:
 
 1. **In your editor** — misspelled columns, type mismatches, and schema violations are flagged by your type checker (`ty`, `pyright`, `mypy`) before code runs
 2. **At data boundaries** — runtime validation ensures files and external data match your schemas (columns, types, nullability)
-3. **On your data values** — field constraints validate domain invariants like ranges and patterns *(coming soon)*
+3. **On your data values** — `Field()` constraints validate domain invariants like ranges, patterns, and uniqueness
 
 ## Key Features
 
@@ -166,6 +166,26 @@ df.filter(UserProfile.address.field(Address.city) == "New York")
 df.with_columns(UserProfile.tags.list.len().alias(tag_count_col))
 ```
 
+### Value-level constraints
+
+```python
+from colnade import Column, Schema, UInt64, Utf8, Float64, ValidationLevel
+from colnade.constraints import Field, schema_check
+
+class Users(Schema):
+    id: Column[UInt64] = Field(unique=True)
+    age: Column[UInt64] = Field(ge=0, le=150)
+    email: Column[Utf8] = Field(pattern=r"^[^@]+@[^@]+\.[^@]+$")
+    status: Column[Utf8] = Field(isin=["active", "inactive"])
+
+    @schema_check
+    def adult(cls):
+        return Users.age >= 18
+
+# Validate with df.validate() or auto-validate at the FULL level
+colnade.set_validation(ValidationLevel.FULL)
+```
+
 ### Lazy execution
 
 ```python
@@ -233,6 +253,7 @@ assignable to `Column[UInt8]`
 | Generic utility functions | Yes | No | No | No | No |
 | Struct/List typed access | Yes | No | No | No | No |
 | Lazy execution support | Yes | No | No | No | Yes |
+| Value-level constraints | Yes (`Field()`) | Yes (`Check`) | No | Yes (Pydantic) | No |
 
 ## Documentation
 

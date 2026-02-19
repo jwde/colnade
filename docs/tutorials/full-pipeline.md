@@ -36,7 +36,7 @@ users = read_parquet("users.parquet", Users)
 orders = read_parquet("orders.parquet", Orders)
 ```
 
-Both `read_parquet` calls validate the data against their schema and attach the Polars backend.
+Both `read_parquet` calls return typed DataFrames with the Polars backend attached. When [validation is enabled](../user-guide/dataframes.md#validation), they also check the data against the schemas.
 
 ## Step 2: Clean nulls
 

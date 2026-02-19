@@ -30,7 +30,7 @@ df = read_parquet("users.parquet", Users)
 # df is DataFrame[Users] — the type checker knows the schema
 ```
 
-`read_parquet` validates the file's columns and types against the schema, then returns a `DataFrame[Users]` with the Polars backend attached.
+`read_parquet` returns a `DataFrame[Users]` with the Polars backend attached. When [validation is enabled](../user-guide/dataframes.md#validation), it also checks columns and types against the schema.
 
 ## Filter rows
 
