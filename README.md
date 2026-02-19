@@ -246,14 +246,19 @@ assignable to `Column[UInt8]`
 
 | Feature | Colnade | Pandera | StaticFrame | Patito | Narwhals |
 |---------|---------|---------|-------------|--------|----------|
-| Column refs checked statically | Yes | No | No | No | No |
-| Schema preserved through ops | Yes | Nominal only | No | No | No |
-| Works with existing engines | Yes | Yes | No | Polars only | Yes |
-| No plugins or code gen | Yes | No (mypy plugin) | Yes | Yes | Yes |
+| Column refs checked statically | Named attrs | No | Positional types | No | No |
+| Schema preserved through ops | Through ops¹ | At boundaries² | No | No | No |
+| Works with existing engines | Polars, Pandas, Dask | Pandas, Polars, others | Own engine | Polars only | Many engines |
+| No plugins or code gen | Yes | Requires mypy plugin | Yes | Yes | Yes |
 | Generic utility functions | Yes | No | No | No | No |
 | Struct/List typed access | Yes | No | No | No | No |
 | Lazy execution support | Yes | No | No | No | Yes |
-| Value-level constraints | Yes (`Field()`) | Yes (`Check`) | No | Yes (Pydantic) | No |
+| Value-level constraints | `Field()` | `Check` | No | Pydantic validators | No |
+
+¹ Schema-preserving ops (filter, sort, with_columns) retain `DataFrame[S]`. Schema-transforming ops (select, group_by) return `DataFrame[Any]` — use `cast_schema()` to bind.
+² Pandera's `@check_types` validates schemas at function boundaries via decorator, but column references within function bodies remain unchecked strings.
+
+See [Detailed Comparisons](https://colnade.com/comparison/) for a fuller discussion of tradeoffs.
 
 ## Documentation
 
