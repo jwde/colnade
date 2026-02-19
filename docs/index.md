@@ -56,7 +56,7 @@ Works with [ty](https://github.com/astral-sh/ty), mypy, and pyright. No plugins,
 
 1. **In your editor** — misspelled columns, type mismatches, and schema violations are flagged by your type checker before code runs
 2. **At data boundaries** — runtime validation ensures files and external data match your schemas (columns, types, nullability)
-3. **On your data values** — field constraints validate domain invariants like ranges and patterns *(coming soon)*
+3. **On your data values** — `Field()` constraints validate domain invariants like ranges, patterns, and uniqueness
 
 ## Key Features
 

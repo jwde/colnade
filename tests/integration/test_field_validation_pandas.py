@@ -64,6 +64,30 @@ class TestLeViolation:
             df.validate()
 
 
+class TestGtViolation:
+    def test_gt_violation(self) -> None:
+        class GtSchema(Schema):
+            val: Column[Float64] = Field(gt=0.0)
+
+        pdf = pd.DataFrame({"val": [0.0, 1.0, 2.0]}).astype({"val": pd.Float64Dtype()})
+        backend = PandasBackend()
+        df: DataFrame[GtSchema] = DataFrame(_data=pdf, _schema=GtSchema, _backend=backend)
+        with pytest.raises(SchemaError, match="gt=0.0"):
+            df.validate()
+
+
+class TestLtViolation:
+    def test_lt_violation(self) -> None:
+        class LtSchema(Schema):
+            val: Column[Float64] = Field(lt=100.0)
+
+        pdf = pd.DataFrame({"val": [50.0, 100.0]}).astype({"val": pd.Float64Dtype()})
+        backend = PandasBackend()
+        df: DataFrame[LtSchema] = DataFrame(_data=pdf, _schema=LtSchema, _backend=backend)
+        with pytest.raises(SchemaError, match="lt=100.0"):
+            df.validate()
+
+
 class TestUniqueViolation:
     def test_unique_violation(self) -> None:
         df = _make_df({"id": [1, 1, 2]})
@@ -75,6 +99,18 @@ class TestMinLengthViolation:
     def test_min_length_violation(self) -> None:
         df = _make_df({"name": ["Alice", "", "Carol"]})
         with pytest.raises(SchemaError, match="min_length=1"):
+            df.validate()
+
+
+class TestMaxLengthViolation:
+    def test_max_length_violation(self) -> None:
+        class MaxLen(Schema):
+            name: Column[Utf8] = Field(max_length=3)
+
+        pdf = pd.DataFrame({"name": ["AB", "ABCDEF"]}).astype({"name": pd.StringDtype()})
+        backend = PandasBackend()
+        df: DataFrame[MaxLen] = DataFrame(_data=pdf, _schema=MaxLen, _backend=backend)
+        with pytest.raises(SchemaError, match="max_length=3"):
             df.validate()
 
 

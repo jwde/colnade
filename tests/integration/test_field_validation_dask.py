@@ -66,6 +66,32 @@ class TestLeViolation:
             df.validate()
 
 
+class TestGtViolation:
+    def test_gt_violation(self) -> None:
+        class GtSchema(Schema):
+            val: Column[Float64] = Field(gt=0.0)
+
+        pdf = pd.DataFrame({"val": [0.0, 1.0, 2.0]}).astype({"val": pd.Float64Dtype()})
+        ddf = dd.from_pandas(pdf, npartitions=1)
+        backend = DaskBackend()
+        df: DataFrame[GtSchema] = DataFrame(_data=ddf, _schema=GtSchema, _backend=backend)
+        with pytest.raises(SchemaError, match="gt=0.0"):
+            df.validate()
+
+
+class TestLtViolation:
+    def test_lt_violation(self) -> None:
+        class LtSchema(Schema):
+            val: Column[Float64] = Field(lt=100.0)
+
+        pdf = pd.DataFrame({"val": [50.0, 100.0]}).astype({"val": pd.Float64Dtype()})
+        ddf = dd.from_pandas(pdf, npartitions=1)
+        backend = DaskBackend()
+        df: DataFrame[LtSchema] = DataFrame(_data=ddf, _schema=LtSchema, _backend=backend)
+        with pytest.raises(SchemaError, match="lt=100.0"):
+            df.validate()
+
+
 class TestUniqueViolation:
     def test_unique_violation(self) -> None:
         df = _make_df({"id": [1, 1, 2]})
@@ -77,6 +103,32 @@ class TestMinLengthViolation:
     def test_min_length_violation(self) -> None:
         df = _make_df({"name": ["Alice", "", "Carol"]})
         with pytest.raises(SchemaError, match="min_length=1"):
+            df.validate()
+
+
+class TestMaxLengthViolation:
+    def test_max_length_violation(self) -> None:
+        class MaxLen(Schema):
+            name: Column[Utf8] = Field(max_length=3)
+
+        pdf = pd.DataFrame({"name": ["AB", "ABCDEF"]}).astype({"name": pd.StringDtype()})
+        ddf = dd.from_pandas(pdf, npartitions=1)
+        backend = DaskBackend()
+        df: DataFrame[MaxLen] = DataFrame(_data=ddf, _schema=MaxLen, _backend=backend)
+        with pytest.raises(SchemaError, match="max_length=3"):
+            df.validate()
+
+
+class TestPatternViolation:
+    def test_pattern_violation(self) -> None:
+        class WithEmail(Schema):
+            email: Column[Utf8] = Field(pattern=r"^[^@]+@[^@]+\.[^@]+$")
+
+        pdf = pd.DataFrame({"email": ["a@b.com", "invalid"]}).astype({"email": pd.StringDtype()})
+        ddf = dd.from_pandas(pdf, npartitions=1)
+        backend = DaskBackend()
+        df: DataFrame[WithEmail] = DataFrame(_data=ddf, _schema=WithEmail, _backend=backend)
+        with pytest.raises(SchemaError, match="pattern="):
             df.validate()
 
 
