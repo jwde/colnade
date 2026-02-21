@@ -342,3 +342,46 @@ def _wrap(value: Any) -> Expr[Any]:
 def lit(value: Any) -> Literal[Any]:
     """Create a literal expression."""
     return Literal(value=value)
+
+
+# ---------------------------------------------------------------------------
+# Expression tree walking
+# ---------------------------------------------------------------------------
+
+
+def collect_column_names(*args: Any) -> set[str]:
+    """Collect all column names referenced in expressions.
+
+    Walks expression trees, ``Column`` instances, and ``SortExpr`` wrappers.
+    Returns a set of column name strings found across all arguments.
+    """
+    from colnade.schema import Column
+
+    names: set[str] = set()
+
+    def _walk(node: Any) -> None:
+        if isinstance(node, ColumnRef):
+            names.add(node.column.name)
+        elif isinstance(node, BinOp):
+            _walk(node.left)
+            _walk(node.right)
+        elif isinstance(node, UnaryOp):
+            _walk(node.operand)
+        elif isinstance(node, FunctionCall):
+            for arg in node.args:
+                _walk(arg)
+        elif isinstance(node, Agg):
+            _walk(node.source)
+        elif isinstance(node, (AliasedExpr, SortExpr)):
+            _walk(node.expr)
+        elif isinstance(node, StructFieldAccess):
+            _walk(node.struct_expr)
+        elif isinstance(node, ListOp):
+            _walk(node.list_expr)
+        elif isinstance(node, Column):
+            names.add(node.name)
+
+    for arg in args:
+        _walk(arg)
+
+    return names

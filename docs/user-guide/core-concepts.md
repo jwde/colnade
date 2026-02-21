@@ -82,7 +82,7 @@ Your type checker (`ty`, `pyright`, `mypy`) catches errors before code runs:
 - **Schema boundaries** — `DataFrame[Users]` cannot be passed where `DataFrame[Orders]` is expected
 - **Nullability** — `mapped_from` a nullable column to a non-nullable annotation is a type error
 
-Operations within function bodies (e.g., using `Orders.amount` on a `DataFrame[Users]`) produce correct expression types but cannot be statically checked for schema membership — this is a known limitation documented in [Type Checker Integration](type-checking.md).
+Operations within function bodies (e.g., using `Orders.amount` on a `DataFrame[Users]`) produce correct expression types but cannot be statically checked for schema membership. When validation is enabled, these are caught at runtime instead — see [Type Checker Integration](type-checking.md) for details.
 
 `cast_schema()` is the primary trust boundary: the type checker verifies input expressions, but the developer asserts the output conforms. Use `mapped_from` on output schema fields and `extra="forbid"` to narrow the gap. See [DataFrames: cast_schema](dataframes.md#cast_schema-is-a-trust-boundary) for details.
 
@@ -93,6 +93,7 @@ When validation is enabled, data boundaries (`read_parquet`, `from_batches`, `ca
 - **Missing columns** — columns required by the schema but absent in the data
 - **Type mismatches** — actual dtypes don't match expected dtypes
 - **Null violations** — non-nullable columns containing null values
+- **Expression column membership** — operations like `filter`, `sort`, `select` verify that all column references in expressions belong to the frame's schema (e.g., using `Orders.amount` on a `DataFrame[Users]` raises `SchemaError`)
 
 Enable with `colnade.set_validation(ValidationLevel.STRUCTURAL)` or `COLNADE_VALIDATE=structural`. See [DataFrames: Validation](dataframes.md#validation) for details.
 
