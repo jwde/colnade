@@ -46,7 +46,7 @@ def make_df(n: int) -> pl.DataFrame:
             "age": [20 + (i % 60) for i in range(n)],
             "score": [50.0 + (i % 50) for i in range(n)],
         }
-    )
+    ).cast({"id": pl.UInt64, "age": pl.UInt64})
 
 
 def make_typed_df(n: int):
