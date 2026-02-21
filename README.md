@@ -209,6 +209,10 @@ untyped = df.untyped()  # UntypedDataFrame — string-based columns
 retyped = untyped.to_typed(Users)  # Back to DataFrame[Users]
 ```
 
+## Performance
+
+Colnade adds < 5% overhead for typical Polars operations and < 5% for single Pandas operations (10–25% for multi-step Pandas pipelines at large sizes). Dask overhead is a fixed ~200–300 us per operation on graph construction, negligible compared to compute time. Validation (STRUCTURAL, FULL) adds measurable cost at data boundaries — see the full [benchmark results](https://colnade.com/user-guide/performance/) for details.
+
 ## Type Checker Error Showcase
 
 Colnade catches real errors at lint time. Here are actual error messages from `ty`:
