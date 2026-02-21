@@ -69,9 +69,11 @@ output = result.cast_schema(UserSummary)
 
 Colnade catches errors at three levels:
 
-1. **In your editor** — misspelled columns, type mismatches, and schema violations are flagged by your type checker (`ty`, `pyright`, `mypy`) before code runs
+1. **In your editor** — misspelled columns, schema mismatches at function boundaries, and nullability violations are flagged by your type checker (`ty`, `pyright`, `mypy`) before code runs
 2. **At data boundaries** — runtime validation ensures files and external data match your schemas (columns, types, nullability)
 3. **On your data values** — `Field()` constraints validate domain invariants like ranges, patterns, and uniqueness
+
+**Where static safety ends:** Static checking covers column references and schema-preserving operations (`filter`, `sort`, `with_columns`). Schema-transforming operations (`select`, `group_by`) return `DataFrame[Any]` — `cast_schema()` re-binds to a named schema and is a runtime trust boundary. No type checker plugin is needed, but this is a deliberate tradeoff: plugins could theoretically infer output schemas at the cost of type-checker coupling and maintenance burden. See [Type Checker Integration](https://colnade.com/user-guide/type-checking/) for the full list of what is and isn't checked.
 
 ## Key Features
 

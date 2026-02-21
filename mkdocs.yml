@@ -86,6 +86,7 @@ nav:
       - Joins: user-guide/joins.md
       - Nested Types: user-guide/nested-types.md
       - Type Checker Integration: user-guide/type-checking.md
+      - Dask Backend: user-guide/dask-backend.md
       - Performance: user-guide/performance.md
   - Tutorials:
       - Basic Usage: tutorials/basic-usage.md
