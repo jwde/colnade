@@ -582,7 +582,123 @@ class TestIterRowsAs:
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# _validate_expr_columns edge case
+# ---------------------------------------------------------------------------
+
+
+class TestValidateExprColumns:
+    def test_schema_none_returns_immediately(self) -> None:
+        from colnade.dataframe import _validate_expr_columns
+
+        # Should not raise even with garbage args when schema is None
+        _validate_expr_columns(None, "anything", 42)
+
+
 from colnade import JoinedDataFrame, JoinedLazyFrame  # noqa: E402
+
+# ---------------------------------------------------------------------------
+# LazyFrame repr edge cases
+# ---------------------------------------------------------------------------
+
+
+class TestLazyFrameReprEdgeCases:
+    def test_repr_html_delegates_to_data(self) -> None:
+        class FakeData:
+            def _repr_html_(self) -> str:
+                return "<table>lazy plan</table>"
+
+        lf = LazyFrame(_data=FakeData(), _schema=Users)
+        html = lf._repr_html_()
+        assert html is not None
+        assert "<b>LazyFrame[Users]</b>" in html
+        assert "<table>lazy plan</table>" in html
+
+    def test_repr_html_returns_none_without_data(self) -> None:
+        lf = LazyFrame(_schema=Users)
+        assert lf._repr_html_() is None
+
+    def test_repr_html_returns_none_without_repr_html_method(self) -> None:
+        lf = LazyFrame(_data="plain string", _schema=Users)
+        assert lf._repr_html_() is None
+
+
+# ---------------------------------------------------------------------------
+# JoinedDataFrame repr
+# ---------------------------------------------------------------------------
+
+
+class TestJoinedDataFrameRepr:
+    def test_repr_with_data(self) -> None:
+        class FakeData:
+            def __repr__(self) -> str:
+                return "joined data"
+
+        jdf = JoinedDataFrame(
+            _data=FakeData(), _schema_left=Users, _schema_right=AgeStats, _backend=_BACKEND
+        )
+        r = repr(jdf)
+        assert "JoinedDataFrame[Users, AgeStats]" in r
+        assert "joined data" in r
+
+    def test_repr_without_data(self) -> None:
+        jdf = JoinedDataFrame(_schema_left=Users, _schema_right=AgeStats, _backend=_BACKEND)
+        assert repr(jdf) == "JoinedDataFrame[Users, AgeStats]"
+
+    def test_repr_html_with_data(self) -> None:
+        class FakeData:
+            def _repr_html_(self) -> str:
+                return "<table>joined</table>"
+
+        jdf = JoinedDataFrame(
+            _data=FakeData(), _schema_left=Users, _schema_right=AgeStats, _backend=_BACKEND
+        )
+        html = jdf._repr_html_()
+        assert html is not None
+        assert "<b>JoinedDataFrame[Users, AgeStats]</b>" in html
+
+    def test_repr_html_returns_none_without_data(self) -> None:
+        jdf = JoinedDataFrame(_schema_left=Users, _schema_right=AgeStats, _backend=_BACKEND)
+        assert jdf._repr_html_() is None
+
+
+# ---------------------------------------------------------------------------
+# JoinedLazyFrame repr
+# ---------------------------------------------------------------------------
+
+
+class TestJoinedLazyFrameRepr:
+    def test_repr_with_data(self) -> None:
+        class FakeData:
+            def __repr__(self) -> str:
+                return "joined lazy plan"
+
+        jlf = JoinedLazyFrame(
+            _data=FakeData(), _schema_left=Users, _schema_right=AgeStats, _backend=_BACKEND
+        )
+        r = repr(jlf)
+        assert "JoinedLazyFrame[Users, AgeStats]" in r
+        assert "joined lazy plan" in r
+
+    def test_repr_without_data(self) -> None:
+        jlf = JoinedLazyFrame(_schema_left=Users, _schema_right=AgeStats, _backend=_BACKEND)
+        assert repr(jlf) == "JoinedLazyFrame[Users, AgeStats]"
+
+    def test_repr_html_with_data(self) -> None:
+        class FakeData:
+            def _repr_html_(self) -> str:
+                return "<table>joined lazy</table>"
+
+        jlf = JoinedLazyFrame(
+            _data=FakeData(), _schema_left=Users, _schema_right=AgeStats, _backend=_BACKEND
+        )
+        html = jlf._repr_html_()
+        assert html is not None
+        assert "<b>JoinedLazyFrame[Users, AgeStats]</b>" in html
+
+    def test_repr_html_returns_none_without_data(self) -> None:
+        jlf = JoinedLazyFrame(_schema_left=Users, _schema_right=AgeStats, _backend=_BACKEND)
+        assert jlf._repr_html_() is None
 
 
 class TestJoinedIntrospectionRestrictions:

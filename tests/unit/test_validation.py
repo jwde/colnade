@@ -249,4 +249,55 @@ class TestLiteralCheckInExpressions:
 
     def test_disabled_no_error(self) -> None:
         set_validation(False)
+        ValUsers.id + "hello"  # no error when disabled
+
+
+# ---------------------------------------------------------------------------
+# set_validation edge cases
+# ---------------------------------------------------------------------------
+
+
+class TestSetValidationEdgeCases:
+    def teardown_method(self) -> None:
+        import colnade.validation
+
+        colnade.validation._validation_level = None
+
+    def test_set_validation_invalid_type_raises(self) -> None:
+        with pytest.raises(TypeError, match="Expected ValidationLevel"):
+            set_validation(42)  # type: ignore[arg-type]
+
+
+# ---------------------------------------------------------------------------
+# Literal type checking: nullable unions and unknown dtypes
+# ---------------------------------------------------------------------------
+
+
+class TestCheckLiteralTypeEdgeCases:
+    def setup_method(self) -> None:
+        set_validation(True)
+
+    def teardown_method(self) -> None:
+        import colnade.validation
+
+        colnade.validation._validation_level = None
+
+    def test_nullable_union_allows_correct_type(self) -> None:
+        check_literal_type(42, UInt64 | None)
+
+    def test_nullable_union_rejects_wrong_type(self) -> None:
+        with pytest.raises(TypeError, match="float"):
+            check_literal_type(1.0, UInt64 | None)
+
+    def test_multi_type_union_skips_check(self) -> None:
+        # multi-type union falls back to object, no error raised
+        check_literal_type("anything", UInt64 | Utf8)
+
+    def test_unknown_dtype_skips_check(self) -> None:
+        from colnade.dtypes import List
+
+        check_literal_type([1, 2], List[UInt64])  # unknown nested dtype, skip
+
+    def test_disabled_no_error(self) -> None:
+        set_validation(False)
         ValUsers.id + "hello"  # No error

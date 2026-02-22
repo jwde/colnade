@@ -118,6 +118,13 @@ class TestColumnDescriptor:
         assert "_internal" not in OnlyPrivate._columns
         assert len(OnlyPrivate._columns) == 0
 
+    def test_column_ref(self) -> None:
+        from colnade.expr import ColumnRef
+
+        ref = Users.id._ref()
+        assert isinstance(ref, ColumnRef)
+        assert ref.column is Users.id
+
 
 # ---------------------------------------------------------------------------
 # Nullable columns

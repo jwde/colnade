@@ -113,3 +113,17 @@ class TestCollectColumnNames:
 
     def test_unknown_type_ignored(self) -> None:
         assert collect_column_names(42, "hello", None) == set()
+
+    def test_struct_field_access(self) -> None:
+        from colnade.expr import StructFieldAccess
+
+        struct_ref = ColumnRef(column=Users.name)
+        sfa = StructFieldAccess(struct_expr=struct_ref, field=Users.age)
+        assert collect_column_names(sfa) == {"name"}
+
+    def test_list_op(self) -> None:
+        from colnade.expr import ListOp
+
+        list_ref = ColumnRef(column=Users.name)
+        lop = ListOp(list_expr=list_ref, op="len", args=())
+        assert collect_column_names(lop) == {"name"}
