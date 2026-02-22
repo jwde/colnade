@@ -5,10 +5,8 @@ Demonstrates how Colnade handles typed joins between two schemas.
 
 from __future__ import annotations
 
-import polars as pl
-
-from colnade import Column, DataFrame, Float64, Schema, UInt64, Utf8, mapped_from
-from colnade_polars import PolarsBackend
+from colnade import Column, Float64, Schema, UInt64, Utf8, mapped_from
+from colnade_polars import from_rows
 
 # ---------------------------------------------------------------------------
 # Schemas
@@ -38,23 +36,24 @@ class UserOrders(Schema):
 # Create sample data
 # ---------------------------------------------------------------------------
 
-users_data = pl.DataFrame(
-    {
-        "id": pl.Series([1, 2, 3], dtype=pl.UInt64),
-        "name": ["Alice", "Bob", "Charlie"],
-        "age": pl.Series([30, 25, 35], dtype=pl.UInt64),
-    }
+users = from_rows(
+    Users,
+    [
+        Users.Row(id=1, name="Alice", age=30),
+        Users.Row(id=2, name="Bob", age=25),
+        Users.Row(id=3, name="Charlie", age=35),
+    ],
 )
-users = DataFrame(_data=users_data, _schema=Users, _backend=PolarsBackend())
 
-orders_data = pl.DataFrame(
-    {
-        "id": pl.Series([101, 102, 103, 104], dtype=pl.UInt64),
-        "user_id": pl.Series([1, 2, 1, 3], dtype=pl.UInt64),
-        "amount": pl.Series([100.0, 200.0, 150.0, 300.0], dtype=pl.Float64),
-    }
+orders = from_rows(
+    Orders,
+    [
+        Orders.Row(id=101, user_id=1, amount=100.0),
+        Orders.Row(id=102, user_id=2, amount=200.0),
+        Orders.Row(id=103, user_id=1, amount=150.0),
+        Orders.Row(id=104, user_id=3, amount=300.0),
+    ],
 )
-orders = DataFrame(_data=orders_data, _schema=Orders, _backend=PolarsBackend())
 
 print("Users:")
 print(users._data)

@@ -8,15 +8,21 @@ This tutorial demonstrates how to work with nullable data in Colnade.
 ## Setup
 
 ```python
-from colnade import Column, DataFrame, Float64, Schema, UInt64, Utf8
-from colnade_polars import PolarsBackend
-import polars as pl
+from colnade import Column, Float64, Schema, UInt64, Utf8
+from colnade_polars import from_dict
 
 class Users(Schema):
     id: Column[UInt64]
     name: Column[Utf8]
     age: Column[UInt64]
     score: Column[Float64]
+
+df = from_dict(Users, {
+    "id": [1, 2, 3, 4, 5],
+    "name": ["Alice", "Bob", "Charlie", "Diana", "Eve"],
+    "age": [30, None, 35, None, 40],
+    "score": [85.0, 92.5, None, 95.0, None],
+})
 ```
 
 ## fill_null — replace nulls with a value
