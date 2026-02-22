@@ -6,6 +6,12 @@ Dask backend adapter, I/O functions, and scan functions.
 
 ::: colnade_dask.adapter.DaskBackend
 
+## Construction Functions
+
+::: colnade_dask.io.from_dict
+
+::: colnade_dask.io.from_rows
+
 ## I/O Functions
 
 ::: colnade_dask.io.read_parquet

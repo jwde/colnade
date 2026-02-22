@@ -2,6 +2,56 @@
 
 `DataFrame[S]` and `LazyFrame[S]` are the primary interfaces for working with typed data.
 
+## Constructing DataFrames
+
+Every backend provides `from_rows()` and `from_dict()` for creating typed DataFrames from Python data. The schema drives dtype coercion — you never need to specify backend-specific types.
+
+### From rows
+
+```python
+from colnade_polars import from_rows
+
+df = from_rows(Users, [
+    Users.Row(id=1, name="Alice", age=30, score=85.0),
+    Users.Row(id=2, name="Bob", age=25, score=92.5),
+])
+# df is DataFrame[Users] with correct dtypes
+```
+
+`from_rows` accepts `Schema.Row` instances, plain dicts, or any object with matching attributes:
+
+```python
+df = from_rows(Users, [
+    {"id": 1, "name": "Alice", "age": 30, "score": 85.0},
+    {"id": 2, "name": "Bob", "age": 25, "score": 92.5},
+])
+```
+
+### From columnar dict
+
+```python
+from colnade_polars import from_dict
+
+df = from_dict(Users, {
+    "id": [1, 2, 3],
+    "name": ["Alice", "Bob", "Charlie"],
+    "age": [30, 25, 35],
+    "score": [85.0, 92.5, 78.0],
+})
+```
+
+Both functions validate the data if validation is enabled (see [Validation](#validation)).
+
+### From files
+
+Use `read_parquet()`, `read_csv()`, or their lazy equivalents (`scan_parquet()`, `scan_csv()`):
+
+```python
+from colnade_polars import read_parquet
+
+df = read_parquet("users.parquet", Users)
+```
+
 ## DataFrame vs LazyFrame
 
 | | DataFrame | LazyFrame |

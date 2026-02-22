@@ -34,11 +34,18 @@ class Users(Schema):
     score: Column[Float64]
 ```
 
-### 2. Read typed data
+### 2. Create or read typed data
 
 ```python
-from colnade_polars import read_parquet
+from colnade_polars import from_rows, read_parquet
 
+# From Python data — schema drives dtype coercion
+df = from_rows(Users, [
+    Users.Row(id=1, name="Alice", age=30, score=85.0),
+    Users.Row(id=2, name="Bob", age=25, score=92.5),
+])
+
+# Or from files
 df = read_parquet("users.parquet", Users)
 # df is DataFrame[Users] — the type checker knows the schema
 ```

@@ -6,6 +6,12 @@ Pandas backend adapter, I/O functions, and dtype mapping.
 
 ::: colnade_pandas.adapter.PandasBackend
 
+## Construction Functions
+
+::: colnade_pandas.io.from_dict
+
+::: colnade_pandas.io.from_rows
+
 ## I/O Functions
 
 ::: colnade_pandas.io.read_parquet
