@@ -95,10 +95,21 @@ Expressions erase their source schema. `Orders.amount > 100` and `Users.age > 18
 
 ```python
 def process(df: DataFrame[Users]) -> DataFrame[Users]:
-    return df.filter(Orders.amount > 100)  # NOT caught — fails at runtime
+    return df.filter(Orders.amount > 100)  # NOT caught statically
 ```
 
 This is a fundamental limitation of the current type system. Column descriptors would need a second type parameter binding them to their schema (requires `TypeVar` defaults from PEP 696).
+
+**Runtime alternative:** When validation is enabled (`STRUCTURAL` or `FULL`), DataFrame and LazyFrame operations validate that all column references in an expression belong to the frame's schema. The example above raises `SchemaError` at runtime:
+
+```python
+colnade.set_validation(ValidationLevel.STRUCTURAL)
+
+df.filter(Orders.amount > 100)
+# SchemaError: Missing columns: amount
+```
+
+This guard covers `filter`, `sort`, `with_columns`, `select`, `unique`, `drop_nulls`, `group_by`, and `agg`. On `JoinedDataFrame`/`JoinedLazyFrame`, columns from either schema are accepted.
 
 ### Method availability by dtype
 

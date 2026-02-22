@@ -214,6 +214,7 @@ When validation is enabled, data boundaries and `df.validate()` check:
 - **Data types** — type mismatches raise `SchemaError`
 - **Null violations** — non-nullable columns with null values raise `SchemaError`
 - **Extra columns** — optionally flagged via `extra="forbid"` on `cast_schema()`
+- **Expression column membership** — operations like `filter`, `sort`, `select` verify that all column references in expressions belong to the frame's schema (e.g., using `Orders.amount` on a `DataFrame[Users]` raises `SchemaError`). On `JoinedDataFrame`, columns from either schema are accepted.
 
 ### Level 3: On your data values (value-level constraints)
 
@@ -264,7 +265,9 @@ Value constraints are checked by `df.validate()` (always) and by auto-validation
 
 ### Current limitations
 
-Column type parameters carry the data type (`Column[UInt64]`) but not the schema they belong to. This means the type checker cannot statically verify that `df.filter(Orders.amount > 5)` is invalid when `df` is a `DataFrame[Users]`. This limitation exists because Python 3.10 lacks `TypeVar` defaults (PEP 696). Schema enforcement at the column level would require `Column[DType, Schema]`, which is planned for future versions.
+Column type parameters carry the data type (`Column[UInt64]`) but not the schema they belong to. This means the type checker cannot *statically* verify that `df.filter(Orders.amount > 5)` is invalid when `df` is a `DataFrame[Users]`. This limitation exists because Python 3.10 lacks `TypeVar` defaults (PEP 696). Schema enforcement at the column level would require `Column[DType, Schema]`, which is planned for future versions.
+
+**Runtime mitigation:** When validation is enabled (`STRUCTURAL` or `FULL`), all DataFrame/LazyFrame operations validate expression column membership at runtime. See [Type Checker Integration: Wrong-schema columns](type-checking.md#wrong-schema-columns-in-expressions) for details.
 
 ## Escape hatches
 
