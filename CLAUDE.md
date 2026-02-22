@@ -46,7 +46,7 @@ Issues are the coordination mechanism for all work — both internal and externa
 | `triage` | Needs maintainer review — not yet confirmed |
 | `approved` | Confirmed worth doing, ready for someone to pick up |
 | `good first issue` | Scoped and newcomer-friendly |
-| `bug` / `feature` / `docs` | Type labels (combine with triage/approved) |
+| `bug` / `feature` / `documentation` | Type labels (combine with triage/approved) |
 
 ### Triage process
 
@@ -59,7 +59,7 @@ Issues are the coordination mechanism for all work — both internal and externa
 When filing issues, include:
 - Clear title describing the desired outcome
 - Enough context for someone else to understand and implement
-- Type label (`bug`, `feature`, `docs`)
+- Type label (`bug`, `feature`, `documentation`)
 - `approved` label for internal issues
 
 ### PRs
