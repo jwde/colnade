@@ -1,6 +1,28 @@
 # Contributing to Colnade
 
-Thanks for your interest in contributing! This guide covers the development workflow.
+Thanks for your interest in contributing!
+
+## How to contribute
+
+### Reporting bugs or requesting features
+
+Open a [GitHub issue](https://github.com/jwde/colnade/issues). New issues from external contributors are labeled `triage` and reviewed by a maintainer. Once confirmed, issues are moved to `approved`.
+
+**Please do not start coding until an issue is `approved`** — this avoids wasted effort on work that may not align with the project direction.
+
+### Small fixes (typos, docs, obvious bugs)
+
+Open a PR directly — no issue needed. Keep it focused.
+
+### New features, API changes, or new backends
+
+1. **Open an issue first** describing what you want to do and why
+2. **Wait for maintainer response** — we'll discuss the approach and confirm it's `approved`
+3. **Then open a PR** referencing the issue
+
+### Finding something to work on
+
+Look for issues labeled [`approved`](https://github.com/jwde/colnade/issues?q=is%3Aissue+is%3Aopen+label%3Aapproved) — these are confirmed and ready for someone to pick up. Issues also labeled [`good first issue`](https://github.com/jwde/colnade/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) are scoped for newcomers.
 
 ## Setup
 
@@ -52,10 +74,21 @@ scripts/              Maintenance scripts (API docs check, error showcase genera
 ## Pull requests
 
 - Create a feature branch from `main`
+- Reference the GitHub issue in the PR description
 - Keep PRs focused — one feature or fix per PR
-- If your change adds or modifies a public API symbol, update the documentation (see CLAUDE.md for the full checklist)
+- If your change adds or modifies a public API symbol, update the documentation (see below)
 - Add an entry to `CHANGELOG.md` under `[Unreleased]` for user-visible changes
 - CI must pass before merging
+
+### Documentation requirements
+
+Any change to a public API must include documentation updates in the same PR:
+
+1. **API reference** — add/update the `::: module.Symbol` directive in `docs/api/*.md`
+2. **User guide** — update the relevant page in `docs/user-guide/`
+3. **README.md** — update if the change affects the quick start or feature list
+
+Run `uv run python scripts/check_api_docs.py` to verify API docs are complete.
 
 ## Code style
 
@@ -66,4 +99,4 @@ scripts/              Maintenance scripts (API docs check, error showcase genera
 
 ## Adding a new backend
 
-Backend adapters implement the protocol in `src/colnade/_protocols.py`. See `colnade-polars/` for the reference implementation. Each backend is a separate package in the workspace with its own `pyproject.toml`.
+Backend adapters implement the protocol in `src/colnade/_protocols.py`. See `colnade-polars/` for the reference implementation. Each backend is a separate package in the workspace with its own `pyproject.toml`. Open an issue to discuss before starting.
