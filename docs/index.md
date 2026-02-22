@@ -58,6 +58,8 @@ Works with [ty](https://github.com/astral-sh/ty), mypy, and pyright. No plugins,
 2. **At data boundaries** — runtime validation ensures files and external data match your schemas (columns, types, nullability) and that expressions reference columns from the correct schema
 3. **On your data values** — `Field()` constraints validate domain invariants like ranges, patterns, and uniqueness
 
+![ty catching Colnade type errors](assets/error-showcase.svg)
+
 **Where static safety ends:** Static checking covers column references and schema-preserving operations (`filter`, `sort`, `with_columns`). Schema-transforming operations (`select`, `group_by`) return `DataFrame[Any]` — use `cast_schema()` to re-bind to a named schema at runtime. See [Type Checker Integration](user-guide/type-checking.md) for the full list of what is and isn't checked statically.
 
 ## Key Features
