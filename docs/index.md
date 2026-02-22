@@ -60,7 +60,7 @@ process_orders(users_df)  # error: expected DataFrame[Orders]
 
 ### Static + runtime safety
 
-Your type checker catches wrong columns and schema mismatches at edit time. At runtime, opt into **structural** checks (columns + dtypes) or **full** validation (ranges, patterns, uniqueness).
+Your type checker catches wrong columns and schema mismatches in your code. Runtime validation catches wrong *data* — files with missing columns, unexpected dtypes, or values out of range.
 
 </div>
 <div class="feature-card" markdown>
