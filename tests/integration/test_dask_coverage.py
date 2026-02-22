@@ -256,6 +256,57 @@ class TestIOValidation:
 
 
 # ---------------------------------------------------------------------------
+# NumPy dtype compatibility (parquet written without extension types)
+# ---------------------------------------------------------------------------
+
+
+class TestNumpyDtypeCompat:
+    """Validate that data with NumPy dtypes passes structural validation."""
+
+    def test_validate_numpy_dtypes(self) -> None:
+        """NumPy uint64/float64 should be accepted for UInt64/Float64 columns."""
+        import numpy as np
+
+        data = pd.DataFrame({
+            "id": np.array([1, 2, 3], dtype=np.uint64),
+            "name": pd.array(["Alice", "Bob", "Charlie"], dtype=pd.StringDtype()),
+            "score": np.array([85.5, 92.3, 78.1], dtype=np.float64),
+        })
+        ddf = dd.from_pandas(data, npartitions=1)
+        # Should not raise
+        _backend.validate_schema(ddf, Scores)
+
+    def test_validate_extension_dtypes_still_work(self) -> None:
+        """Extension types should still pass (regression guard)."""
+        data = pd.DataFrame({
+            "id": pd.array([1, 2, 3], dtype=pd.UInt64Dtype()),
+            "name": pd.array(["Alice", "Bob", "Charlie"], dtype=pd.StringDtype()),
+            "score": pd.array([85.5, 92.3, 78.1], dtype=pd.Float64Dtype()),
+        })
+        ddf = dd.from_pandas(data, npartitions=1)
+        _backend.validate_schema(ddf, Scores)
+
+    def test_read_parquet_numpy_dtypes(self) -> None:
+        """Parquet written with plain NumPy dtypes should pass validation."""
+        prev = colnade.get_validation_level()
+        try:
+            colnade.set_validation(ValidationLevel.STRUCTURAL)
+            import numpy as np
+
+            with tempfile.TemporaryDirectory() as tmp:
+                path = str(Path(tmp) / "test.parquet")
+                pd.DataFrame({
+                    "id": np.array([1, 2, 3], dtype=np.uint64),
+                    "name": pd.array(["Alice", "Bob", "Charlie"], dtype=pd.StringDtype()),
+                    "score": np.array([85.5, 92.3, 78.1], dtype=np.float64),
+                }).to_parquet(path, index=False)
+                result = read_parquet(path, Scores)
+                assert result._data.compute().shape[0] == 3
+        finally:
+            colnade.set_validation(prev)
+
+
+# ---------------------------------------------------------------------------
 # Nullable column validation (skip for UnionType)
 # ---------------------------------------------------------------------------
 
