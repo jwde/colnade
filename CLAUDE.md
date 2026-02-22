@@ -29,6 +29,12 @@ When you add, remove, or rename any public API symbol (anything in `__all__`):
 4. **README.md** — Update if the change affects the quick start, feature list, or examples shown to new users.
 5. **mkdocs build** — Run `uv run mkdocs build --strict` to verify docs build without warnings.
 
+## Updating the Changelog
+
+When a PR adds user-visible changes (new features, bug fixes, breaking changes, deprecations), add an entry to `CHANGELOG.md` under an `## [Unreleased]` section at the top. Use [Keep a Changelog](https://keepachangelog.com/) categories: Added, Changed, Deprecated, Removed, Fixed, Security.
+
+When cutting a release, rename `[Unreleased]` to the version and date, add a new empty `[Unreleased]` section above it, and add a link reference at the bottom.
+
 ## Architectural Decisions
 
 ### Column[DType] Annotation Pattern
