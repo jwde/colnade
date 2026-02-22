@@ -259,19 +259,23 @@ class TestNumpyDtypeCompat:
     def test_validate_numpy_dtypes(self) -> None:
         import numpy as np
 
-        data = pd.DataFrame({
-            "id": np.array([1, 2, 3], dtype=np.uint64),
-            "name": pd.array(["Alice", "Bob", "Charlie"], dtype=pd.StringDtype()),
-            "score": np.array([85.5, 92.3, 78.1], dtype=np.float64),
-        })
+        data = pd.DataFrame(
+            {
+                "id": np.array([1, 2, 3], dtype=np.uint64),
+                "name": pd.array(["Alice", "Bob", "Charlie"], dtype=pd.StringDtype()),
+                "score": np.array([85.5, 92.3, 78.1], dtype=np.float64),
+            }
+        )
         _backend.validate_schema(data, Scores)
 
     def test_validate_extension_dtypes_still_work(self) -> None:
-        data = pd.DataFrame({
-            "id": pd.array([1, 2, 3], dtype=pd.UInt64Dtype()),
-            "name": pd.array(["Alice", "Bob", "Charlie"], dtype=pd.StringDtype()),
-            "score": pd.array([85.5, 92.3, 78.1], dtype=pd.Float64Dtype()),
-        })
+        data = pd.DataFrame(
+            {
+                "id": pd.array([1, 2, 3], dtype=pd.UInt64Dtype()),
+                "name": pd.array(["Alice", "Bob", "Charlie"], dtype=pd.StringDtype()),
+                "score": pd.array([85.5, 92.3, 78.1], dtype=pd.Float64Dtype()),
+            }
+        )
         _backend.validate_schema(data, Scores)
 
     def test_read_parquet_numpy_dtypes(self) -> None:
@@ -282,11 +286,13 @@ class TestNumpyDtypeCompat:
 
             with tempfile.TemporaryDirectory() as tmp:
                 path = str(Path(tmp) / "test.parquet")
-                pd.DataFrame({
-                    "id": np.array([1, 2, 3], dtype=np.uint64),
-                    "name": pd.array(["Alice", "Bob", "Charlie"], dtype=pd.StringDtype()),
-                    "score": np.array([85.5, 92.3, 78.1], dtype=np.float64),
-                }).to_parquet(path, index=False)
+                pd.DataFrame(
+                    {
+                        "id": np.array([1, 2, 3], dtype=np.uint64),
+                        "name": pd.array(["Alice", "Bob", "Charlie"], dtype=pd.StringDtype()),
+                        "score": np.array([85.5, 92.3, 78.1], dtype=np.float64),
+                    }
+                ).to_parquet(path, index=False)
                 result = read_parquet(path, Scores)
                 assert result._data.shape[0] == 3
         finally:
