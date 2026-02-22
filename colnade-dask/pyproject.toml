@@ -1,6 +1,6 @@
 [project]
 name = "colnade-dask"
-version = "0.2.1"
+version = "0.3.0"
 description = "Dask backend adapter for Colnade"
 requires-python = ">=3.10"
 license = "MIT"
@@ -21,8 +21,8 @@ classifiers = [
     "Topic :: Software Development :: Libraries",
 ]
 dependencies = [
-    "colnade>=0.4.1",
-    "colnade-pandas>=0.2.1",
+    "colnade>=0.5.0",
+    "colnade-pandas>=0.3.0",
     "dask[dataframe]>=2024.1",
     "pyarrow>=12.0",
 ]
