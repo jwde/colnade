@@ -521,3 +521,14 @@ class PolarsBackend:
             return pl.DataFrame()
         table = pa.Table.from_batches(batch_list)
         return pl.from_arrow(table)
+
+    def from_dict(
+        self,
+        data: dict[str, Sequence[Any]],
+        schema: type[Any],
+    ) -> Any:
+        """Create a Polars DataFrame from a columnar dict with schema-driven dtypes."""
+        from colnade_polars.conversion import map_colnade_dtype
+
+        pl_schema = {name: map_colnade_dtype(col.dtype) for name, col in schema._columns.items()}
+        return pl.DataFrame(data, schema=pl_schema)

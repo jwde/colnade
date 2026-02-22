@@ -613,3 +613,15 @@ class PandasBackend:
             return pd.DataFrame()
         table = pa.Table.from_batches(batch_list)
         return table.to_pandas()
+
+    def from_dict(
+        self,
+        data: dict[str, Sequence[Any]],
+        schema: type[Any],
+    ) -> Any:
+        """Create a Pandas DataFrame from a columnar dict with schema-driven dtypes."""
+        from colnade_pandas.conversion import map_colnade_dtype
+
+        pd_schema = {name: map_colnade_dtype(col.dtype) for name, col in schema._columns.items()}
+        df = pd.DataFrame(data)
+        return df.astype(pd_schema)

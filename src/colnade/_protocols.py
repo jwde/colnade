@@ -90,6 +90,20 @@ class BackendProtocol(Protocol):
         schema: type[Schema],
     ) -> Any: ...
 
+    # --- Construction ---
+
+    def from_dict(
+        self,
+        data: dict[str, Sequence[Any]],
+        schema: type[Schema],
+    ) -> Any:
+        """Create a backend-native data object from a columnar dict.
+
+        The backend reads column dtypes from ``schema`` and coerces values
+        to the correct native types.
+        """
+        ...
+
     # --- Row access ---
 
     def row_count(self, source: Any) -> int: ...

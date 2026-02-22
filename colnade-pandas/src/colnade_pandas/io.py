@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Any, TypeVar
 
 import pandas as pd
 
 from colnade import DataFrame, Schema
+from colnade.dataframe import rows_to_dict
 from colnade.validation import ValidationLevel, get_validation_level, is_validation_enabled
 from colnade_pandas.adapter import PandasBackend
 from colnade_pandas.conversion import map_colnade_dtype
@@ -43,6 +45,32 @@ def read_csv(path: str, schema: type[S], **kwargs: Any) -> DataFrame[S]:
         if get_validation_level() is ValidationLevel.FULL:
             backend.validate_field_constraints(data, schema)
     return DataFrame(_data=data, _schema=schema, _backend=backend)
+
+
+def from_dict(
+    schema: type[S],
+    data: dict[str, Sequence[Any]],
+) -> DataFrame[S]:
+    """Create a typed DataFrame from a columnar dict.
+
+    The schema drives dtype coercion — plain Python values (``[1, 2, 3]``)
+    are cast to the correct native types (e.g. ``UInt64``).
+    """
+    backend = PandasBackend()
+    return DataFrame.from_dict(data, schema, backend)
+
+
+def from_rows(
+    schema: type[S],
+    rows: Sequence[Any],
+) -> DataFrame[S]:
+    """Create a typed DataFrame from row objects.
+
+    Accepts ``Schema.Row`` instances, plain dicts, or any object with
+    attributes matching the schema's column names.
+    """
+    data = rows_to_dict(rows, schema)
+    return from_dict(schema, data)
 
 
 def write_parquet(df: DataFrame[Any], path: str, **kwargs: Any) -> None:

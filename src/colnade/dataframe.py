@@ -15,7 +15,7 @@ See AGENTS.md "Column[DType] Annotation Pattern" for details.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Sequence
 from typing import TYPE_CHECKING, Any, Generic, TypeVar, overload
 
 from colnade.schema import S2, S3, Column, S, Schema, SchemaError
@@ -40,6 +40,33 @@ _NO_BACKEND_MSG = (
     "Construct the frame via a backend (e.g. read_parquet()) "
     "or pass _backend=... to the constructor."
 )
+
+
+def rows_to_dict(
+    rows: Sequence[Any],
+    schema: type[Any],
+) -> dict[str, list[Any]]:
+    """Convert a sequence of row objects to a columnar dict.
+
+    Accepts Schema.Row instances (frozen dataclasses), plain dicts,
+    or any object with matching attributes.
+    """
+    import dataclasses
+
+    col_names = list(schema._columns)
+    result: dict[str, list[Any]] = {name: [] for name in col_names}
+
+    for row in rows:
+        if isinstance(row, dict):
+            row_dict = row
+        elif dataclasses.is_dataclass(row) and not isinstance(row, type):
+            row_dict = dataclasses.asdict(row)
+        else:
+            row_dict = vars(row)
+        for name in col_names:
+            result[name].append(row_dict[name])
+
+    return result
 
 
 def _require_backend(backend: BackendProtocol | None) -> BackendProtocol:
@@ -496,6 +523,28 @@ class DataFrame(Generic[S]):
         backend = _require_backend(self._backend)
         for raw_batch in backend.to_arrow_batches(self._data, batch_size):
             yield ArrowBatch(_batch=raw_batch, _schema=self._schema)
+
+    @classmethod
+    def from_dict(
+        cls,
+        data: dict[str, Sequence[Any]],
+        schema: type[S],
+        backend: BackendProtocol,
+    ) -> DataFrame[S]:
+        """Create a DataFrame from a columnar dict.
+
+        The backend reads column dtypes from *schema* and coerces values
+        to the correct native types.  Validates if validation is enabled.
+        """
+        from colnade.validation import ValidationLevel, get_validation_level, is_validation_enabled
+
+        native = backend.from_dict(data, schema)
+        df: DataFrame[S] = DataFrame(_data=native, _schema=schema, _backend=backend)
+        if is_validation_enabled():
+            backend.validate_schema(native, schema)
+            if get_validation_level() is ValidationLevel.FULL:
+                backend.validate_field_constraints(native, schema)
+        return df
 
     @classmethod
     def from_batches(
