@@ -1,13 +1,90 @@
-# Colnade
+---
+title: Colnade
+template: home.html
+hide:
+  - navigation
+  - toc
+---
 
-**Catch DataFrame column errors before your code runs.**
+<div class="compare-grid" markdown>
+<div class="compare-col" markdown>
 
-Colnade replaces string-based column references (`pl.col("age")`) with typed descriptors (`Users.age`), so column misspellings, type mismatches, and schema violations are caught by your type checker — not in production.
+### Without type safety
 
-Works with [ty](https://github.com/astral-sh/ty), mypy, and pyright. No plugins, no code generation. Supports Polars, Pandas, and Dask.
+```python
+import polars as pl
 
-[Get Started](getting-started/installation.md){ .md-button .md-button--primary }
-[Tutorials](tutorials/basic-usage.md){ .md-button }
+# Typo silently produces wrong results
+df.filter(pl.col("naem") == "Alice")
+
+# Wrong column from wrong table — no error
+df.select(pl.col("amount"))  # amount is on orders, not users
+```
+
+</div>
+<div class="compare-col" markdown>
+
+### With Colnade
+
+```python
+from colnade_polars import read_parquet
+
+# Typo caught by type checker instantly
+df.filter(Users.naem == "Alice")  # error: no attribute 'naem'
+
+# Schema mismatch caught at function boundaries
+process_orders(users_df)  # error: expected DataFrame[Orders]
+```
+
+</div>
+</div>
+
+---
+
+<div class="feature-grid" markdown>
+<div class="feature-card" markdown>
+
+### Type-safe columns
+
+`Users.naem` is a type error, not a runtime crash. Column references are class attributes checked by your editor.
+
+</div>
+<div class="feature-card" markdown>
+
+### Schema preserved
+
+`filter`, `sort`, `with_columns` return `DataFrame[S]`. The type parameter flows through your entire pipeline.
+
+</div>
+<div class="feature-card" markdown>
+
+### Three validation levels
+
+**Off** for zero overhead. **Structural** checks columns and types. **Full** adds value constraints like ranges, patterns, and uniqueness.
+
+</div>
+<div class="feature-card" markdown>
+
+### Backend agnostic
+
+Write once, run on **Polars**, **Pandas**, or **Dask**. Same schema, same expressions, same type safety.
+
+</div>
+<div class="feature-card" markdown>
+
+### Generic functions
+
+`def f(df: DataFrame[S]) -> DataFrame[S]` works with any schema. Build reusable utilities without losing type information.
+
+</div>
+<div class="feature-card" markdown>
+
+### No plugins or codegen
+
+Works with `ty`, `mypy`, and `pyright` out of the box. Standard Python type annotations, nothing extra to install.
+
+</div>
+</div>
 
 ---
 
@@ -52,23 +129,10 @@ Works with [ty](https://github.com/astral-sh/ty), mypy, and pyright. No plugins,
 
 ---
 
-## Errors Caught at Three Levels
-
-1. **In your editor** — misspelled columns, schema mismatches at function boundaries, and nullability violations are flagged by your type checker before code runs
-2. **At data boundaries** — runtime validation ensures files and external data match your schemas (columns, types, nullability) and that expressions reference columns from the correct schema
-3. **On your data values** — `Field()` constraints validate domain invariants like ranges, patterns, and uniqueness
-
-![ty catching Colnade type errors](assets/error-showcase.svg)
-
-**Where static safety ends:** Static checking covers column references and schema-preserving operations (`filter`, `sort`, `with_columns`). Schema-transforming operations (`select`, `group_by`) return `DataFrame[Any]` — use `cast_schema()` to re-bind to a named schema at runtime. See [Type Checker Integration](user-guide/type-checking.md) for the full list of what is and isn't checked statically.
-
-## Key Features
-
-- **Type-safe column references** — `Users.naem` is a type error, not a runtime crash
-- **Schema-preserving operations** — `filter`, `sort`, `with_columns` preserve `DataFrame[S]`
-- **Typed expressions** — `Users.age > 18` produces `Expr[Bool]`, `Users.score * 2` produces `Expr[Float64]`
-- **Runtime validation** — `df.validate()` checks columns, types, and nullability; auto-validate at data boundaries with a single toggle
-- **Backend agnostic** — works with Polars, Pandas, and Dask
-- **Generic utility functions** — write `def f(df: DataFrame[S]) -> DataFrame[S]` that works with any schema
-- **Struct and List support** — typed access to nested data structures
-- **No plugins or codegen** — works with standard type checkers out of the box
+<p style="text-align: center; opacity: 0.7; font-size: 0.9rem;">
+<a href="getting-started/installation/">Installation</a> &middot;
+<a href="user-guide/core-concepts/">User Guide</a> &middot;
+<a href="tutorials/basic-usage/">Tutorials</a> &middot;
+<a href="api/">API Reference</a> &middot;
+<a href="comparison/">Comparison</a>
+</p>

@@ -1,0 +1,27 @@
+{% extends "main.html" %}
+
+{% block tabs %}
+  {{ super() }}
+  <section class="colnade-hero">
+    <div class="colnade-hero__content md-grid">
+      <h1>Catch DataFrame bugs<br>before your code runs</h1>
+      <p class="colnade-hero__tagline">
+        Replace <code>pl.col("age")</code> with <code>Users.age</code>.
+        Your type checker catches the rest.
+      </p>
+      <div class="colnade-hero__buttons">
+        <a href="{{ page.next_page.url | url }}" class="md-button md-button--primary">Get Started</a>
+        <a href="tutorials/basic-usage/" class="md-button">Tutorials</a>
+      </div>
+      <p class="colnade-hero__meta">
+        Works with <strong>ty</strong>, <strong>mypy</strong>, and <strong>pyright</strong>.
+        Supports <strong>Polars</strong>, <strong>Pandas</strong>, and <strong>Dask</strong>.
+        No plugins. No codegen.
+      </p>
+    </div>
+  </section>
+{% endblock %}
+
+{% block content %}
+  {{ super() }}
+{% endblock %}
