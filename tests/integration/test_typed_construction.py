@@ -334,3 +334,321 @@ class TestRowsToDict:
 
         result = rows_to_dict([], Users)
         assert result == {"id": [], "name": [], "age": [], "score": []}
+
+    def test_mismatched_row_type_raises(self) -> None:
+        """rows_to_dict raises KeyError when row doesn't match schema columns."""
+        from colnade.dataframe import rows_to_dict
+
+        orders_rows = [Orders.Row(id=1, amount=99.0)]
+        with pytest.raises(KeyError):
+            rows_to_dict(orders_rows, Users)
+
+
+# ===========================================================================
+# Row construction errors
+# ===========================================================================
+
+
+class TestRowConstructionErrors:
+    def test_missing_fields_raises(self) -> None:
+        """Row construction fails when required fields are omitted."""
+        with pytest.raises(TypeError, match="missing.*required"):
+            Users.Row(id=1, name="Alice")  # missing age, score
+
+    def test_extra_field_raises(self) -> None:
+        """Row construction fails on unexpected keyword arguments."""
+        with pytest.raises(TypeError, match="unexpected keyword argument"):
+            Users.Row(id=1, name="Alice", age=30, score=85.0, extra="x")
+
+    def test_frozen_row_cannot_be_mutated(self) -> None:
+        """Row instances are frozen dataclasses — assignment raises."""
+        row = Users.Row(id=1, name="Alice", age=30, score=85.0)
+        with pytest.raises(AttributeError):
+            row.name = "Bob"  # type: ignore[misc]
+
+
+# ===========================================================================
+# from_dict negative cases — Polars
+# ===========================================================================
+
+
+class TestPolarsFromDictErrors:
+    def test_missing_column_raises(self) -> None:
+        """from_dict raises when a schema column is missing from the dict."""
+        from colnade_polars import from_dict
+
+        with pytest.raises((KeyError, ValueError)):
+            from_dict(Users, {"id": [1], "name": ["a"], "age": [30]})
+
+    def test_extra_column_raises(self) -> None:
+        """Polars rejects data columns not present in the schema."""
+        from colnade_polars import from_dict
+
+        with pytest.raises(ValueError):
+            from_dict(
+                Users,
+                {**SAMPLE_DICT, "extra": ["x", "y", "z"]},
+            )
+
+    def test_incompatible_dtype_raises(self) -> None:
+        """Strings cannot be coerced to UInt64."""
+        from colnade_polars import from_dict
+
+        with pytest.raises(TypeError):
+            from_dict(
+                Users,
+                {
+                    "id": ["not", "a", "number"],
+                    "name": ["a", "b", "c"],
+                    "age": [1, 2, 3],
+                    "score": [1.0, 2.0, 3.0],
+                },
+            )
+
+    def test_ragged_column_lengths_raises(self) -> None:
+        """Columns with different lengths are rejected."""
+        from polars.exceptions import ShapeError
+
+        from colnade_polars import from_dict
+
+        with pytest.raises(ShapeError):
+            from_dict(
+                Users,
+                {
+                    "id": [1, 2, 3],
+                    "name": ["a", "b"],  # only 2
+                    "age": [1, 2, 3],
+                    "score": [1.0, 2.0, 3.0],
+                },
+            )
+
+    def test_empty_dict_creates_empty_frame(self) -> None:
+        """Polars uses schema to create a 0-row frame from an empty dict."""
+        from colnade_polars import from_dict
+
+        df = from_dict(Users, {})
+        assert df.height == 0
+        assert df.width == 4
+
+
+# ===========================================================================
+# from_dict negative cases — Pandas
+# ===========================================================================
+
+
+class TestPandasFromDictErrors:
+    def test_missing_column_raises(self) -> None:
+        from colnade_pandas import from_dict
+
+        with pytest.raises(KeyError):
+            from_dict(Users, {"id": [1], "name": ["a"], "age": [30]})
+
+    def test_incompatible_dtype_raises(self) -> None:
+        from colnade_pandas import from_dict
+
+        with pytest.raises((TypeError, ValueError)):
+            from_dict(
+                Users,
+                {
+                    "id": ["not", "a", "number"],
+                    "name": ["a", "b", "c"],
+                    "age": [1, 2, 3],
+                    "score": [1.0, 2.0, 3.0],
+                },
+            )
+
+    def test_ragged_column_lengths_raises(self) -> None:
+        from colnade_pandas import from_dict
+
+        with pytest.raises(ValueError):
+            from_dict(
+                Users,
+                {
+                    "id": [1, 2, 3],
+                    "name": ["a", "b"],
+                    "age": [1, 2, 3],
+                    "score": [1.0, 2.0, 3.0],
+                },
+            )
+
+    def test_empty_dict_raises(self) -> None:
+        from colnade_pandas import from_dict
+
+        with pytest.raises((KeyError, ValueError)):
+            from_dict(Users, {})
+
+
+# ===========================================================================
+# from_dict negative cases — Dask
+# ===========================================================================
+
+
+class TestDaskFromDictErrors:
+    def test_missing_column_raises(self) -> None:
+        from colnade_dask import from_dict
+
+        with pytest.raises(KeyError):
+            from_dict(Users, {"id": [1], "name": ["a"], "age": [30]})
+
+    def test_incompatible_dtype_raises(self) -> None:
+        from colnade_dask import from_dict
+
+        with pytest.raises((TypeError, ValueError)):
+            from_dict(
+                Users,
+                {
+                    "id": ["not", "a", "number"],
+                    "name": ["a", "b", "c"],
+                    "age": [1, 2, 3],
+                    "score": [1.0, 2.0, 3.0],
+                },
+            )
+
+    def test_ragged_column_lengths_raises(self) -> None:
+        from colnade_dask import from_dict
+
+        with pytest.raises(ValueError):
+            from_dict(
+                Users,
+                {
+                    "id": [1, 2, 3],
+                    "name": ["a", "b"],
+                    "age": [1, 2, 3],
+                    "score": [1.0, 2.0, 3.0],
+                },
+            )
+
+    def test_empty_dict_raises(self) -> None:
+        from colnade_dask import from_dict
+
+        with pytest.raises((KeyError, ValueError)):
+            from_dict(Users, {})
+
+
+# ===========================================================================
+# from_rows negative cases
+# ===========================================================================
+
+
+class TestFromRowsErrors:
+    def test_mismatched_row_type_polars(self) -> None:
+        """Passing Orders.Row to from_rows(Users, ...) raises KeyError."""
+        from colnade_polars import from_rows
+
+        with pytest.raises(KeyError):
+            from_rows(Users, [Orders.Row(id=1, amount=99.0)])
+
+    def test_mismatched_row_type_pandas(self) -> None:
+        from colnade_pandas import from_rows
+
+        with pytest.raises(KeyError):
+            from_rows(Users, [Orders.Row(id=1, amount=99.0)])
+
+    def test_mismatched_row_type_dask(self) -> None:
+        from colnade_dask import from_rows
+
+        with pytest.raises(KeyError):
+            from_rows(Users, [Orders.Row(id=1, amount=99.0)])
+
+
+# ===========================================================================
+# Validation negative cases
+# ===========================================================================
+
+
+class TestValidationNegative:
+    def setup_method(self) -> None:
+        colnade.set_validation(ValidationLevel.OFF)
+
+    def teardown_method(self) -> None:
+        colnade.set_validation(ValidationLevel.OFF)
+
+    def test_structural_rejects_null_in_non_nullable(self) -> None:
+        """STRUCTURAL catches nulls in non-nullable columns at construction."""
+        from colnade import SchemaError
+        from colnade_polars import from_dict
+
+        colnade.set_validation(ValidationLevel.STRUCTURAL)
+        with pytest.raises(SchemaError):
+            from_dict(
+                Users,
+                {
+                    "id": [1, None, 3],
+                    "name": ["Alice", "Bob", "Charlie"],
+                    "age": [30, 25, 35],
+                    "score": [85.0, 92.5, 78.0],
+                },
+            )
+
+    def test_structural_does_not_check_value_constraints(self) -> None:
+        """STRUCTURAL allows values that violate Field() constraints."""
+        from colnade_polars import from_dict
+
+        colnade.set_validation(ValidationLevel.STRUCTURAL)
+        df = from_dict(
+            UsersConstrained,
+            {
+                "id": [1, 2, 3],
+                "name": ["Alice", "Bob", "Charlie"],
+                "age": [30, 25, 200],  # violates le=150
+                "score": [85.0, 92.5, 78.0],
+            },
+        )
+        assert df.height == 3
+
+    def test_full_rejects_multiple_constraint_violations(self) -> None:
+        """FULL validation catches violations across multiple columns."""
+        from colnade import SchemaError
+        from colnade_polars import from_dict
+
+        colnade.set_validation(ValidationLevel.FULL)
+        with pytest.raises(SchemaError):
+            from_dict(
+                UsersConstrained,
+                {
+                    "id": [1, 1, 3],  # violates unique
+                    "name": ["Alice", "", "Charlie"],  # violates min_length=1
+                    "age": [30, 25, 200],  # violates le=150
+                    "score": [85.0, 92.5, 78.0],
+                },
+            )
+
+    def test_explicit_validate_catches_nulls_after_off(self) -> None:
+        """df.validate() catches errors even when global level is OFF."""
+        from colnade import SchemaError
+        from colnade_polars import from_dict
+
+        colnade.set_validation(ValidationLevel.OFF)
+        df = from_dict(
+            Users,
+            {
+                "id": [1, None, 3],
+                "name": ["Alice", "Bob", "Charlie"],
+                "age": [30, 25, 35],
+                "score": [85.0, 92.5, 78.0],
+            },
+        )
+        assert df.height == 3  # construction succeeds
+
+        with pytest.raises(SchemaError):
+            df.validate()
+
+    def test_explicit_validate_catches_constraint_violations_after_off(self) -> None:
+        """df.validate() runs FULL checks regardless of global level."""
+        from colnade import SchemaError
+        from colnade_polars import from_dict
+
+        colnade.set_validation(ValidationLevel.OFF)
+        df = from_dict(
+            UsersConstrained,
+            {
+                "id": [1, 2, 3],
+                "name": ["Alice", "Bob", "Charlie"],
+                "age": [30, 25, 200],  # violates le=150
+                "score": [85.0, 92.5, 78.0],
+            },
+        )
+        assert df.height == 3
+
+        with pytest.raises(SchemaError):
+            df.validate()
