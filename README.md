@@ -1,6 +1,7 @@
 # Colnade
 
 [![CI](https://github.com/jwde/colnade/actions/workflows/ci.yml/badge.svg)](https://github.com/jwde/colnade/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/jwde/colnade/graph/badge.svg)](https://codecov.io/gh/jwde/colnade)
 [![PyPI](https://img.shields.io/pypi/v/colnade)](https://pypi.org/project/colnade/)
 [![Python 3.10+](https://img.shields.io/pypi/pyversions/colnade)](https://pypi.org/project/colnade/)
 
