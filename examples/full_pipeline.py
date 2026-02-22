@@ -12,7 +12,7 @@ from pathlib import Path
 import polars as pl
 
 from colnade import Column, DataFrame, Float64, Schema, UInt64, Utf8, mapped_from
-from colnade_polars import PolarsBackend, write_parquet
+from colnade_polars import PolarsBackend, from_dict, write_parquet
 from colnade_polars.io import read_parquet
 
 # ---------------------------------------------------------------------------
@@ -42,14 +42,15 @@ class UserRevenue(Schema):
 
 
 # ---------------------------------------------------------------------------
-# Generate sample data
+# Generate sample data and write to Parquet (from_dict for many rows)
 # ---------------------------------------------------------------------------
 
 tmp_dir = Path(tempfile.mkdtemp())
 
-users_data = pl.DataFrame(
+users_df = from_dict(
+    Users,
     {
-        "id": pl.Series(list(range(1, 11)), dtype=pl.UInt64),
+        "id": list(range(1, 11)),
         "name": [
             "Alice",
             "Bob",
@@ -62,44 +63,39 @@ users_data = pl.DataFrame(
             "Iris",
             "Jack",
         ],
-        "age": pl.Series([30, 25, 35, 28, 40, 22, 33, 45, 27, 31], dtype=pl.UInt64),
-        "score": pl.Series(
-            [85.0, 92.5, None, 95.0, 88.0, 76.0, None, 91.0, 82.0, 79.0],
-            dtype=pl.Float64,
-        ),
-    }
+        "age": [30, 25, 35, 28, 40, 22, 33, 45, 27, 31],
+        "score": [85.0, 92.5, None, 95.0, 88.0, 76.0, None, 91.0, 82.0, 79.0],
+    },
 )
 users_path = str(tmp_dir / "users.parquet")
-users_data.write_parquet(users_path)
+write_parquet(users_df, users_path)
 
-orders_data = pl.DataFrame(
+orders_df = from_dict(
+    Orders,
     {
-        "id": pl.Series(list(range(1, 16)), dtype=pl.UInt64),
-        "user_id": pl.Series([1, 2, 1, 3, 5, 2, 8, 1, 4, 6, 3, 5, 9, 10, 7], dtype=pl.UInt64),
-        "amount": pl.Series(
-            [
-                100.0,
-                200.0,
-                150.0,
-                300.0,
-                75.0,
-                125.0,
-                450.0,
-                90.0,
-                175.0,
-                60.0,
-                220.0,
-                180.0,
-                95.0,
-                310.0,
-                140.0,
-            ],
-            dtype=pl.Float64,
-        ),
-    }
+        "id": list(range(1, 16)),
+        "user_id": [1, 2, 1, 3, 5, 2, 8, 1, 4, 6, 3, 5, 9, 10, 7],
+        "amount": [
+            100.0,
+            200.0,
+            150.0,
+            300.0,
+            75.0,
+            125.0,
+            450.0,
+            90.0,
+            175.0,
+            60.0,
+            220.0,
+            180.0,
+            95.0,
+            310.0,
+            140.0,
+        ],
+    },
 )
 orders_path = str(tmp_dir / "orders.parquet")
-orders_data.write_parquet(orders_path)
+write_parquet(orders_df, orders_path)
 
 # ---------------------------------------------------------------------------
 # Pipeline

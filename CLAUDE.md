@@ -28,3 +28,42 @@ When you add, remove, or rename any public API symbol (anything in `__all__`):
 3. **Tutorials** (manual) — Update any affected tutorials in `docs/tutorials/` if they reference changed APIs.
 4. **README.md** — Update if the change affects the quick start, feature list, or examples shown to new users.
 5. **mkdocs build** — Run `uv run mkdocs build --strict` to verify docs build without warnings.
+
+## Updating the Changelog
+
+When a PR adds user-visible changes (new features, bug fixes, breaking changes, deprecations), add an entry to `CHANGELOG.md` under an `## [Unreleased]` section at the top. Use [Keep a Changelog](https://keepachangelog.com/) categories: Added, Changed, Deprecated, Removed, Fixed, Security.
+
+When cutting a release, rename `[Unreleased]` to the version and date, add a new empty `[Unreleased]` section above it, and add a link reference at the bottom.
+
+## Architectural Decisions
+
+### Column[DType] Annotation Pattern
+
+Schema column annotations use `Column[DType]` instead of bare dtype annotations:
+
+```python
+# Correct — type checker sees Column methods
+class Users(Schema):
+    id: Column[UInt64]
+    name: Column[Utf8]
+    age: Column[UInt8 | None]
+
+# WRONG — type checker sees bare dtype, no Column methods visible
+class Users(Schema):
+    age: UInt8
+```
+
+**Rationale:** All Python type checkers (ty, mypy, pyright) read static annotations, not runtime metaclass replacements. With bare `age: UInt8`, the type checker thinks `Users.age` is `UInt8` — a sentinel class with no `.sum()`, `.mean()`, etc. The `Column[DType]` pattern (inspired by SQLAlchemy 2.0's `Mapped[T]`) makes the annotation _be_ the descriptor type.
+
+### Self Narrowing Limitation
+
+The spec envisions dtype-conditional method availability using `self` type narrowing (e.g. `.field()` only on Struct columns, `.list` only on List columns). ty does not yet support `self` narrowing on non-Protocol generic classes, so these methods are available on all `Column` instances at the type level.
+
+**What returns `Any` (improvable with self narrowing):**
+- `.list` property → `ListAccessor[Any]` (should be `ListAccessor[T]`)
+- `.get()`, `.sum()`, `.mean()`, `.min()`, `.max()` → `ListOp[Any]`
+
+**What would become static errors (not currently caught):**
+- `.field()` on non-Struct column, `.list` on non-List column, `.sum()` on non-numeric list
+
+When ty adds self narrowing support, these can be tightened without changing runtime behavior.

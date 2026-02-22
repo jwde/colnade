@@ -1,10 +1,10 @@
 # Colnade
 
-**A statically type-safe DataFrame abstraction layer for Python.**
+**Catch DataFrame column errors before your code runs.**
 
-Colnade replaces string-based column references (`pl.col("age")`) with typed descriptors (`Users.age`), so column misspellings, type mismatches, and schema violations are caught by your type checker — before your code runs.
+Colnade replaces string-based column references (`pl.col("age")`) with typed descriptors (`Users.age`), so column misspellings, type mismatches, and schema violations are caught by your type checker — not in production.
 
-Works with [ty](https://github.com/astral-sh/ty), mypy, and pyright. No plugins, no code generation.
+Works with [ty](https://github.com/astral-sh/ty), mypy, and pyright. No plugins, no code generation. Supports Polars, Pandas, and Dask.
 
 [Get Started](getting-started/installation.md){ .md-button .md-button--primary }
 [Tutorials](tutorials/basic-usage.md){ .md-button }
