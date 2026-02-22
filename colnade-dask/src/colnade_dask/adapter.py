@@ -377,13 +377,21 @@ class DaskBackend:
     def _dtypes_compatible(actual: Any, expected: Any) -> bool:
         """Compare dtypes accounting for storage backend variations.
 
-        Dask may use different storage backends (e.g., pyarrow vs python)
-        for the same logical dtype, so strict equality can fail.
+        Dask/Pandas may return NumPy dtypes (e.g. numpy.uint64) while
+        Colnade maps to Pandas extension types (e.g. pd.UInt64Dtype()).
+        These represent the same logical type, so we treat them as compatible.
         """
         if actual == expected:
             return True
         # StringDtype with different storage backends (python vs pyarrow)
-        return isinstance(actual, pd.StringDtype) and isinstance(expected, pd.StringDtype)
+        if isinstance(actual, pd.StringDtype) and isinstance(expected, pd.StringDtype):
+            return True
+        # NumPy dtype vs Pandas nullable extension type
+        import numpy as np
+
+        if isinstance(actual, np.dtype) and hasattr(expected, "numpy_dtype"):
+            return actual == expected.numpy_dtype
+        return False
 
     def join(self, left: Any, right: Any, on: Any, how: str) -> Any:
         return left.merge(right, left_on=on.left.name, right_on=on.right.name, how=how)

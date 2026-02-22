@@ -383,6 +383,23 @@ class PandasBackend:
         # Pandas has no lazy mode — passthrough
         return source
 
+    @staticmethod
+    def _dtypes_compatible(actual: Any, expected: Any) -> bool:
+        """Compare dtypes accounting for NumPy vs Pandas extension type differences.
+
+        Pandas may return NumPy dtypes (e.g. numpy.uint64) for data read from
+        parquet/CSV while Colnade maps to extension types (e.g. pd.UInt64Dtype()).
+        """
+        if actual == expected:
+            return True
+        if isinstance(actual, pd.StringDtype) and isinstance(expected, pd.StringDtype):
+            return True
+        import numpy as np
+
+        if isinstance(actual, np.dtype) and hasattr(expected, "numpy_dtype"):
+            return actual == expected.numpy_dtype
+        return False
+
     def validate_schema(self, source: Any, schema: type[Schema]) -> None:
         """Validate that a Pandas DataFrame matches the schema."""
         expected_columns = schema._columns
@@ -396,7 +413,7 @@ class PandasBackend:
                 continue
             actual_pd_dtype = source[col_name].dtype
             expected_pd_dtype = map_colnade_dtype(col.dtype)
-            if actual_pd_dtype != expected_pd_dtype:
+            if not self._dtypes_compatible(actual_pd_dtype, expected_pd_dtype):
                 try:
                     actual_colnade = map_pandas_dtype(actual_pd_dtype).__name__
                 except TypeError:
