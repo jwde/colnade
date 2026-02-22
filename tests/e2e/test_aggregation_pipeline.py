@@ -1,7 +1,7 @@
-"""E2E: Aggregation pipeline — group_by → agg → cast_schema → verify.
+"""E2E: Aggregation pipeline — grouped and ungrouped aggregations.
 
-Tests grouped aggregations with multiple expressions, schema binding via
-cast_schema, and verification of aggregation correctness.
+Tests grouped aggregations (group_by → agg → cast_schema → verify) and
+ungrouped aggregations (agg on all rows → single-row result).
 """
 
 from __future__ import annotations
@@ -38,6 +38,12 @@ class OrderStats(Schema):
     user_id: Column[UInt64]
     total_amount: Column[Float64]
     order_count: Column[UInt32]
+
+
+class SummaryStats(Schema):
+    avg_score: Column[Float64]
+    total_score: Column[Float64]
+    user_count: Column[UInt32]
 
 
 # ---------------------------------------------------------------------------
@@ -117,3 +123,49 @@ class TestGroupByAgg:
         expected_sorted = expected.sort("user_id")
         assert result_sorted["user_id"].to_list() == expected_sorted["user_id"].to_list()
         assert result_sorted["total_amount"].to_list() == expected_sorted["total_amount"].to_list()
+
+
+class TestUngroupedAgg:
+    def test_single_agg(self, users_parquet: str) -> None:
+        """Aggregate a single column over all rows."""
+        df = read_parquet(users_parquet, Users)
+        result = df.agg(Users.score.mean().alias(Users.score))
+
+        assert isinstance(result, DataFrame)
+        assert result._data.shape[0] == 1
+        assert "score" in result._data.columns
+
+    def test_multi_agg(self, users_parquet: str) -> None:
+        """Aggregate multiple columns over all rows."""
+        df = read_parquet(users_parquet, Users)
+        result = df.agg(
+            Users.score.sum().as_column(SummaryStats.total_score),
+            Users.id.count().as_column(SummaryStats.user_count),
+        )
+
+        assert result._data.shape[0] == 1
+        assert "total_score" in result._data.columns
+        assert "user_count" in result._data.columns
+
+    def test_agg_then_cast_schema(self, users_parquet: str) -> None:
+        """Ungrouped agg → cast_schema to typed output."""
+        df = read_parquet(users_parquet, Users)
+        result = df.agg(
+            Users.score.mean().as_column(SummaryStats.avg_score),
+            Users.score.sum().as_column(SummaryStats.total_score),
+            Users.id.count().as_column(SummaryStats.user_count),
+        ).cast_schema(SummaryStats)
+
+        assert result._schema is SummaryStats
+        assert set(result._data.columns) == {"avg_score", "total_score", "user_count"}
+        assert result._data.shape[0] == 1
+
+    def test_agg_correctness(self, users_parquet: str) -> None:
+        """Verify ungrouped agg results against raw Polars computation."""
+        df = read_parquet(users_parquet, Users)
+        result = df.agg(Users.score.mean().alias(Users.score))
+
+        raw = pl.read_parquet(users_parquet)
+        expected_mean = raw["score"].mean()
+        actual_mean = result._data["score"][0]
+        assert abs(actual_mean - expected_mean) < 1e-10  # type: ignore[operator]

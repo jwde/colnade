@@ -88,7 +88,13 @@ These change the column set and return `DataFrame[Any]`:
 # select — choose columns
 selected = df.select(Users.name, Users.score)  # DataFrame[Any]
 
-# group_by + agg — aggregate
+# agg — aggregate all rows into a single row
+summary = df.agg(
+    Users.score.mean().as_column(Stats.avg_score),
+    Users.id.count().as_column(Stats.user_count),
+)  # DataFrame[Any]
+
+# group_by + agg — grouped aggregation
 grouped = df.group_by(Users.name).agg(
     Users.score.mean().alias(Users.score)
 )  # DataFrame[Any]

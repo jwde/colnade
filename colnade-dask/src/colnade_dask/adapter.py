@@ -354,6 +354,17 @@ class DaskBackend:
                 grouped = grouped.rename(columns={old_name: new_name})
         return grouped
 
+    def agg(self, source: Any, aggs: Sequence[AliasedExpr[Any]]) -> Any:
+        result: dict[str, Any] = {}
+        for agg_expr in aggs:
+            translated = self.translate_expr(agg_expr)
+            inner, alias = translated
+            source_fn, agg_name = inner
+            col_name = self._extract_col_name(source_fn, source)
+            val = getattr(source[col_name], agg_name)()
+            result[alias] = val.compute() if hasattr(val, "compute") else val
+        return dd.from_pandas(pd.DataFrame([result]), npartitions=1)
+
     def _extract_col_name(self, fn: Any, df: Any) -> str:
         """Extract column name from a translated ColumnRef function."""
         series = fn(df)

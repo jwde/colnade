@@ -589,3 +589,44 @@ class TestFunctionCallExecution:
         df = DataFrame(_data=ddf, _schema=Events, _backend=_backend)
         result = df.with_columns(Events.ts.dt_truncate("D").alias(Events.ts))
         assert result._data.compute()["ts"].tolist()[0] == pd.Timestamp("2025-03-15")
+
+
+# ---------------------------------------------------------------------------
+# Ungrouped aggregation
+# ---------------------------------------------------------------------------
+
+
+class TestUngroupedAgg:
+    def test_ungrouped_single_agg(self) -> None:
+        data = pd.DataFrame(
+            {
+                "id": pd.array([1, 2, 3], dtype=pd.UInt64Dtype()),
+                "name": pd.array(["Alice", "Bob", "Charlie"], dtype=pd.StringDtype()),
+                "age": pd.array([30, 25, 35], dtype=pd.UInt64Dtype()),
+            }
+        )
+        ddf = dd.from_pandas(data, npartitions=1)
+        df = DataFrame(_data=ddf, _schema=Users, _backend=_backend)
+        result = df.agg(Users.age.sum().alias(Users.age))
+        computed = result._data.compute()
+        assert computed.shape[0] == 1
+        assert computed["age"].iloc[0] == 90
+
+    def test_ungrouped_multi_agg(self) -> None:
+        data = pd.DataFrame(
+            {
+                "id": pd.array([1, 2, 3], dtype=pd.UInt64Dtype()),
+                "name": pd.array(["Alice", "Bob", "Charlie"], dtype=pd.StringDtype()),
+                "age": pd.array([30, 25, 35], dtype=pd.UInt64Dtype()),
+            }
+        )
+        ddf = dd.from_pandas(data, npartitions=1)
+        df = DataFrame(_data=ddf, _schema=Users, _backend=_backend)
+        result = df.agg(
+            Users.age.sum().alias(Users.age),
+            Users.id.count().alias(Users.id),
+        )
+        computed = result._data.compute()
+        assert computed.shape[0] == 1
+        assert computed["age"].iloc[0] == 90
+        assert computed["id"].iloc[0] == 3
