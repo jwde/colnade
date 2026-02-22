@@ -228,36 +228,9 @@ Colnade adds < 5% overhead for typical Polars operations and < 5% for single Pan
 
 Colnade catches real errors at lint time. Here are actual error messages from `ty`:
 
-### Misspelled column name
-
-```python
-x = Users.agee
-```
-```
-error[unresolved-attribute]: Class `Users` has no attribute `agee`
-```
-
-### Schema mismatch at function boundary
-
-```python
-df: DataFrame[Users] = read_parquet("users.parquet", Users)
-wrong: DataFrame[Orders] = df
-```
-```
-error[invalid-assignment]: Object of type `DataFrame[Users]` is not assignable
-to `DataFrame[Orders]`
-```
-
-### Nullability mismatch in mapped_from
-
-```python
-class Bad(Schema):
-    age: Column[UInt8] = mapped_from(Users.age)  # Users.age is Column[UInt8 | None]
-```
-```
-error[invalid-assignment]: Object of type `Column[UInt8 | None]` is not
-assignable to `Column[UInt8]`
-```
+<p align="center">
+  <img src="docs/assets/error-showcase.svg" alt="ty catching Colnade type errors — misspelled column, schema mismatch, nullability mismatch" width="800">
+</p>
 
 ## Comparison with Existing Solutions
 
