@@ -58,9 +58,9 @@ process_orders(users_df)  # error: expected DataFrame[Orders]
 </div>
 <div class="feature-card" markdown>
 
-### Three validation levels
+### Static + runtime safety
 
-**Off** for zero overhead. **Structural** checks columns and types. **Full** adds value constraints like ranges, patterns, and uniqueness.
+Your type checker catches wrong columns and schema mismatches at edit time. At runtime, opt into **structural** checks (columns + dtypes) or **full** validation (ranges, patterns, uniqueness).
 
 </div>
 <div class="feature-card" markdown>
