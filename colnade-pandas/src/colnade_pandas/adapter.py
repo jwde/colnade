@@ -617,7 +617,7 @@ class PandasBackend:
     def from_dict(
         self,
         data: dict[str, Sequence[Any]],
-        schema: type[Any],
+        schema: type[Schema],
     ) -> Any:
         """Create a Pandas DataFrame from a columnar dict with schema-driven dtypes."""
         from colnade_pandas.conversion import map_colnade_dtype

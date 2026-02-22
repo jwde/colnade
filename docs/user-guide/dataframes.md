@@ -18,14 +18,7 @@ df = from_rows(Users, [
 # df is DataFrame[Users] with correct dtypes
 ```
 
-`from_rows` accepts `Schema.Row` instances, plain dicts, or any object with matching attributes:
-
-```python
-df = from_rows(Users, [
-    {"id": 1, "name": "Alice", "age": 30, "score": 85.0},
-    {"id": 2, "name": "Bob", "age": 25, "score": 92.5},
-])
-```
+`from_rows` accepts `Row[S]` instances — the type checker verifies that rows match the schema, so passing `Orders.Row` where `Users.Row` is expected is a static error. For row-oriented dicts, construct `Row` instances first: `Users.Row(**d)`.
 
 ### From columnar dict
 

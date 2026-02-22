@@ -53,7 +53,7 @@ from colnade.expr import (
     UnaryOp,
     lit,
 )
-from colnade.schema import Column, ListAccessor, Schema, SchemaError, mapped_from
+from colnade.schema import Column, ListAccessor, Row, Schema, SchemaError, mapped_from
 from colnade.validation import (
     ValidationLevel,
     get_validation_level,
@@ -69,6 +69,7 @@ __all__ = [
     # Schema layer
     "Schema",
     "Column",
+    "Row",
     "ListAccessor",
     "mapped_from",
     "SchemaError",

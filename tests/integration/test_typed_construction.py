@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 import colnade
-from colnade import Column, DataFrame, Float64, Schema, UInt64, Utf8, ValidationLevel
+from colnade import Column, DataFrame, Float64, Row, Schema, UInt64, Utf8, ValidationLevel
 from colnade.constraints import Field
 
 # ---------------------------------------------------------------------------
@@ -18,6 +18,11 @@ class Users(Schema):
     name: Column[Utf8]
     age: Column[UInt64]
     score: Column[Float64]
+
+
+class Orders(Schema):
+    id: Column[UInt64]
+    amount: Column[Float64]
 
 
 class UsersConstrained(Schema):
@@ -47,12 +52,24 @@ def _sample_rows() -> list:
     ]
 
 
-def _sample_dicts() -> list[dict]:
-    return [
-        {"id": 1, "name": "Alice", "age": 30, "score": 85.0},
-        {"id": 2, "name": "Bob", "age": 25, "score": 92.5},
-        {"id": 3, "name": "Charlie", "age": 35, "score": 78.0},
-    ]
+# ===========================================================================
+# Row[S] base class
+# ===========================================================================
+
+
+class TestRowType:
+    def test_row_is_instance_of_row_base(self) -> None:
+        row = Users.Row(id=1, name="Alice", age=30, score=85.0)
+        assert isinstance(row, Row)
+
+    def test_different_schemas_produce_different_row_types(self) -> None:
+        user_row = Users.Row(id=1, name="Alice", age=30, score=85.0)
+        order_row = Orders.Row(id=1, amount=99.0)
+        # Both are Row instances
+        assert isinstance(user_row, Row)
+        assert isinstance(order_row, Row)
+        # But different classes
+        assert type(user_row) is not type(order_row)
 
 
 # ===========================================================================
@@ -71,12 +88,12 @@ class TestPolarsFromDict:
 
     def test_dtype_coercion(self) -> None:
         """Plain Python ints are coerced to UInt64, floats to Float64."""
+        import polars as pl
+
         from colnade_polars import from_dict
 
         df = from_dict(Users, SAMPLE_DICT)
         native = df.to_native()
-        import polars as pl
-
         assert native["id"].dtype == pl.UInt64
         assert native["name"].dtype == pl.String
         assert native["age"].dtype == pl.UInt64
@@ -114,14 +131,6 @@ class TestPolarsFromRows:
         df = from_rows(Users, _sample_rows())
         assert df.height == 3
         assert df.width == 4
-
-    def test_from_dicts(self) -> None:
-        from colnade_polars import from_rows
-
-        df = from_rows(Users, _sample_dicts())
-        assert df.height == 3
-        rows = list(df.iter_rows_as(dict))
-        assert rows[1]["name"] == "Bob"
 
     def test_roundtrip(self) -> None:
         """from_rows → iter_rows_as roundtrip preserves data."""
@@ -193,12 +202,6 @@ class TestPandasFromRows:
         assert df.height == 3
         assert df.width == 4
 
-    def test_from_dicts(self) -> None:
-        from colnade_pandas import from_rows
-
-        df = from_rows(Users, _sample_dicts())
-        assert df.height == 3
-
 
 # ===========================================================================
 # Dask
@@ -234,12 +237,6 @@ class TestDaskFromRows:
         from colnade_dask import from_rows
 
         df = from_rows(Users, _sample_rows())
-        assert df.height == 3
-
-    def test_from_dicts(self) -> None:
-        from colnade_dask import from_rows
-
-        df = from_rows(Users, _sample_dicts())
         assert df.height == 3
 
 
@@ -331,13 +328,6 @@ class TestRowsToDict:
         assert result["name"] == ["Alice", "Bob", "Charlie"]
         assert result["age"] == [30, 25, 35]
         assert result["score"] == [85.0, 92.5, 78.0]
-
-    def test_from_dicts(self) -> None:
-        from colnade.dataframe import rows_to_dict
-
-        result = rows_to_dict(_sample_dicts(), Users)
-        assert result["id"] == [1, 2, 3]
-        assert result["name"] == ["Alice", "Bob", "Charlie"]
 
     def test_empty(self) -> None:
         from colnade.dataframe import rows_to_dict

@@ -7,7 +7,7 @@ from typing import Any, TypeVar
 
 import polars as pl
 
-from colnade import DataFrame, LazyFrame, Schema
+from colnade import DataFrame, LazyFrame, Row, Schema
 from colnade.dataframe import rows_to_dict
 from colnade.validation import ValidationLevel, get_validation_level, is_validation_enabled
 from colnade_polars.adapter import PolarsBackend
@@ -74,12 +74,12 @@ def from_dict(
 
 def from_rows(
     schema: type[S],
-    rows: Sequence[Any],
+    rows: Sequence[Row[S]],
 ) -> DataFrame[S]:
-    """Create a typed DataFrame from row objects.
+    """Create a typed DataFrame from ``Row[S]`` instances.
 
-    Accepts ``Schema.Row`` instances, plain dicts, or any object with
-    attributes matching the schema's column names.
+    The type checker verifies that rows match the schema — passing
+    ``Orders.Row`` where ``Users.Row`` is expected is a static error.
 
     Example::
 

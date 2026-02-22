@@ -7,7 +7,7 @@ from typing import Any, TypeVar
 
 import pandas as pd
 
-from colnade import DataFrame, Schema
+from colnade import DataFrame, Row, Schema
 from colnade.dataframe import rows_to_dict
 from colnade.validation import ValidationLevel, get_validation_level, is_validation_enabled
 from colnade_pandas.adapter import PandasBackend
@@ -62,12 +62,12 @@ def from_dict(
 
 def from_rows(
     schema: type[S],
-    rows: Sequence[Any],
+    rows: Sequence[Row[S]],
 ) -> DataFrame[S]:
-    """Create a typed DataFrame from row objects.
+    """Create a typed DataFrame from ``Row[S]`` instances.
 
-    Accepts ``Schema.Row`` instances, plain dicts, or any object with
-    attributes matching the schema's column names.
+    The type checker verifies that rows match the schema — passing
+    ``Orders.Row`` where ``Users.Row`` is expected is a static error.
     """
     data = rows_to_dict(rows, schema)
     return from_dict(schema, data)

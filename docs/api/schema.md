@@ -34,6 +34,10 @@ Schema base class, Column descriptors, backend protocol, and supporting utilitie
 
 ::: colnade._protocols.BackendProtocol
 
+## Row
+
+::: colnade.schema.Row
+
 ## ArrowBatch
 
 ::: colnade.arrow.ArrowBatch

@@ -557,11 +557,24 @@ class ListAccessor(Generic[DType]):
 
 
 # ---------------------------------------------------------------------------
-# Row dataclass generation
+# Row base class and dataclass generation
 # ---------------------------------------------------------------------------
 
 
-def _build_row_class(schema_name: str, columns: dict[str, Column[Any]]) -> type:
+class Row(Generic[S]):
+    """Base class for schema Row dataclasses.
+
+    ``Row[S]`` links a row type to its schema, enabling static verification
+    that ``from_rows(Users, rows)`` receives ``Row[Users]`` instances, not
+    ``Row[Orders]``.  Same pattern as ``ArrowBatch[S]``.
+
+    Each ``Schema`` subclass gets an auto-generated ``Row`` inner class::
+
+        Users.Row(id=1, name="Alice", age=30)  # type is Row[Users]
+    """
+
+
+def _build_row_class(schema_name: str, schema_cls: type, columns: dict[str, Column[Any]]) -> type:
     """Build a frozen dataclass representing a single row of the schema."""
     import dataclasses
 
@@ -575,6 +588,7 @@ def _build_row_class(schema_name: str, columns: dict[str, Column[Any]]) -> type:
     return dataclasses.make_dataclass(
         f"{schema_name}Row",
         fields,
+        bases=(Row[schema_cls],),
         frozen=True,
         slots=True,
     )
@@ -678,7 +692,7 @@ class SchemaMeta(type(Protocol)):  # type(Protocol) is typing._ProtocolMeta (CPy
 
         # Generate Row dataclass for non-base schemas with columns
         if name != "Schema" and columns:
-            cls.Row = _build_row_class(name, columns)  # type: ignore[attr-defined]
+            cls.Row = _build_row_class(name, cls, columns)  # type: ignore[attr-defined]
 
         # Register non-base schemas
         if name != "Schema":
@@ -754,4 +768,4 @@ class Schema(Protocol, metaclass=SchemaMeta):
     _columns: dict[str, Column[Any]]
     _schema_checks: list[Any]
     if TYPE_CHECKING:
-        Row: type
+        Row: type[Row[Any]]

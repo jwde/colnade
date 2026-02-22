@@ -18,7 +18,7 @@ from __future__ import annotations
 from collections.abc import Callable, Iterator, Sequence
 from typing import TYPE_CHECKING, Any, Generic, TypeVar, overload
 
-from colnade.schema import S2, S3, Column, S, Schema, SchemaError
+from colnade.schema import S2, S3, Column, Row, S, Schema, SchemaError
 
 R = TypeVar("R")
 
@@ -43,26 +43,17 @@ _NO_BACKEND_MSG = (
 
 
 def rows_to_dict(
-    rows: Sequence[Any],
-    schema: type[Any],
+    rows: Sequence[Row[S]],
+    schema: type[S],
 ) -> dict[str, list[Any]]:
-    """Convert a sequence of row objects to a columnar dict.
-
-    Accepts Schema.Row instances (frozen dataclasses), plain dicts,
-    or any object with matching attributes.
-    """
+    """Convert a sequence of ``Row[S]`` instances to a columnar dict."""
     import dataclasses
 
     col_names = list(schema._columns)
     result: dict[str, list[Any]] = {name: [] for name in col_names}
 
     for row in rows:
-        if isinstance(row, dict):
-            row_dict = row
-        elif dataclasses.is_dataclass(row) and not isinstance(row, type):
-            row_dict = dataclasses.asdict(row)
-        else:
-            row_dict = vars(row)
+        row_dict = dataclasses.asdict(row)
         for name in col_names:
             result[name].append(row_dict[name])
 

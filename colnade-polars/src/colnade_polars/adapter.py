@@ -525,7 +525,7 @@ class PolarsBackend:
     def from_dict(
         self,
         data: dict[str, Sequence[Any]],
-        schema: type[Any],
+        schema: type[Schema],
     ) -> Any:
         """Create a Polars DataFrame from a columnar dict with schema-driven dtypes."""
         from colnade_polars.conversion import map_colnade_dtype
