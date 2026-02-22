@@ -1,6 +1,6 @@
 [project]
 name = "colnade-pandas"
-version = "0.3.0"
+version = "0.3.1"
 description = "Pandas backend adapter for Colnade"
 requires-python = ">=3.10"
 license = "MIT"
