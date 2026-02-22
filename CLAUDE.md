@@ -35,6 +35,39 @@ When a PR adds user-visible changes (new features, bug fixes, breaking changes, 
 
 When cutting a release, rename `[Unreleased]` to the version and date, add a new empty `[Unreleased]` section above it, and add a link reference at the bottom.
 
+## Issue and PR Workflow
+
+Issues are the coordination mechanism for all work — both internal and external contributions.
+
+### Labels
+
+| Label | Meaning |
+|-------|---------|
+| `triage` | Needs maintainer review — not yet confirmed |
+| `approved` | Confirmed worth doing, ready for someone to pick up |
+| `good first issue` | Scoped and newcomer-friendly |
+| `bug` / `feature` / `docs` | Type labels (combine with triage/approved) |
+
+### Triage process
+
+- External issues from contributors start with `triage`. Review and either close or move to `approved`.
+- Internal issues (filed by maintainer or agent) skip triage — label `approved` immediately.
+- The working backlog is `label:approved`. Use this filter to find what to work on next.
+
+### Filing issues
+
+When filing issues, include:
+- Clear title describing the desired outcome
+- Enough context for someone else to understand and implement
+- Type label (`bug`, `feature`, `docs`)
+- `approved` label for internal issues
+
+### PRs
+
+- Always open PRs against `main` — do not commit directly to `main`
+- Reference the GitHub issue in the PR description
+- Keep PRs focused — one feature or fix per PR
+
 ## Architectural Decisions
 
 ### Column[DType] Annotation Pattern
