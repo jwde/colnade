@@ -6,11 +6,9 @@ The type checker preserves the concrete schema through generic function calls.
 
 from __future__ import annotations
 
-import polars as pl
-
 from colnade import Column, DataFrame, Float64, Schema, UInt64, Utf8
 from colnade.schema import S
-from colnade_polars import PolarsBackend
+from colnade_polars import from_dict
 
 # ---------------------------------------------------------------------------
 # Schemas
@@ -58,23 +56,23 @@ def count_rows(df: DataFrame[S]) -> int:
 # Create sample data
 # ---------------------------------------------------------------------------
 
-users_data = pl.DataFrame(
+users = from_dict(
+    Users,
     {
-        "id": pl.Series([1, 2, 3, 4, 5], dtype=pl.UInt64),
+        "id": [1, 2, 3, 4, 5],
         "name": ["Alice", "Bob", "Charlie", "Diana", "Eve"],
-        "score": pl.Series([85.0, 92.5, 78.0, 95.0, 88.0], dtype=pl.Float64),
-    }
+        "score": [85.0, 92.5, 78.0, 95.0, 88.0],
+    },
 )
-users = DataFrame(_data=users_data, _schema=Users, _backend=PolarsBackend())
 
-products_data = pl.DataFrame(
+products = from_dict(
+    Products,
     {
-        "id": pl.Series([1, 2, 3], dtype=pl.UInt64),
+        "id": [1, 2, 3],
         "name": ["Widget", "Gadget", "Doohickey"],
-        "price": pl.Series([9.99, 24.99, 4.99], dtype=pl.Float64),
-    }
+        "price": [9.99, 24.99, 4.99],
+    },
 )
-products = DataFrame(_data=products_data, _schema=Products, _backend=PolarsBackend())
 
 # ---------------------------------------------------------------------------
 # Use generic functions — schema type is preserved
