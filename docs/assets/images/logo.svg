@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="colnade-grad" x1="0" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#5C6BC0"/>
+      <stop offset="100%" stop-color="#1A237E"/>
+    </linearGradient>
+  </defs>
+  <!-- Entablature — the schema binding columns together -->
+  <rect x="14" y="24" width="100" height="8" rx="2" fill="url(#colnade-grad)"/>
+  <!-- Pediment — triangular top, classical colonnade motif -->
+  <polygon points="64,8 18,24 110,24" fill="url(#colnade-grad)"/>
+  <!-- Column 1 -->
+  <rect x="22" y="34" width="12" height="72" rx="2" fill="url(#colnade-grad)"/>
+  <!-- Column 2 -->
+  <rect x="46" y="34" width="12" height="72" rx="2" fill="url(#colnade-grad)"/>
+  <!-- Column 3 -->
+  <rect x="70" y="34" width="12" height="72" rx="2" fill="url(#colnade-grad)"/>
+  <!-- Column 4 -->
+  <rect x="94" y="34" width="12" height="72" rx="2" fill="url(#colnade-grad)"/>
+  <!-- Base -->
+  <rect x="14" y="108" width="100" height="6" rx="2" fill="url(#colnade-grad)"/>
+</svg>
