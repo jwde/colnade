@@ -6,6 +6,7 @@ repo_name: jwde/colnade
 
 theme:
   name: material
+  custom_dir: docs/overrides
   palette:
     - scheme: default
       primary: indigo
@@ -49,6 +50,9 @@ plugins:
             merge_init_into_class: true
             signature_crossrefs: true
             docstring_style: google
+
+extra_css:
+  - assets/stylesheets/home.css
 
 markdown_extensions:
   - pymdownx.highlight:
