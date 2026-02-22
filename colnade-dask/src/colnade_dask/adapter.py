@@ -234,21 +234,28 @@ class DaskBackend:
         op = expr.op
 
         if op == "len":
-            return lambda df, _l=list_fn: _l(df).apply(len)
+            return lambda df, _l=list_fn: _l(df).apply(len, meta=(_l(df).name, "int64"))
         if op == "get":
             idx = expr.args[0]
-            return lambda df, _l=list_fn, _i=idx: _l(df).apply(lambda x: x[_i])
+            return lambda df, _l=list_fn, _i=idx: _l(df).apply(
+                lambda x: x[_i], meta=(_l(df).name, "object")
+            )
         if op == "contains":
             val = expr.args[0]
-            return lambda df, _l=list_fn, _v=val: _l(df).apply(lambda x: _v in x)
+            return lambda df, _l=list_fn, _v=val: _l(df).apply(
+                lambda x: _v in x, meta=(_l(df).name, "bool")
+            )
         if op == "sum":
-            return lambda df, _l=list_fn: _l(df).apply(sum)
+            return lambda df, _l=list_fn: _l(df).apply(sum, meta=(_l(df).name, "float64"))
         if op == "mean":
-            return lambda df, _l=list_fn: _l(df).apply(lambda x: sum(x) / len(x) if x else None)
+            return lambda df, _l=list_fn: _l(df).apply(
+                lambda x: sum(x) / len(x) if len(x) > 0 else None,
+                meta=(_l(df).name, "float64"),
+            )
         if op == "min":
-            return lambda df, _l=list_fn: _l(df).apply(min)
+            return lambda df, _l=list_fn: _l(df).apply(min, meta=(_l(df).name, "object"))
         if op == "max":
-            return lambda df, _l=list_fn: _l(df).apply(max)
+            return lambda df, _l=list_fn: _l(df).apply(max, meta=(_l(df).name, "object"))
 
         msg = f"Unsupported ListOp: {op}"
         raise ValueError(msg)
