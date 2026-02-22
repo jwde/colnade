@@ -264,6 +264,9 @@ class PolarsBackend:
     ) -> Any:
         return source.group_by([k.name for k in keys]).agg([self.translate_expr(a) for a in aggs])
 
+    def agg(self, source: Any, aggs: Sequence[AliasedExpr[Any]]) -> Any:
+        return source.select([self.translate_expr(a) for a in aggs])
+
     def join(self, left: Any, right: Any, on: Any, how: str) -> Any:
         return left.join(right, left_on=on.left.name, right_on=on.right.name, how=how)
 

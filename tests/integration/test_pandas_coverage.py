@@ -643,3 +643,40 @@ class TestStructFieldAccess:
         df = DataFrame(_data=data, _schema=People, _backend=_backend)
         result = df.with_columns(People.addr.field(Address.city).alias(People.addr))
         assert result._data["addr"].tolist() == ["NYC", "LA"]
+
+
+# ---------------------------------------------------------------------------
+# Ungrouped aggregation
+# ---------------------------------------------------------------------------
+
+
+class TestUngroupedAgg:
+    def test_ungrouped_single_agg(self) -> None:
+        data = pd.DataFrame(
+            {
+                "id": pd.array([1, 2, 3], dtype=pd.UInt64Dtype()),
+                "name": pd.array(["Alice", "Bob", "Charlie"], dtype=pd.StringDtype()),
+                "age": pd.array([30, 25, 35], dtype=pd.UInt64Dtype()),
+            }
+        )
+        df = DataFrame(_data=data, _schema=Users, _backend=_backend)
+        result = df.agg(Users.age.sum().alias(Users.age))
+        assert result._data.shape[0] == 1
+        assert result._data["age"].iloc[0] == 90
+
+    def test_ungrouped_multi_agg(self) -> None:
+        data = pd.DataFrame(
+            {
+                "id": pd.array([1, 2, 3], dtype=pd.UInt64Dtype()),
+                "name": pd.array(["Alice", "Bob", "Charlie"], dtype=pd.StringDtype()),
+                "age": pd.array([30, 25, 35], dtype=pd.UInt64Dtype()),
+            }
+        )
+        df = DataFrame(_data=data, _schema=Users, _backend=_backend)
+        result = df.agg(
+            Users.age.sum().alias(Users.age),
+            Users.id.count().alias(Users.id),
+        )
+        assert result._data.shape[0] == 1
+        assert result._data["age"].iloc[0] == 90
+        assert result._data["id"].iloc[0] == 3

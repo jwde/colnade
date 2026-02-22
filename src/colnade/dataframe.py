@@ -414,6 +414,14 @@ class DataFrame(Generic[S]):
         data = _require_backend(self._backend).select(self._data, columns)
         return DataFrame(_data=data, _schema=None, _backend=self._backend)
 
+    # --- Aggregation ---
+
+    def agg(self, *exprs: AliasedExpr[Any]) -> DataFrame[Any]:
+        """Aggregate all rows into a single row."""
+        _validate_expr_columns(self._schema, *exprs)
+        data = _require_backend(self._backend).agg(self._data, exprs)
+        return DataFrame(_data=data, _schema=None, _backend=self._backend)
+
     # --- GroupBy ---
 
     def group_by(self, *keys: Column[Any]) -> GroupBy[S]:
@@ -751,6 +759,14 @@ class LazyFrame(Generic[S]):
         """Select columns. Returns LazyFrame[Any] — use cast_schema() to bind."""
         _validate_expr_columns(self._schema, *columns)
         data = _require_backend(self._backend).select(self._data, columns)
+        return LazyFrame(_data=data, _schema=None, _backend=self._backend)
+
+    # --- Aggregation ---
+
+    def agg(self, *exprs: AliasedExpr[Any]) -> LazyFrame[Any]:
+        """Aggregate all rows into a single row."""
+        _validate_expr_columns(self._schema, *exprs)
+        data = _require_backend(self._backend).agg(self._data, exprs)
         return LazyFrame(_data=data, _schema=None, _backend=self._backend)
 
     # --- GroupBy ---

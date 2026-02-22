@@ -347,6 +347,16 @@ class PandasBackend:
                 grouped = grouped.rename(columns={old_name: new_name})
         return grouped
 
+    def agg(self, source: Any, aggs: Sequence[AliasedExpr[Any]]) -> Any:
+        result: dict[str, Any] = {}
+        for agg_expr in aggs:
+            translated = self.translate_expr(agg_expr)
+            inner, alias = translated
+            source_fn, agg_name = inner
+            col_name = self._extract_col_name(source_fn, source)
+            result[alias] = getattr(source[col_name], agg_name)()
+        return pd.DataFrame([result])
+
     def _extract_col_name(self, fn: Any, df: pd.DataFrame) -> str:
         """Extract column name from a translated ColumnRef function."""
         series = fn(df)
