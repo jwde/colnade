@@ -8,8 +8,8 @@ from __future__ import annotations
 
 import polars as pl
 
-from colnade import Column, DataFrame, Float64, Schema, UInt32, UInt64, Utf8
-from colnade_polars.io import read_parquet
+from colnade import Column, DataFrame, Float64, LazyFrame, Schema, UInt32, UInt64, Utf8
+from colnade_polars.io import read_parquet, scan_parquet
 
 # ---------------------------------------------------------------------------
 # Schemas
@@ -159,6 +159,16 @@ class TestUngroupedAgg:
         assert result._schema is SummaryStats
         assert set(result._data.columns) == {"avg_score", "total_score", "user_count"}
         assert result._data.shape[0] == 1
+
+    def test_lazy_agg(self, users_parquet: str) -> None:
+        """Ungrouped agg on a LazyFrame."""
+        lf = scan_parquet(users_parquet, Users)
+        result = lf.agg(Users.score.mean().alias(Users.score))
+
+        assert isinstance(result, LazyFrame)
+        collected = result.collect()
+        assert collected._data.shape[0] == 1
+        assert "score" in collected._data.columns
 
     def test_agg_correctness(self, users_parquet: str) -> None:
         """Verify ungrouped agg results against raw Polars computation."""
