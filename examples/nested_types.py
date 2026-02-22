@@ -5,8 +5,10 @@ Demonstrates typed access to struct fields and list operations.
 
 from __future__ import annotations
 
-from colnade import Column, Float64, List, Schema, Struct, UInt64, Utf8
-from colnade_polars import from_dict
+import polars as pl
+
+from colnade import Column, DataFrame, Float64, List, Schema, Struct, UInt64, Utf8
+from colnade_polars import PolarsBackend
 
 # ---------------------------------------------------------------------------
 # Schemas with nested types
@@ -30,10 +32,9 @@ class UserProfile(Schema):
 # Create data with struct and list columns
 # ---------------------------------------------------------------------------
 
-df = from_dict(
-    UserProfile,
+data = pl.DataFrame(
     {
-        "id": [1, 2, 3],
+        "id": pl.Series([1, 2, 3], dtype=pl.UInt64),
         "name": ["Alice", "Bob", "Charlie"],
         "address": [
             {"city": "New York", "zip_code": "10001"},
@@ -42,8 +43,10 @@ df = from_dict(
         ],
         "tags": [["python", "data"], ["rust", "systems"], ["python", "ml", "data"]],
         "scores": [[85.0, 90.0], [92.5, 88.0, 95.0], [78.0]],
-    },
+    }
 )
+
+df = DataFrame(_data=data, _schema=UserProfile, _backend=PolarsBackend())
 print("User profiles:")
 print(df._data)
 print()

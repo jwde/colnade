@@ -7,8 +7,10 @@ from __future__ import annotations
 
 import tempfile
 
+import polars as pl
+
 from colnade import Column, Float64, Schema, UInt64, Utf8
-from colnade_polars import from_dict, write_parquet
+from colnade_polars import write_parquet
 from colnade_polars.io import read_parquet
 
 # ---------------------------------------------------------------------------
@@ -32,18 +34,17 @@ class UserSummary(Schema):
 # 2. Create sample data and write to Parquet
 # ---------------------------------------------------------------------------
 
-df = from_dict(
-    Users,
+data = pl.DataFrame(
     {
-        "id": [1, 2, 3, 4, 5],
+        "id": pl.Series([1, 2, 3, 4, 5], dtype=pl.UInt64),
         "name": ["Alice", "Bob", "Charlie", "Diana", "Eve"],
-        "age": [30, 25, 35, 28, 40],
-        "score": [85.0, 92.5, 78.0, 95.0, 88.0],
-    },
+        "age": pl.Series([30, 25, 35, 28, 40], dtype=pl.UInt64),
+        "score": pl.Series([85.0, 92.5, 78.0, 95.0, 88.0], dtype=pl.Float64),
+    }
 )
 
 with tempfile.NamedTemporaryFile(suffix=".parquet", delete=False) as f:
-    write_parquet(df, f.name)
+    data.write_parquet(f.name)
     parquet_path = f.name
 
 # ---------------------------------------------------------------------------

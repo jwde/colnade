@@ -5,8 +5,10 @@ Demonstrates how Colnade handles nullable data with type safety.
 
 from __future__ import annotations
 
-from colnade import Column, Float64, Schema, UInt64, Utf8
-from colnade_polars import from_dict
+import polars as pl
+
+from colnade import Column, DataFrame, Float64, Schema, UInt64, Utf8
+from colnade_polars import PolarsBackend
 
 # ---------------------------------------------------------------------------
 # Schema with nullable columns
@@ -24,15 +26,16 @@ class Users(Schema):
 # Create data with nulls
 # ---------------------------------------------------------------------------
 
-df = from_dict(
-    Users,
+data = pl.DataFrame(
     {
-        "id": [1, 2, 3, 4, 5],
+        "id": pl.Series([1, 2, 3, 4, 5], dtype=pl.UInt64),
         "name": ["Alice", "Bob", "Charlie", "Diana", "Eve"],
-        "age": [30, None, 35, None, 40],
-        "score": [85.0, 92.5, None, 95.0, None],
-    },
+        "age": pl.Series([30, None, 35, None, 40], dtype=pl.UInt64),
+        "score": pl.Series([85.0, 92.5, None, 95.0, None], dtype=pl.Float64),
+    }
 )
+
+df = DataFrame(_data=data, _schema=Users, _backend=PolarsBackend())
 print("Original data:")
 print(df._data)
 print(f"Age nulls: {df._data['age'].null_count()}")
