@@ -1,5 +1,9 @@
 # Colnade
 
+[![CI](https://github.com/jwde/colnade/actions/workflows/ci.yml/badge.svg)](https://github.com/jwde/colnade/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/colnade)](https://pypi.org/project/colnade/)
+[![Python 3.10+](https://img.shields.io/pypi/pyversions/colnade)](https://pypi.org/project/colnade/)
+
 A statically type-safe DataFrame abstraction layer for Python.
 
 Colnade replaces string-based column references (`pl.col("age")`) with typed descriptors (`Users.age`), so column misspellings, type mismatches, and schema violations are caught by your type checker — before your code runs.
@@ -267,9 +271,13 @@ assignable to `Column[UInt8]`
 | Struct/List typed access | Yes | No | No | No | No |
 | Lazy execution support | Yes | No | No | No | Yes |
 | Value-level constraints | `Field()` | `Check` | No | Pydantic validators | No |
+| Maturity / ecosystem | New (v0.5) | Mature, large community | Mature | Small | Growing fast |
+| Engine breadth | 3 backends | 4+ backends | Own engine | 1 backend | 6+ backends |
+| select/group_by output typing | `DataFrame[Any]`³ | Decorator-checked | Positional types | No | No |
 
 ¹ Schema-preserving ops (filter, sort, with_columns) retain `DataFrame[S]`. Schema-transforming ops (select, group_by) return `DataFrame[Any]` — use `cast_schema()` to bind.
 ² Pandera's `@check_types` validates schemas at function boundaries via decorator, but column references within function bodies remain unchecked strings.
+³ `cast_schema()` re-binds at runtime. A type checker plugin could theoretically infer output schemas, but Colnade intentionally avoids plugin coupling.
 
 See [Detailed Comparisons](https://colnade.com/comparison/) for a fuller discussion of tradeoffs.
 

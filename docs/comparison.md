@@ -12,12 +12,17 @@
 | Struct/List typed access | Yes | No | No | No | No |
 | Lazy execution support | Yes | No | No | No | Yes |
 | Value-level constraints | `Field()` | `Check` | No | Pydantic validators | No |
+| Maturity / ecosystem | New (v0.5) | Mature, large community | Mature | Small | Growing fast |
+| Engine breadth | 3 backends | 4+ backends | Own engine | 1 backend | 6+ backends |
+| select/group_by output typing | `DataFrame[Any]`⁴ | Decorator-checked | Positional types | No | No |
 
 ¹ StaticFrame encodes column *types* positionally via `TypeVarTuple`, but column *names* are not part of the type signature.
 
 ² Schema-preserving ops (filter, sort, with_columns) retain `DataFrame[S]`. Schema-transforming ops (select, group_by) return `DataFrame[Any]` — `cast_schema()` is needed to bind to the output schema and acts as a runtime trust boundary.
 
 ³ Pandera's `@check_types` decorator validates schemas at function entry/exit, but column references within function bodies remain unchecked strings (`pa.Column("age")`).
+
+⁴ `cast_schema()` re-binds at runtime. A type checker plugin could theoretically infer output schemas, but Colnade intentionally avoids plugin coupling.
 
 ## Detailed Comparisons
 
