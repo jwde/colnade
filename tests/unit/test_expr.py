@@ -490,3 +490,119 @@ class TestLit:
     def test_lit_bool(self) -> None:
         e = lit(True)
         assert isinstance(e, Literal) and e.value is True
+
+
+# ---------------------------------------------------------------------------
+# Expr base class operators (on expression results, not Column instances)
+# ---------------------------------------------------------------------------
+
+
+class TestExprBaseClassOperators:
+    """Tests for operators defined on the Expr base class.
+
+    Column overrides all operators, so Expr's versions only fire on
+    expression results (BinOp, FunctionCall, etc.), not Column instances.
+    """
+
+    def test_expr_lt(self) -> None:
+        e = (Users.age + 1) < 18
+        assert isinstance(e, BinOp) and e.op == "<"
+
+    def test_expr_ge(self) -> None:
+        e = (Users.age + 1) >= 18
+        assert isinstance(e, BinOp) and e.op == ">="
+
+    def test_expr_le(self) -> None:
+        e = (Users.age + 1) <= 18
+        assert isinstance(e, BinOp) and e.op == "<="
+
+    def test_expr_radd(self) -> None:
+        e = 5 + (Users.age + 1)
+        assert isinstance(e, BinOp) and e.op == "+"
+        assert isinstance(e.left, Literal) and e.left.value == 5
+
+    def test_expr_rsub(self) -> None:
+        e = 10 - (Users.age + 1)
+        assert isinstance(e, BinOp) and e.op == "-"
+        assert isinstance(e.left, Literal) and e.left.value == 10
+
+    def test_expr_rmul(self) -> None:
+        e = 3 * (Users.age + 1)
+        assert isinstance(e, BinOp) and e.op == "*"
+        assert isinstance(e.left, Literal) and e.left.value == 3
+
+    def test_expr_truediv(self) -> None:
+        e = (Users.age + 1) / 2
+        assert isinstance(e, BinOp) and e.op == "/"
+
+    def test_expr_rtruediv(self) -> None:
+        e = 100 / (Users.age + 1)
+        assert isinstance(e, BinOp) and e.op == "/"
+        assert isinstance(e.left, Literal) and e.left.value == 100
+
+    def test_expr_mod(self) -> None:
+        e = (Users.age + 1) % 2
+        assert isinstance(e, BinOp) and e.op == "%"
+
+    def test_expr_rmod(self) -> None:
+        e = 100 % (Users.age + 1)
+        assert isinstance(e, BinOp) and e.op == "%"
+        assert isinstance(e.left, Literal)
+
+    def test_expr_neg(self) -> None:
+        e = -(Users.age + 1)
+        assert isinstance(e, UnaryOp) and e.op == "-"
+
+    def test_expr_asc(self) -> None:
+        e = (Users.age + 1).asc()
+        assert isinstance(e, SortExpr) and e.descending is False
+
+    def test_expr_over(self) -> None:
+        e = (Users.score + 1).over(Users.id)
+        assert isinstance(e, FunctionCall) and e.name == "over"
+
+
+# ---------------------------------------------------------------------------
+# AST node repr methods
+# ---------------------------------------------------------------------------
+
+
+class TestASTRepr:
+    def test_binop_repr(self) -> None:
+        e = Users.age + 1
+        r = repr(e)
+        assert "BinOp" in r and "+" in r
+
+    def test_unaryop_repr(self) -> None:
+        e = -Users.age
+        r = repr(e)
+        assert "UnaryOp" in r and "-" in r
+
+    def test_literal_repr(self) -> None:
+        e = Literal(value=42)
+        assert repr(e) == "Literal(42)"
+
+    def test_function_call_repr(self) -> None:
+        e = Users.name.str_contains("Smith")
+        r = repr(e)
+        assert "FunctionCall" in r and "str_contains" in r
+
+    def test_agg_repr(self) -> None:
+        e = Users.score.sum()
+        r = repr(e)
+        assert "Agg" in r and "sum" in r
+
+    def test_aliased_expr_repr(self) -> None:
+        e = Users.score.mean().alias(AgeStats.avg_score)
+        r = repr(e)
+        assert "AliasedExpr" in r and "avg_score" in r
+
+    def test_sort_expr_repr_desc(self) -> None:
+        e = Users.age.desc()
+        r = repr(e)
+        assert "SortExpr" in r and "desc" in r
+
+    def test_sort_expr_repr_asc(self) -> None:
+        e = Users.age.asc()
+        r = repr(e)
+        assert "SortExpr" in r and "asc" in r

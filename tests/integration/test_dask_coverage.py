@@ -438,3 +438,154 @@ class TestListOperations:
     def test_list_max(self, list_ddf: DataFrame[TaggedItems]) -> None:
         result = list_ddf.with_columns(TaggedItems.scores.list.max().alias(TaggedItems.scores))
         assert result._data.compute()["scores"].tolist() == [90.0, 95.0, 78.0]
+
+
+# ---------------------------------------------------------------------------
+# Adapter error branches
+# ---------------------------------------------------------------------------
+
+
+class TestAdapterErrorBranches:
+    def test_unsupported_binop_raises(self) -> None:
+        from colnade.expr import BinOp, ColumnRef, Literal
+
+        bad_expr = BinOp(left=ColumnRef(column=Users.id), right=Literal(value=1), op="^^^")
+        with pytest.raises(ValueError, match="Unsupported BinOp"):
+            _backend.translate_expr(bad_expr)
+
+    def test_unsupported_unaryop_raises(self) -> None:
+        from colnade.expr import ColumnRef, UnaryOp
+
+        bad_expr = UnaryOp(operand=ColumnRef(column=Users.id), op="bad_op")
+        with pytest.raises(ValueError, match="Unsupported UnaryOp"):
+            _backend.translate_expr(bad_expr)
+
+    def test_unsupported_agg_raises(self) -> None:
+        from colnade.expr import Agg, ColumnRef
+
+        bad_expr = Agg(source=ColumnRef(column=Users.id), agg_type="bad_agg")
+        with pytest.raises(ValueError, match="Unsupported aggregation"):
+            _backend.translate_expr(bad_expr)
+
+    def test_unsupported_function_call_raises(self) -> None:
+        from colnade.expr import ColumnRef, FunctionCall
+
+        bad_expr = FunctionCall(name="bad_function", args=(ColumnRef(column=Users.id),))
+        with pytest.raises(ValueError, match="Unsupported FunctionCall"):
+            _backend.translate_expr(bad_expr)
+
+    def test_unsupported_expression_type_raises(self) -> None:
+        with pytest.raises(TypeError, match="Unsupported expression type"):
+            _backend.translate_expr("not an expr")  # type: ignore[arg-type]
+
+    def test_unsupported_list_op_raises(self) -> None:
+        from colnade.expr import ColumnRef, ListOp
+
+        bad_expr = ListOp(list_expr=ColumnRef(column=Users.id), op="bad_list_op", args=())
+        with pytest.raises(ValueError, match="Unsupported ListOp"):
+            _backend.translate_expr(bad_expr)
+
+
+# ---------------------------------------------------------------------------
+# Unary operations executed through the backend
+# ---------------------------------------------------------------------------
+
+
+class TestUnaryOpsExecution:
+    def test_negation(self) -> None:
+        df = _scores_ddf()
+        result = df.with_columns((-Scores.score).alias(Scores.score))
+        assert result._data.compute()["score"].tolist()[0] == -85.5
+
+    def test_invert_boolean(self) -> None:
+        df = _users_ddf()
+        result = df.filter(~(Users.age > 30))
+        names = set(result._data.compute()["name"].tolist())
+        assert names == {"Alice", "Bob", "Diana"}
+
+    def test_is_null(self) -> None:
+        data = pd.DataFrame(
+            {
+                "id": pd.array([1, 2], dtype=pd.UInt64Dtype()),
+                "name": pd.array(["Alice", pd.NA], dtype=pd.StringDtype()),
+                "age": pd.array([30, 25], dtype=pd.UInt64Dtype()),
+            }
+        )
+        ddf = dd.from_pandas(data, npartitions=1)
+        df = DataFrame(_data=ddf, _schema=NullableUsers, _backend=_backend)
+        result = df.filter(NullableUsers.name.is_null())
+        assert result._data.compute().shape[0] == 1
+
+    def test_is_not_null(self) -> None:
+        data = pd.DataFrame(
+            {
+                "id": pd.array([1, 2], dtype=pd.UInt64Dtype()),
+                "name": pd.array(["Alice", pd.NA], dtype=pd.StringDtype()),
+                "age": pd.array([30, 25], dtype=pd.UInt64Dtype()),
+            }
+        )
+        ddf = dd.from_pandas(data, npartitions=1)
+        df = DataFrame(_data=ddf, _schema=NullableUsers, _backend=_backend)
+        result = df.filter(NullableUsers.name.is_not_null())
+        assert result._data.compute().shape[0] == 1
+
+    def test_is_nan(self) -> None:
+        data = pd.DataFrame(
+            {
+                "id": pd.array([1, 2], dtype=pd.UInt64Dtype()),
+                "name": pd.array(["Alice", "Bob"], dtype=pd.StringDtype()),
+                "score": pd.array([85.5, float("nan")], dtype="Float64"),
+            }
+        )
+        ddf = dd.from_pandas(data, npartitions=1)
+        df = DataFrame(_data=ddf, _schema=Scores, _backend=_backend)
+        result = df.filter(Scores.score.is_nan())
+        assert result._data.compute().shape[0] == 1
+
+
+# ---------------------------------------------------------------------------
+# Function calls: assert_non_null, cast, over, dt_truncate
+# ---------------------------------------------------------------------------
+
+
+class TestFunctionCallExecution:
+    def test_assert_non_null(self) -> None:
+        df = _users_ddf()
+        result = df.with_columns(Users.age.assert_non_null().alias(Users.age))
+        assert result._data.compute()["age"].tolist() == [30, 25, 35, 28, 40]
+
+    def test_cast(self) -> None:
+        df = _users_ddf()
+        result = df.with_columns(Users.age.cast(Float64).alias(Users.age))
+        assert result._data.compute()["age"].dtype == pd.Float64Dtype()
+
+    def test_over_window(self) -> None:
+        data = pd.DataFrame(
+            {
+                "id": pd.array([1, 2, 3, 4], dtype=pd.UInt64Dtype()),
+                "name": pd.array(["Alice", "Alice", "Bob", "Bob"], dtype=pd.StringDtype()),
+                "age": pd.array([30, 25, 35, 28], dtype=pd.UInt64Dtype()),
+            }
+        )
+        ddf = dd.from_pandas(data, npartitions=1)
+        df = DataFrame(_data=ddf, _schema=Users, _backend=_backend)
+        result = df.with_columns(Users.age.over(Users.name).alias(Users.age))
+        assert result._data.compute().shape[0] == 4
+
+    def test_dt_truncate(self) -> None:
+        data = pd.DataFrame(
+            {
+                "id": pd.array([1, 2], dtype=pd.UInt64Dtype()),
+                "ts": pd.array(
+                    [
+                        pd.Timestamp("2025-03-15 10:30:45"),
+                        pd.Timestamp("2025-06-20 14:15:30"),
+                    ],
+                    dtype=pd.ArrowDtype(pa.timestamp("us")),
+                ),
+            }
+        )
+        ddf = dd.from_pandas(data, npartitions=1)
+        df = DataFrame(_data=ddf, _schema=Events, _backend=_backend)
+        result = df.with_columns(Events.ts.dt_truncate("D").alias(Events.ts))
+        assert result._data.compute()["ts"].tolist()[0] == pd.Timestamp("2025-03-15")

@@ -107,7 +107,7 @@ class DaskBackend:
             if expr.op == "is_null":
                 return lambda df, _o=operand_fn: _o(df).isna()
             if expr.op == "is_not_null":
-                return lambda df, _o=operand_fn: _o(df).notna()
+                return lambda df, _o=operand_fn: _o(df).notnull()
             if expr.op == "is_nan":
                 return lambda df, _o=operand_fn: _o(df).isna()
             msg = f"Unsupported UnaryOp: {expr.op}"
