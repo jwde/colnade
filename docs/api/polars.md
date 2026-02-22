@@ -6,6 +6,12 @@ Polars backend adapter, I/O functions, and dtype mapping.
 
 ::: colnade_polars.adapter.PolarsBackend
 
+## Construction Functions
+
+::: colnade_polars.io.from_dict
+
+::: colnade_polars.io.from_rows
+
 ## I/O Functions
 
 ::: colnade_polars.io.read_parquet

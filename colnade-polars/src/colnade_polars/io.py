@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Any, TypeVar
 
 import polars as pl
 
-from colnade import DataFrame, LazyFrame, Schema
+from colnade import DataFrame, LazyFrame, Row, Schema
+from colnade.dataframe import rows_to_dict
 from colnade.validation import ValidationLevel, get_validation_level, is_validation_enabled
 from colnade_polars.adapter import PolarsBackend
 from colnade_polars.conversion import map_colnade_dtype
@@ -55,6 +57,39 @@ def scan_csv(path: str, schema: type[S], **kwargs: Any) -> LazyFrame[S]:
     pl_schema = _build_polars_schema(schema)
     data = pl.scan_csv(path, schema=pl_schema, **kwargs)
     return LazyFrame(_data=data, _schema=schema, _backend=backend)
+
+
+def from_dict(
+    schema: type[S],
+    data: dict[str, Sequence[Any]],
+) -> DataFrame[S]:
+    """Create a typed DataFrame from a columnar dict.
+
+    The schema drives dtype coercion — plain Python values (``[1, 2, 3]``)
+    are cast to the correct native types (e.g. ``UInt64``).
+    """
+    backend = PolarsBackend()
+    return DataFrame.from_dict(data, schema, backend)
+
+
+def from_rows(
+    schema: type[S],
+    rows: Sequence[Row[S]],
+) -> DataFrame[S]:
+    """Create a typed DataFrame from ``Row[S]`` instances.
+
+    The type checker verifies that rows match the schema — passing
+    ``Orders.Row`` where ``Users.Row`` is expected is a static error.
+
+    Example::
+
+        df = from_rows(Users, [
+            Users.Row(id=1, name="Alice", age=30, score=85.0),
+            Users.Row(id=2, name="Bob", age=25, score=92.5),
+        ])
+    """
+    data = rows_to_dict(rows, schema)
+    return from_dict(schema, data)
 
 
 def write_parquet(df: DataFrame[Any], path: str) -> None:

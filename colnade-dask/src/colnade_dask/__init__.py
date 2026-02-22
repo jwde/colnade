@@ -2,6 +2,8 @@
 
 from colnade_dask.adapter import DaskBackend
 from colnade_dask.io import (
+    from_dict,
+    from_rows,
     read_csv,
     read_parquet,
     scan_csv,
@@ -12,6 +14,8 @@ from colnade_dask.io import (
 
 __all__ = [
     "DaskBackend",
+    "from_dict",
+    "from_rows",
     "read_csv",
     "read_parquet",
     "scan_csv",

@@ -630,3 +630,15 @@ class DaskBackend:
         table = pa.Table.from_batches(batch_list)
         pdf = table.to_pandas()
         return dd.from_pandas(pdf, npartitions=1)
+
+    def from_dict(
+        self,
+        data: dict[str, Sequence[Any]],
+        schema: type[Schema],
+    ) -> Any:
+        """Create a Dask DataFrame from a columnar dict with schema-driven dtypes."""
+        from colnade_pandas.conversion import map_colnade_dtype
+
+        pd_schema = {name: map_colnade_dtype(col.dtype) for name, col in schema._columns.items()}
+        pdf = pd.DataFrame(data).astype(pd_schema)
+        return dd.from_pandas(pdf, npartitions=1)
