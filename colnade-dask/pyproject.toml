@@ -1,6 +1,6 @@
 [project]
 name = "colnade-dask"
-version = "0.3.3"
+version = "0.3.4"
 description = "Dask backend adapter for Colnade"
 requires-python = ">=3.10"
 license = "MIT"

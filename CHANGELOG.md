@@ -7,11 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.4] - 2026-02-23
+
+### Fixed
+
+- **Restore `from_dict` and `from_rows` to Dask backend** — these construct DataFrames from in-memory data and were incorrectly removed in v0.5.3. They now return `LazyFrame` (not `DataFrame`) to match Dask's lazy semantics (#107)
+
 ## [0.5.3] - 2026-02-23
 
 ### Changed
 
-- **Dask backend: remove eager I/O** — `read_parquet`, `read_csv`, `from_dict`, and `from_rows` removed from `colnade-dask`. Dask is inherently lazy, so only `scan_parquet` and `scan_csv` are now provided (#105)
+- **Dask backend: remove eager I/O** — `read_parquet`, `read_csv` removed from `colnade-dask`. Dask is inherently lazy, so only `scan_parquet` and `scan_csv` are now provided (#105)
 
 ### Added
 
