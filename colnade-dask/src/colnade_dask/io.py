@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Any, TypeVar
 
 import dask.dataframe as dd
 
-from colnade import LazyFrame, Schema
+from colnade import LazyFrame, Row, Schema
+from colnade.dataframe import rows_to_dict
 from colnade.validation import ValidationLevel, get_validation_level, is_validation_enabled
 from colnade_dask.adapter import DaskBackend
 from colnade_pandas.conversion import map_colnade_dtype
@@ -43,6 +45,41 @@ def scan_csv(path: str, schema: type[S], **kwargs: Any) -> LazyFrame[S]:
         if get_validation_level() is ValidationLevel.FULL:
             backend.validate_field_constraints(data, schema)
     return LazyFrame(_data=data, _schema=schema, _backend=backend)
+
+
+def from_dict(
+    schema: type[S],
+    data: dict[str, Sequence[Any]],
+) -> LazyFrame[S]:
+    """Create a typed LazyFrame from a columnar dict.
+
+    Returns a ``LazyFrame`` because Dask is inherently lazy — use
+    ``.collect()`` to materialize.  The schema drives dtype coercion so
+    plain Python values (``[1, 2, 3]``) are cast to the correct native
+    types (e.g. ``UInt64``).
+    """
+    backend = DaskBackend()
+    native = backend.from_dict(data, schema)
+    if is_validation_enabled():
+        backend.validate_schema(native, schema)
+        if get_validation_level() is ValidationLevel.FULL:
+            backend.validate_field_constraints(native, schema)
+    return LazyFrame(_data=native, _schema=schema, _backend=backend)
+
+
+def from_rows(
+    schema: type[S],
+    rows: Sequence[Row[S]],
+) -> LazyFrame[S]:
+    """Create a typed LazyFrame from ``Row[S]`` instances.
+
+    Returns a ``LazyFrame`` because Dask is inherently lazy — use
+    ``.collect()`` to materialize.  The type checker verifies that rows
+    match the schema — passing ``Orders.Row`` where ``Users.Row`` is
+    expected is a static error.
+    """
+    data = rows_to_dict(rows, schema)
+    return from_dict(schema, data)
 
 
 def write_parquet(df: Any, path: str, **kwargs: Any) -> None:
