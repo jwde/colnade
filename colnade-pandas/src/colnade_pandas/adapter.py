@@ -54,6 +54,9 @@ _AGG_MAP: dict[str, str] = {
     "min": "min",
     "max": "max",
     "count": "count",
+    "std": "std",
+    "var": "var",
+    "n_unique": "nunique",
     "first": "first",
     "last": "last",
 }
