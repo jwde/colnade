@@ -9,7 +9,7 @@ import pandas as pd
 import pytest
 
 import colnade.validation
-from colnade import Column, DataFrame, LazyFrame, Schema, SchemaError, UInt64, Utf8
+from colnade import Column, LazyFrame, Schema, SchemaError, UInt64, Utf8
 from colnade_dask.adapter import DaskBackend
 from colnade_dask.io import (
     scan_csv,
