@@ -1,5 +1,9 @@
 """Colnade: A statically type-safe DataFrame abstraction layer."""
 
+from importlib.metadata import version as _version
+
+__version__: str = _version("colnade")
+
 from colnade._protocols import BackendProtocol
 from colnade.arrow import ArrowBatch
 from colnade.constraints import Field, FieldInfo, ValueViolation, schema_check
