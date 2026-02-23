@@ -156,6 +156,18 @@ class TestUniqueDropNulls:
         result = df.unique(Users.name)
         assert result._data.shape[0] == 2
 
+    def test_unique_no_columns(self) -> None:
+        data = pd.DataFrame(
+            {
+                "id": pd.array([1, 1, 2], dtype=pd.UInt64Dtype()),
+                "name": pd.array(["Alice", "Alice", "Bob"], dtype=pd.StringDtype()),
+                "age": pd.array([30, 30, 25], dtype=pd.UInt64Dtype()),
+            }
+        )
+        df = DataFrame(_data=data, _schema=Users, _backend=PandasBackend())
+        result = df.unique()
+        assert result._data.shape[0] == 2
+
     def test_drop_nulls(self) -> None:
         data = pd.DataFrame(
             {
