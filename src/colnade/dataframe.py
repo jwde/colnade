@@ -630,6 +630,18 @@ class LazyFrame(Generic[S]):
             raise TypeError(msg)
         return len(self._schema._columns)
 
+    @property
+    def height(self) -> int:
+        """Return the number of rows.
+
+        This triggers computation on lazy backends (e.g. Dask).
+        """
+        return _require_backend(self._backend).row_count(self._data)
+
+    def __len__(self) -> int:
+        """Return the number of rows."""
+        return self.height
+
     # --- Schema-preserving operations (return LazyFrame[S]) ---
 
     def filter(self, predicate: Expr[Bool]) -> LazyFrame[S]:
