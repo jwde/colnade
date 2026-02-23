@@ -513,16 +513,21 @@ class TestLazyFrameIntrospection:
         with pytest.raises(TypeError, match="width is not available"):
             lf.width  # noqa: B018
 
+    def test_height_returns_row_count(self) -> None:
+        lf = self.lf if hasattr(self, "lf") else LazyFrame(_schema=Users, _backend=_BACKEND)
+        assert isinstance(lf.height, int)
+
+    def test_len_returns_row_count(self) -> None:
+        lf = self.lf if hasattr(self, "lf") else LazyFrame(_schema=Users, _backend=_BACKEND)
+        assert isinstance(len(lf), int)
+
 
 # ---------------------------------------------------------------------------
-# LazyFrame restrictions (no height, shape, is_empty, __len__, iter_rows_as)
+# LazyFrame restrictions (no shape, is_empty, iter_rows_as)
 # ---------------------------------------------------------------------------
 
 
 class TestLazyFrameIntrospectionRestrictions:
-    def test_no_height(self) -> None:
-        assert not hasattr(LazyFrame, "height")
-
     def test_no_shape(self) -> None:
         assert not hasattr(LazyFrame, "shape")
 
@@ -531,11 +536,6 @@ class TestLazyFrameIntrospectionRestrictions:
 
     def test_no_iter_rows_as(self) -> None:
         assert not hasattr(LazyFrame, "iter_rows_as")
-
-    def test_no_len(self) -> None:
-        lf = LazyFrame(_schema=Users, _backend=_BACKEND)
-        with pytest.raises(TypeError):
-            len(lf)
 
 
 # ---------------------------------------------------------------------------
