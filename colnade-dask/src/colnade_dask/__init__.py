@@ -6,10 +6,6 @@ __version__: str = _version("colnade-dask")
 
 from colnade_dask.adapter import DaskBackend
 from colnade_dask.io import (
-    from_dict,
-    from_rows,
-    read_csv,
-    read_parquet,
     scan_csv,
     scan_parquet,
     write_csv,
@@ -18,10 +14,6 @@ from colnade_dask.io import (
 
 __all__ = [
     "DaskBackend",
-    "from_dict",
-    "from_rows",
-    "read_csv",
-    "read_parquet",
     "scan_csv",
     "scan_parquet",
     "write_csv",

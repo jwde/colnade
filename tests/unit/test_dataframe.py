@@ -356,6 +356,16 @@ class TestLazyFrame:
         assert isinstance(result, LazyFrame)
         assert result._schema is Users
 
+    def test_head_returns_lazyframe(self) -> None:
+        result = self.lf.head(10)
+        assert isinstance(result, LazyFrame)
+        assert result._schema is Users
+
+    def test_tail_returns_lazyframe(self) -> None:
+        result = self.lf.tail(10)
+        assert isinstance(result, LazyFrame)
+        assert result._schema is Users
+
     def test_unique_returns_lazyframe(self) -> None:
         result = self.lf.unique(Users.name)
         assert isinstance(result, LazyFrame)
@@ -397,17 +407,11 @@ class TestLazyFrame:
 
 
 # ---------------------------------------------------------------------------
-# LazyFrame restrictions (no head, tail, sample)
+# LazyFrame restrictions (no sample, to_batches)
 # ---------------------------------------------------------------------------
 
 
 class TestLazyFrameRestrictions:
-    def test_no_head(self) -> None:
-        assert not hasattr(LazyFrame, "head")
-
-    def test_no_tail(self) -> None:
-        assert not hasattr(LazyFrame, "tail")
-
     def test_no_sample(self) -> None:
         assert not hasattr(LazyFrame, "sample")
 

@@ -9,11 +9,9 @@ import pandas as pd
 import pytest
 
 import colnade.validation
-from colnade import Column, DataFrame, LazyFrame, Schema, SchemaError, UInt64, Utf8
+from colnade import Column, LazyFrame, Schema, SchemaError, UInt64, Utf8
 from colnade_dask.adapter import DaskBackend
 from colnade_dask.io import (
-    read_csv,
-    read_parquet,
     scan_csv,
     scan_parquet,
     write_csv,
@@ -58,28 +56,19 @@ def _sample_ddf() -> dd.DataFrame:
 
 
 class TestParquetRoundtrip:
-    def test_write_read_parquet(self, tmp_path: Path) -> None:
+    def test_write_scan_parquet(self, tmp_path: Path) -> None:
         path = str(tmp_path / "users.parquet")
         data = _sample_ddf()
-        df = DataFrame(_data=data, _schema=Users, _backend=DaskBackend())
-        write_parquet(df, path)
-
-        result = read_parquet(path, Users)
-        assert isinstance(result, DataFrame)
-        assert result._schema is Users
-        computed = result._data.compute()
-        assert computed.shape == (3, 3)
-        assert computed["name"].tolist() == ["Alice", "Bob", "Charlie"]
-
-    def test_scan_parquet(self, tmp_path: Path) -> None:
-        path = str(tmp_path / "users.parquet")
-        _sample_ddf().to_parquet(path)
+        lf = LazyFrame(_data=data, _schema=Users, _backend=DaskBackend())
+        write_parquet(lf, path)
 
         result = scan_parquet(path, Users)
         assert isinstance(result, LazyFrame)
         assert result._schema is Users
         collected = result.collect()
-        assert collected._data.compute().shape == (3, 3)
+        computed = collected._data.compute()
+        assert computed.shape == (3, 3)
+        assert computed["name"].tolist() == ["Alice", "Bob", "Charlie"]
 
     def test_scan_parquet_filter_collect(self, tmp_path: Path) -> None:
         path = str(tmp_path / "users.parquet")
@@ -95,22 +84,11 @@ class TestParquetRoundtrip:
 
 
 class TestCsvRoundtrip:
-    def test_write_read_csv(self, tmp_path: Path) -> None:
+    def test_write_scan_csv(self, tmp_path: Path) -> None:
         path = str(tmp_path / "users.csv")
         data = _sample_ddf()
-        df = DataFrame(_data=data, _schema=Users, _backend=DaskBackend())
-        write_csv(df, path)
-
-        result = read_csv(path, Users)
-        assert isinstance(result, DataFrame)
-        assert result._schema is Users
-        computed = result._data.compute()
-        assert computed.shape == (3, 3)
-        assert computed["name"].tolist() == ["Alice", "Bob", "Charlie"]
-
-    def test_scan_csv(self, tmp_path: Path) -> None:
-        path = str(tmp_path / "users.csv")
-        _sample_ddf().compute().to_csv(path, index=False)
+        lf = LazyFrame(_data=data, _schema=Users, _backend=DaskBackend())
+        write_csv(lf, path)
 
         result = scan_csv(path, Users)
         assert isinstance(result, LazyFrame)
@@ -130,10 +108,10 @@ class TestSchemaMismatch:
     def teardown_method(self) -> None:
         colnade.validation._validation_level = None
 
-    def test_read_parquet_wrong_schema(self, tmp_path: Path) -> None:
+    def test_scan_parquet_wrong_schema(self, tmp_path: Path) -> None:
         path = str(tmp_path / "users.parquet")
         _sample_ddf().to_parquet(path)
 
         with pytest.raises(SchemaError) as exc_info:
-            read_parquet(path, WrongSchema)
+            scan_parquet(path, WrongSchema)
         assert "email" in exc_info.value.missing_columns

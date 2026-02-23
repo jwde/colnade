@@ -6,18 +6,14 @@ The Dask backend (`colnade-dask`) lets you use Colnade's typed DataFrame API on 
 
 Unlike Polars (which has separate eager `DataFrame` and lazy `LazyFrame`), Dask DataFrames are always lazy — operations build a task graph that executes only when you call `.compute()`.
 
-This has implications for Colnade's API:
-
-- **`DataFrame[S]`** wraps a Dask DataFrame, but operations are still deferred. Methods like `filter()`, `sort()`, `select()` return new Dask DataFrames with updated task graphs.
-- **`LazyFrame[S]`** is functionally identical to `DataFrame[S]` under the Dask backend. The `lazy()` method is a no-op passthrough. Both are lazy.
-- **`.collect()`** is where computation happens. It calls Dask's `.compute()`, materializing the result.
+Because Dask is always lazy, the Dask backend only provides `scan_parquet` and `scan_csv` (returning `LazyFrame`). There are no eager `read_parquet`/`read_csv` functions — use `scan_*` followed by `.collect()` when you need materialized results.
 
 ```python
-from colnade_dask import read_parquet
+from colnade_dask import scan_parquet
 
-df = read_parquet("users.parquet", Users)  # Dask DataFrame (lazy)
-filtered = df.filter(Users.age > 25)       # Still lazy — builds task graph
-result = filtered.to_native().compute()    # Triggers computation
+lf = scan_parquet("users.parquet", Users)   # LazyFrame — builds task graph
+filtered = lf.filter(Users.age > 25)        # Still lazy
+result = filtered.collect()                 # Triggers computation → DataFrame
 ```
 
 ## Which operations trigger computation
@@ -27,14 +23,12 @@ Most operations are deferred. A few must materialize data:
 | Operation | Triggers Compute | Notes |
 |-----------|:---:|-------|
 | `filter`, `sort`, `limit` | No | Builds task graph |
+| `head(n)`, `tail(n)` | No | Builds task graph |
 | `unique`, `drop_nulls` | No | Builds task graph |
 | `with_columns`, `select` | No | Builds task graph |
 | `group_by().agg()` | No | Builds task graph |
 | `join` | No | Builds task graph |
 | `cast_schema` | No | Lazy rename + column selection |
-| `head(n)` | No | Uses Dask's `head(compute=False)` |
-| `tail(n)` | **Yes** | Materializes to get tail rows |
-| `sample(n)` | **Yes** | Dask doesn't support fixed-count sampling on partitions |
 | `collect()` | **Yes** | Explicit materialization |
 | `len()` / `height` | **Yes** | Requires counting rows across partitions |
 | `iter_rows_as()` | **Yes** | Must materialize to iterate |
@@ -52,11 +46,12 @@ Structural validation checks column names, dtypes, and nullability. With Dask:
 ```python
 import colnade
 from colnade import ValidationLevel
+from colnade_dask import scan_parquet
 
 colnade.set_validation(ValidationLevel.STRUCTURAL)
 
 # This triggers partial computation for null checks:
-df = read_parquet("users.parquet", Users)
+lf = scan_parquet("users.parquet", Users)
 ```
 
 ### Full validation (`FULL`)
@@ -67,7 +62,7 @@ Full validation adds value-level constraint checks (`Field()` constraints, `@sch
 colnade.set_validation(ValidationLevel.FULL)
 
 # This triggers full computation:
-df = read_parquet("users.parquet", Users)
+lf = scan_parquet("users.parquet", Users)
 ```
 
 !!! warning "Performance impact"
@@ -75,11 +70,11 @@ df = read_parquet("users.parquet", Users)
 
 ### Explicit `validate()`
 
-Calling `df.validate()` always runs both structural and value-level checks, regardless of the validation level toggle. On a Dask DataFrame, **this materializes the entire dataset**.
+Calling `lf.validate()` always runs both structural and value-level checks, regardless of the validation level toggle. On a Dask DataFrame, **this materializes the entire dataset**.
 
 ```python
 # Careful — this computes the full dataset:
-df.validate()
+lf.validate()
 ```
 
 ### Recommendation
@@ -91,11 +86,11 @@ For Dask workflows, the recommended approach is:
 
 ```python
 # Option 1: Validate after collecting
-result = df.filter(Users.age > 25).collect()
+result = lf.filter(Users.age > 25).collect()
 result.validate()
 
 # Option 2: Validate a sample
-sample_df = df.head(1000).validate()
+sample = lf.head(1000).collect().validate()
 ```
 
 ## `Field(unique=True)` on partitioned data
@@ -114,19 +109,19 @@ class UserSummary(Schema):
     user_id: Column[UInt64] = mapped_from(Users.id)
 
 # No computation — just builds rename tasks:
-summary = df.cast_schema(UserSummary)
+summary = lf.cast_schema(UserSummary)
 
 # Computation happens here:
-result = summary.to_native().compute()
+result = summary.collect()
 ```
 
-## `read_*` vs `scan_*`
+## I/O API
 
-Both `read_parquet`/`read_csv` and `scan_parquet`/`scan_csv` return Dask DataFrames, which are inherently lazy. The distinction exists for API consistency with the Polars backend (where `read_*` is eager and `scan_*` is lazy), but with Dask both behave identically — data is only read when computation is triggered.
+Since Dask is always lazy, only `scan_*` functions are provided:
 
-| Function | Returns | Behavior |
-|----------|---------|----------|
-| `read_parquet` | `DataFrame[S]` | Lazy (deferred read) |
-| `scan_parquet` | `LazyFrame[S]` | Lazy (deferred read) |
-| `read_csv` | `DataFrame[S]` | Lazy (deferred read) |
-| `scan_csv` | `LazyFrame[S]` | Lazy (deferred read) |
+| Function | Returns | Notes |
+|----------|---------|-------|
+| `scan_parquet` | `LazyFrame[S]` | Lazy scan with optional validation |
+| `scan_csv` | `LazyFrame[S]` | Lazy scan with optional validation |
+| `write_parquet` | `None` | Writes from DataFrame or LazyFrame |
+| `write_csv` | `None` | Writes from DataFrame or LazyFrame |
