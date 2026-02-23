@@ -1,6 +1,6 @@
 [project]
 name = "colnade"
-version = "0.5.2"
+version = "0.5.3"
 description = "A statically type-safe DataFrame abstraction layer"
 requires-python = ">=3.10"
 license = "MIT"

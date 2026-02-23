@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.3] - 2026-02-23
+
+### Changed
+
+- **Dask backend: remove eager I/O** — `read_parquet`, `read_csv`, `from_dict`, and `from_rows` removed from `colnade-dask`. Dask is inherently lazy, so only `scan_parquet` and `scan_csv` are now provided (#105)
+
+### Added
+
+- **`LazyFrame.head()` and `LazyFrame.tail()`** — added for parity with `DataFrame` (#105)
+
 ## [0.5.2] - 2026-02-22
 
 ### Fixed
