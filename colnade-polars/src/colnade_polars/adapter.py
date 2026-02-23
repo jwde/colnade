@@ -506,6 +506,8 @@ class PolarsBackend:
         """Convert a Polars DataFrame to an iterator of Arrow RecordBatches."""
         import pyarrow as pa  # noqa: F811
 
+        if hasattr(source, "collect"):
+            source = source.collect()
         table: pa.Table = source.to_arrow()
         if batch_size is not None:
             yield from table.to_batches(max_chunksize=batch_size)

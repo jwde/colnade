@@ -77,6 +77,26 @@ class TestToBatches:
         assert all(b.num_rows == 1 for b in batches)
 
 
+class TestLazyFrameToBatches:
+    def test_returns_arrow_batches(self) -> None:
+        lf = _users_df().lazy()
+        batches = list(lf.to_batches())
+        assert len(batches) >= 1
+        assert all(isinstance(b, ArrowBatch) for b in batches)
+
+    def test_preserves_schema_type(self) -> None:
+        lf = _users_df().lazy()
+        batches = list(lf.to_batches())
+        for batch in batches:
+            assert batch.schema is Users
+
+    def test_total_rows_match(self) -> None:
+        lf = _users_df().lazy()
+        batches = list(lf.to_batches())
+        total = sum(b.num_rows for b in batches)
+        assert total == 3
+
+
 # ---------------------------------------------------------------------------
 # from_batches
 # ---------------------------------------------------------------------------
