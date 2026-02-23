@@ -5,7 +5,17 @@ from __future__ import annotations
 import pytest
 
 import colnade
-from colnade import Column, DataFrame, Float64, Row, Schema, UInt64, Utf8, ValidationLevel
+from colnade import (
+    Column,
+    DataFrame,
+    Float64,
+    LazyFrame,
+    Row,
+    Schema,
+    UInt64,
+    Utf8,
+    ValidationLevel,
+)
 from colnade.constraints import Field
 
 # ---------------------------------------------------------------------------
@@ -208,7 +218,49 @@ class TestPandasFromRows:
 # ===========================================================================
 
 
-# Dask is lazy-only — no from_dict/from_rows. Use scan_parquet/scan_csv.
+class TestDaskFromDict:
+    def test_returns_lazyframe(self) -> None:
+        from colnade_dask import from_dict
+
+        lf = from_dict(Users, SAMPLE_DICT)
+        assert isinstance(lf, LazyFrame)
+
+    def test_collect_basic(self) -> None:
+        from colnade_dask import from_dict
+
+        df = from_dict(Users, SAMPLE_DICT).collect()
+        assert isinstance(df, DataFrame)
+        assert df.height == 3
+        assert df.width == 4
+
+    def test_values_preserved(self) -> None:
+        from colnade_dask import from_dict
+
+        df = from_dict(Users, SAMPLE_DICT).collect()
+        rows = list(df.iter_rows_as(dict))
+        assert rows[0]["name"] == "Alice"
+        assert rows[2]["age"] == 35
+
+    def test_lazy_operations_work(self) -> None:
+        from colnade_dask import from_dict
+
+        df = from_dict(Users, SAMPLE_DICT).filter(Users.age > 28).collect()
+        assert df.height == 2
+
+
+class TestDaskFromRows:
+    def test_returns_lazyframe(self) -> None:
+        from colnade_dask import from_rows
+
+        lf = from_rows(Users, _sample_rows())
+        assert isinstance(lf, LazyFrame)
+
+    def test_collect_basic(self) -> None:
+        from colnade_dask import from_rows
+
+        df = from_rows(Users, _sample_rows()).collect()
+        assert df.height == 3
+        assert df.width == 4
 
 
 # ===========================================================================
@@ -282,6 +334,30 @@ class TestValidation:
             },
         )
         assert df.height == 3
+
+    def test_dask_structural_validation_on_from_dict(self) -> None:
+        """STRUCTURAL validation works on Dask from_dict."""
+        from colnade_dask import from_dict
+
+        colnade.set_validation(ValidationLevel.STRUCTURAL)
+        lf = from_dict(Users, SAMPLE_DICT)
+        assert isinstance(lf, LazyFrame)
+
+    def test_dask_full_validation_on_from_dict(self) -> None:
+        """FULL validation works on Dask from_dict."""
+        from colnade_dask import from_dict
+
+        colnade.set_validation(ValidationLevel.FULL)
+        lf = from_dict(
+            UsersConstrained,
+            {
+                "id": [1, 2, 3],
+                "name": ["Alice", "Bob", "Charlie"],
+                "age": [30, 25, 35],
+                "score": [85.0, 92.5, 78.0],
+            },
+        )
+        assert isinstance(lf, LazyFrame)
 
 
 # ===========================================================================
@@ -454,7 +530,18 @@ class TestPandasFromDictErrors:
 # ===========================================================================
 
 
-# Dask from_dict removed — see TestPandasFromDictErrors for equivalent coverage.
+class TestDaskFromDictErrors:
+    def test_missing_column_raises(self) -> None:
+        from colnade_dask import from_dict
+
+        with pytest.raises(KeyError):
+            from_dict(Users, {"id": [1], "name": ["a"], "age": [30]})
+
+    def test_empty_dict_raises(self) -> None:
+        from colnade_dask import from_dict
+
+        with pytest.raises((KeyError, ValueError)):
+            from_dict(Users, {})
 
 
 # ===========================================================================
@@ -476,7 +563,11 @@ class TestFromRowsErrors:
         with pytest.raises(KeyError):
             from_rows(Users, [Orders.Row(id=1, amount=99.0)])
 
-    # Dask from_rows removed — lazy-only backend.
+    def test_mismatched_row_type_dask(self) -> None:
+        from colnade_dask import from_rows
+
+        with pytest.raises(KeyError):
+            from_rows(Users, [Orders.Row(id=1, amount=99.0)])
 
 
 # ===========================================================================
