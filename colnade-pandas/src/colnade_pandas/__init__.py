@@ -1,5 +1,9 @@
 """Colnade Pandas backend adapter."""
 
+from importlib.metadata import version as _version
+
+__version__: str = _version("colnade-pandas")
+
 from colnade_pandas.adapter import PandasBackend
 from colnade_pandas.conversion import map_colnade_dtype, map_pandas_dtype
 from colnade_pandas.io import (

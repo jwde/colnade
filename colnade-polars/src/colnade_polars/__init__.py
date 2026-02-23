@@ -1,5 +1,9 @@
 """Colnade Polars backend adapter."""
 
+from importlib.metadata import version as _version
+
+__version__: str = _version("colnade-polars")
+
 from colnade_polars.adapter import PolarsBackend
 from colnade_polars.conversion import map_colnade_dtype, map_polars_dtype
 from colnade_polars.io import (
