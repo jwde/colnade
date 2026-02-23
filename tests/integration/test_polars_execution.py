@@ -212,6 +212,44 @@ class TestSelect:
 # ---------------------------------------------------------------------------
 
 
+class TestAggFunctions:
+    def test_std(self) -> None:
+        data = pl.DataFrame(
+            {
+                "id": pl.Series([1, 2, 3], dtype=pl.UInt64),
+                "name": ["Alice", "Bob", "Charlie"],
+                "age": pl.Series([30, 25, 35], dtype=pl.UInt64),
+            }
+        )
+        df = DataFrame(_data=data, _schema=Users, _backend=PolarsBackend())
+        result = df.agg(Users.age.std().alias(Users.age))
+        assert result._data["age"][0] > 0
+
+    def test_var(self) -> None:
+        data = pl.DataFrame(
+            {
+                "id": pl.Series([1, 2, 3], dtype=pl.UInt64),
+                "name": ["Alice", "Bob", "Charlie"],
+                "age": pl.Series([30, 25, 35], dtype=pl.UInt64),
+            }
+        )
+        df = DataFrame(_data=data, _schema=Users, _backend=PolarsBackend())
+        result = df.agg(Users.age.var().alias(Users.age))
+        assert result._data["age"][0] > 0
+
+    def test_n_unique(self) -> None:
+        data = pl.DataFrame(
+            {
+                "id": pl.Series([1, 2, 3], dtype=pl.UInt64),
+                "name": ["Alice", "Alice", "Bob"],
+                "age": pl.Series([30, 25, 35], dtype=pl.UInt64),
+            }
+        )
+        df = DataFrame(_data=data, _schema=Users, _backend=PolarsBackend())
+        result = df.agg(Users.name.n_unique().alias(Users.name))
+        assert result._data["name"][0] == 2
+
+
 class TestGroupByAgg:
     def test_group_by_sum(self) -> None:
         data = pl.DataFrame(

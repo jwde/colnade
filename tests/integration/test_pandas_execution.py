@@ -212,6 +212,44 @@ class TestSelect:
 # ---------------------------------------------------------------------------
 
 
+class TestAggFunctions:
+    def test_std(self) -> None:
+        data = pd.DataFrame(
+            {
+                "id": pd.array([1, 2, 3], dtype=pd.UInt64Dtype()),
+                "name": pd.array(["Alice", "Bob", "Charlie"], dtype=pd.StringDtype()),
+                "age": pd.array([30, 25, 35], dtype=pd.UInt64Dtype()),
+            }
+        )
+        df = DataFrame(_data=data, _schema=Users, _backend=PandasBackend())
+        result = df.agg(Users.age.std().alias(Users.age))
+        assert result._data["age"].iloc[0] > 0
+
+    def test_var(self) -> None:
+        data = pd.DataFrame(
+            {
+                "id": pd.array([1, 2, 3], dtype=pd.UInt64Dtype()),
+                "name": pd.array(["Alice", "Bob", "Charlie"], dtype=pd.StringDtype()),
+                "age": pd.array([30, 25, 35], dtype=pd.UInt64Dtype()),
+            }
+        )
+        df = DataFrame(_data=data, _schema=Users, _backend=PandasBackend())
+        result = df.agg(Users.age.var().alias(Users.age))
+        assert result._data["age"].iloc[0] > 0
+
+    def test_n_unique(self) -> None:
+        data = pd.DataFrame(
+            {
+                "id": pd.array([1, 2, 3], dtype=pd.UInt64Dtype()),
+                "name": pd.array(["Alice", "Alice", "Bob"], dtype=pd.StringDtype()),
+                "age": pd.array([30, 25, 35], dtype=pd.UInt64Dtype()),
+            }
+        )
+        df = DataFrame(_data=data, _schema=Users, _backend=PandasBackend())
+        result = df.agg(Users.name.n_unique().alias(Users.name))
+        assert result._data["name"].iloc[0] == 2
+
+
 class TestGroupByAgg:
     def test_group_by_sum(self) -> None:
         data = pd.DataFrame(
