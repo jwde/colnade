@@ -245,7 +245,8 @@ class PolarsBackend:
         return source.sample(n)
 
     def unique(self, source: Any, columns: Sequence[Column[Any]]) -> Any:
-        return source.unique(subset=[c.name for c in columns])
+        subset = [c.name for c in columns] or None
+        return source.unique(subset=subset)
 
     def drop_nulls(self, source: Any, columns: Sequence[Column[Any]]) -> Any:
         return source.drop_nulls(subset=[c.name for c in columns])

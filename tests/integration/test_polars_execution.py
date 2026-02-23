@@ -156,6 +156,18 @@ class TestUniqueDropNulls:
         result = df.unique(Users.name)
         assert result._data.shape[0] == 2
 
+    def test_unique_no_columns(self) -> None:
+        data = pl.DataFrame(
+            {
+                "id": pl.Series([1, 1, 2], dtype=pl.UInt64),
+                "name": ["Alice", "Alice", "Bob"],
+                "age": pl.Series([30, 30, 25], dtype=pl.UInt64),
+            }
+        )
+        df = DataFrame(_data=data, _schema=Users, _backend=PolarsBackend())
+        result = df.unique()
+        assert result._data.shape[0] == 2
+
     def test_drop_nulls(self) -> None:
         data = pl.DataFrame(
             {

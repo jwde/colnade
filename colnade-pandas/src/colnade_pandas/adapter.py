@@ -290,7 +290,8 @@ class PandasBackend:
         return source.sample(n).reset_index(drop=True)
 
     def unique(self, source: Any, columns: Sequence[Column[Any]]) -> Any:
-        return source.drop_duplicates(subset=[c.name for c in columns]).reset_index(drop=True)
+        subset = [c.name for c in columns] or None
+        return source.drop_duplicates(subset=subset).reset_index(drop=True)
 
     def drop_nulls(self, source: Any, columns: Sequence[Column[Any]]) -> Any:
         return source.dropna(subset=[c.name for c in columns]).reset_index(drop=True)
