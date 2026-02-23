@@ -208,7 +208,6 @@ class TestPandasFromRows:
 # ===========================================================================
 
 
-
 # Dask is lazy-only — no from_dict/from_rows. Use scan_parquet/scan_csv.
 
 
@@ -453,7 +452,6 @@ class TestPandasFromDictErrors:
 # ===========================================================================
 # from_dict negative cases — Dask
 # ===========================================================================
-
 
 
 # Dask from_dict removed — see TestPandasFromDictErrors for equivalent coverage.
