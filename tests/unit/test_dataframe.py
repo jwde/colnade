@@ -356,6 +356,16 @@ class TestLazyFrame:
         assert isinstance(result, LazyFrame)
         assert result._schema is Users
 
+    def test_head_returns_lazyframe(self) -> None:
+        result = self.lf.head(10)
+        assert isinstance(result, LazyFrame)
+        assert result._schema is Users
+
+    def test_tail_returns_lazyframe(self) -> None:
+        result = self.lf.tail(10)
+        assert isinstance(result, LazyFrame)
+        assert result._schema is Users
+
     def test_unique_returns_lazyframe(self) -> None:
         result = self.lf.unique(Users.name)
         assert isinstance(result, LazyFrame)
