@@ -642,6 +642,17 @@ class LazyFrame(Generic[S]):
         """Return the number of rows."""
         return self.height
 
+    def to_batches(self, batch_size: int | None = None) -> Iterator[ArrowBatch[S]]:
+        """Convert to an iterator of typed Arrow batches.
+
+        This triggers computation on lazy backends (e.g. Dask).
+        """
+        from colnade.arrow import ArrowBatch
+
+        backend = _require_backend(self._backend)
+        for raw_batch in backend.to_arrow_batches(self._data, batch_size):
+            yield ArrowBatch(_batch=raw_batch, _schema=self._schema)
+
     # --- Schema-preserving operations (return LazyFrame[S]) ---
 
     def filter(self, predicate: Expr[Bool]) -> LazyFrame[S]:

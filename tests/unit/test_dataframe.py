@@ -407,7 +407,7 @@ class TestLazyFrame:
 
 
 # ---------------------------------------------------------------------------
-# LazyFrame restrictions (no sample, to_batches)
+# LazyFrame restrictions (no sample)
 # ---------------------------------------------------------------------------
 
 
@@ -415,8 +415,8 @@ class TestLazyFrameRestrictions:
     def test_no_sample(self) -> None:
         assert not hasattr(LazyFrame, "sample")
 
-    def test_no_to_batches(self) -> None:
-        assert not hasattr(LazyFrame, "to_batches")
+    def test_has_to_batches(self) -> None:
+        assert hasattr(LazyFrame, "to_batches")
 
 
 # ---------------------------------------------------------------------------
