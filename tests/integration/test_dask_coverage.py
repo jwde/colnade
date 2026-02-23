@@ -25,7 +25,7 @@ from colnade import (
 )
 from colnade.constraints import Field
 from colnade_dask.adapter import DaskBackend
-from colnade_dask.io import read_csv, read_parquet, write_csv, write_parquet
+from colnade_dask.io import scan_csv, scan_parquet, write_csv, write_parquet
 
 # ---------------------------------------------------------------------------
 # Schemas
@@ -202,7 +202,7 @@ class TestNullHandling:
 
 
 class TestIOValidation:
-    def test_read_parquet_with_structural_validation(self) -> None:
+    def test_scan_parquet_with_structural_validation(self) -> None:
         prev = colnade.get_validation_level()
         try:
             colnade.set_validation(ValidationLevel.STRUCTURAL)
@@ -210,12 +210,12 @@ class TestIOValidation:
                 path = str(Path(tmp) / "test.parquet")
                 df = _users_ddf()
                 write_parquet(df, path)
-                result = read_parquet(path, Users)
+                result = scan_parquet(path, Users)
                 assert result._data.compute().shape[0] == 5
         finally:
             colnade.set_validation(prev)
 
-    def test_read_parquet_with_full_validation(self) -> None:
+    def test_scan_parquet_with_full_validation(self) -> None:
         prev = colnade.get_validation_level()
         try:
             colnade.set_validation(ValidationLevel.FULL)
@@ -223,12 +223,12 @@ class TestIOValidation:
                 path = str(Path(tmp) / "test.parquet")
                 df = _users_ddf()
                 write_parquet(df, path)
-                result = read_parquet(path, Users)
+                result = scan_parquet(path, Users)
                 assert result._data.compute().shape[0] == 5
         finally:
             colnade.set_validation(prev)
 
-    def test_read_csv_with_structural_validation(self) -> None:
+    def test_scan_csv_with_structural_validation(self) -> None:
         prev = colnade.get_validation_level()
         try:
             colnade.set_validation(ValidationLevel.STRUCTURAL)
@@ -236,12 +236,12 @@ class TestIOValidation:
                 path = str(Path(tmp) / "test.csv")
                 df = _users_ddf()
                 write_csv(df, path)
-                result = read_csv(path, Users)
+                result = scan_csv(path, Users)
                 assert result._data.compute().shape[0] == 5
         finally:
             colnade.set_validation(prev)
 
-    def test_read_csv_with_full_validation(self) -> None:
+    def test_scan_csv_with_full_validation(self) -> None:
         prev = colnade.get_validation_level()
         try:
             colnade.set_validation(ValidationLevel.FULL)
@@ -249,7 +249,7 @@ class TestIOValidation:
                 path = str(Path(tmp) / "test.csv")
                 df = _users_ddf()
                 write_csv(df, path)
-                result = read_csv(path, Users)
+                result = scan_csv(path, Users)
                 assert result._data.compute().shape[0] == 5
         finally:
             colnade.set_validation(prev)
@@ -290,7 +290,7 @@ class TestNumpyDtypeCompat:
         ddf = dd.from_pandas(data, npartitions=1)
         _backend.validate_schema(ddf, Scores)
 
-    def test_read_parquet_numpy_dtypes(self) -> None:
+    def test_scan_parquet_numpy_dtypes(self) -> None:
         """Parquet written with plain NumPy dtypes should pass validation."""
         prev = colnade.get_validation_level()
         try:
@@ -306,7 +306,7 @@ class TestNumpyDtypeCompat:
                         "score": np.array([85.5, 92.3, 78.1], dtype=np.float64),
                     }
                 ).to_parquet(path, index=False)
-                result = read_parquet(path, Scores)
+                result = scan_parquet(path, Scores)
                 assert result._data.compute().shape[0] == 3
         finally:
             colnade.set_validation(prev)

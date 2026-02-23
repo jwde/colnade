@@ -649,6 +649,16 @@ class LazyFrame(Generic[S]):
         data = _require_backend(self._backend).limit(self._data, n)
         return LazyFrame(_data=data, _schema=self._schema, _backend=self._backend)
 
+    def head(self, n: int = 5) -> LazyFrame[S]:
+        """Return the first n rows (alias for limit)."""
+        data = _require_backend(self._backend).head(self._data, n)
+        return LazyFrame(_data=data, _schema=self._schema, _backend=self._backend)
+
+    def tail(self, n: int = 5) -> LazyFrame[S]:
+        """Return the last n rows."""
+        data = _require_backend(self._backend).tail(self._data, n)
+        return LazyFrame(_data=data, _schema=self._schema, _backend=self._backend)
+
     def unique(self, *columns: Column[Any]) -> LazyFrame[S]:
         """Remove duplicate rows based on the given columns."""
         _validate_expr_columns(self._schema, *columns)

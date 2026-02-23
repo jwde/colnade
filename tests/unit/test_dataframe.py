@@ -397,17 +397,11 @@ class TestLazyFrame:
 
 
 # ---------------------------------------------------------------------------
-# LazyFrame restrictions (no head, tail, sample)
+# LazyFrame restrictions (no sample, to_batches)
 # ---------------------------------------------------------------------------
 
 
 class TestLazyFrameRestrictions:
-    def test_no_head(self) -> None:
-        assert not hasattr(LazyFrame, "head")
-
-    def test_no_tail(self) -> None:
-        assert not hasattr(LazyFrame, "tail")
-
     def test_no_sample(self) -> None:
         assert not hasattr(LazyFrame, "sample")
 
