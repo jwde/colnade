@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.5] - 2026-02-23
+
+### Fixed
+
+- **`unique()` with no columns** — all three backends now correctly deduplicate across all columns when no subset is specified (#108, #109)
+- **Missing aggregations on Pandas and Dask** — `std()`, `var()`, and `n_unique()` now work in Pandas and Dask backends (#110, #111)
+
+### Added
+
+- **`LazyFrame.height` and `len()`** — trigger computation on lazy backends (#113)
+- **`LazyFrame.to_batches()`** — converts to Arrow batches, triggering computation on lazy backends (#114)
+
 ## [0.5.4] - 2026-02-23
 
 ### Fixed

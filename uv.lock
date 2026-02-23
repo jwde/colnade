@@ -181,7 +181,7 @@ wheels = [
 
 [[package]]
 name = "colnade"
-version = "0.5.2"
+version = "0.5.4"
 source = { editable = "." }
 dependencies = [
     { name = "typing-extensions" },
@@ -222,7 +222,7 @@ dev = [
 
 [[package]]
 name = "colnade-dask"
-version = "0.3.2"
+version = "0.3.4"
 source = { editable = "colnade-dask" }
 dependencies = [
     { name = "colnade" },
