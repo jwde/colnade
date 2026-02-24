@@ -22,9 +22,7 @@ classifiers = [
     "Topic :: Scientific/Engineering",
     "Topic :: Software Development :: Libraries",
 ]
-dependencies = [
-    "typing_extensions>=4.0",
-]
+dependencies = []
 
 [project.urls]
 Homepage = "https://colnade.com"
