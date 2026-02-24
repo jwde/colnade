@@ -183,7 +183,7 @@ class UserProfile(Schema):
 
 # Access nested data
 df.filter(UserProfile.address.field(Address.city) == "New York")
-df.with_columns(UserProfile.tags.list.len().alias(tag_count_col))
+df.with_columns(UserProfile.tags.list.len().alias(UserProfile.tags))
 ```
 
 ### Value-level constraints
@@ -203,7 +203,8 @@ class Users(Schema):
         return Users.age >= 18
 
 # Validate with df.validate() or auto-validate at the FULL level
-colnade.set_validation(ValidationLevel.FULL)
+from colnade import set_validation
+set_validation(ValidationLevel.FULL)
 ```
 
 ### Lazy execution
@@ -246,7 +247,7 @@ Colnade catches real errors at lint time. Here are actual error messages from `t
 | Column refs checked statically | Named attrs | No | Positional types | No | No |
 | Schema preserved through ops | Through ops¹ | At boundaries² | No | No | No |
 | Works with existing engines | Polars, Pandas, Dask | Pandas, Polars, others | Own engine | Polars only | Many engines |
-| No plugins or code gen | Yes | Requires mypy plugin | Yes | Yes | Yes |
+| No plugins or code gen | Yes | Optional mypy plugin | Yes | Yes | Yes |
 | Generic utility functions | Yes | No | No | No | No |
 | Struct/List typed access | Yes | No | No | No | No |
 | Lazy execution support | Yes | No | No | No | Yes |

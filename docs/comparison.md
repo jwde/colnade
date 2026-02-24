@@ -7,7 +7,7 @@
 | Column refs checked statically | Named attrs | No | Positional types¹ | No | No |
 | Schema preserved through ops | Through ops² | At boundaries³ | No | No | No |
 | Works with existing engines | Polars, Pandas, Dask | Pandas, Polars, others | Own engine | Polars only | Many engines |
-| No plugins or code gen | Yes | Requires mypy plugin | Yes | Yes | Yes |
+| No plugins or code gen | Yes | Optional mypy plugin | Yes | Yes | Yes |
 | Generic utility functions | Yes | No | No | No | No |
 | Struct/List typed access | Yes | No | No | No | No |
 | Lazy execution support | Yes | No | No | No | Yes |
