@@ -37,10 +37,8 @@ jobs:
       - run: uv run pytest tests/ --cov=colnade --cov=colnade_polars --cov=colnade_pandas --cov=colnade_dask --cov-report=xml --cov-fail-under=95
       - uses: codecov/codecov-action@v5
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+          use_oidc: true
           files: coverage.xml
-          fail_ci_if_error: true
-          verbose: true
 
   test-backend-versions:
     runs-on: ubuntu-latest
