@@ -26,9 +26,9 @@ result = lf.filter(Users.age > 25).sort(Users.score.desc()).collect()
 
 ## I/O Functions
 
-- `read_parquet` / `write_parquet` (eager)
-- `scan_parquet` / `scan_csv` (lazy)
-- `read_csv` / `write_csv`
+- `scan_parquet` / `scan_csv` (lazy reads)
+- `write_parquet` / `write_csv`
+- `from_dict` / `from_rows` (in-memory construction)
 
 ## Documentation
 
