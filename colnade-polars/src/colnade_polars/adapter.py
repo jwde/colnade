@@ -113,7 +113,7 @@ class PolarsBackend:
         # String methods
         if name == "str_contains":
             source = self.translate_expr(expr.args[0])
-            return source.str.contains(expr.args[1])
+            return source.str.contains(expr.args[1], literal=True)
         if name == "str_starts_with":
             source = self.translate_expr(expr.args[0])
             return source.str.starts_with(expr.args[1])
