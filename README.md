@@ -245,7 +245,7 @@ Colnade catches real errors at lint time. Here are actual error messages from `t
 | Struct/List typed access | Yes | No | No | No | No |
 | Lazy execution support | Yes | No | No | No | Yes |
 | Value-level constraints | `Field()` | `Check` | No | Pydantic validators | No |
-| Maturity / ecosystem | New (v0.5) | Mature, large community | Mature | Small | Growing fast |
+| Maturity / ecosystem | New (v0.6) | Mature, large community | Mature | Small | Growing fast |
 | Engine breadth | 3 backends | 4+ backends | Own engine | 1 backend | 6+ backends |
 | select/group_by output typing | `DataFrame[Any]`³ | Decorator-checked | Positional types | No | No |
 
