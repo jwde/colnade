@@ -45,11 +45,6 @@ _S2 = TypeVar("_S2")  # inner schema for Struct[_S2]
 _E = TypeVar("_E")  # element type for List[_E]
 
 # ---------------------------------------------------------------------------
-# Schema registry
-# ---------------------------------------------------------------------------
-
-_schema_registry: dict[str, type[Schema]] = {}
-
 # ---------------------------------------------------------------------------
 # _MappedFrom sentinel (for cast_schema resolution)
 # ---------------------------------------------------------------------------
@@ -733,10 +728,6 @@ class SchemaMeta(type(Protocol)):  # type(Protocol) is typing._ProtocolMeta (CPy
         # Generate Row dataclass for non-base schemas with columns
         if name != "Schema" and columns:
             cls.Row = _build_row_class(name, cls, columns)  # type: ignore[attr-defined]
-
-        # Register non-base schemas
-        if name != "Schema":
-            _schema_registry[name] = cls
 
         return cls
 

@@ -181,11 +181,8 @@ wheels = [
 
 [[package]]
 name = "colnade"
-version = "0.5.4"
+version = "0.6.0"
 source = { editable = "." }
-dependencies = [
-    { name = "typing-extensions" },
-]
 
 [package.dev-dependencies]
 dev = [
@@ -203,7 +200,6 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "typing-extensions", specifier = ">=4.0" }]
 
 [package.metadata.requires-dev]
 dev = [
@@ -222,7 +218,7 @@ dev = [
 
 [[package]]
 name = "colnade-dask"
-version = "0.3.4"
+version = "0.3.6"
 source = { editable = "colnade-dask" }
 dependencies = [
     { name = "colnade" },
@@ -241,7 +237,7 @@ requires-dist = [
 
 [[package]]
 name = "colnade-pandas"
-version = "0.3.2"
+version = "0.3.4"
 source = { editable = "colnade-pandas" }
 dependencies = [
     { name = "colnade" },
@@ -259,7 +255,7 @@ requires-dist = [
 
 [[package]]
 name = "colnade-polars"
-version = "0.5.2"
+version = "0.5.4"
 source = { editable = "colnade-polars" }
 dependencies = [
     { name = "colnade" },

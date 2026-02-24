@@ -21,7 +21,6 @@ from colnade import (
     UInt64,
     Utf8,
 )
-from colnade.schema import _schema_registry
 
 # ---------------------------------------------------------------------------
 # Test fixture schemas
@@ -212,19 +211,6 @@ class TestEdgeCases:
 # ---------------------------------------------------------------------------
 # Schema registry
 # ---------------------------------------------------------------------------
-
-
-class TestSchemaRegistry:
-    def test_schemas_registered(self) -> None:
-        assert "Users" in _schema_registry
-        assert "EnrichedUsers" in _schema_registry
-        assert "Events" in _schema_registry
-
-    def test_schema_base_not_registered(self) -> None:
-        assert "Schema" not in _schema_registry
-
-    def test_registry_values_are_classes(self) -> None:
-        assert _schema_registry["Users"] is Users
 
 
 # ---------------------------------------------------------------------------
