@@ -35,14 +35,10 @@ jobs:
       - uses: astral-sh/setup-uv@v5
       - run: uv sync
       - run: uv run pytest tests/ --cov=colnade --cov=colnade_polars --cov=colnade_pandas --cov=colnade_dask --cov-report=xml --cov-fail-under=95
-      - name: Install Codecov CLI
-        run: pip install codecov-cli
-      - name: Codecov create-commit
-        run: codecovcli create-commit -t ${{ secrets.CODECOV_TOKEN }} --git-service github --fail-on-error
-      - name: Codecov create-report
-        run: codecovcli create-report -t ${{ secrets.CODECOV_TOKEN }} --git-service github --fail-on-error
-      - name: Codecov upload
-        run: codecovcli do-upload -t ${{ secrets.CODECOV_TOKEN }} --git-service github --file coverage.xml --fail-on-error --use-legacy-uploader
+      - uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage.xml
 
   test-backend-versions:
     runs-on: ubuntu-latest
