@@ -69,9 +69,9 @@ score_totals = df.with_columns(
 | Method | Description | Return type |
 |--------|-------------|-------------|
 | `.list.len()` | Number of elements | `ListOp[UInt32]` |
-| `.list.get(i)` | Element at index | `ListOp[Any]` |
+| `.list.get(i)` | Element at index | `ListOp[DType]` |
 | `.list.contains(v)` | Contains value? | `ListOp[Bool]` |
-| `.list.sum()` | Sum of elements | `ListOp[Any]` |
-| `.list.mean()` | Mean of elements | `ListOp[Any]` |
-| `.list.min()` | Minimum element | `ListOp[Any]` |
-| `.list.max()` | Maximum element | `ListOp[Any]` |
+| `.list.sum()` | Sum of elements | `ListOp[DType]` |
+| `.list.mean()` | Mean of elements | `ListOp[DType]` |
+| `.list.min()` | Minimum element | `ListOp[DType]` |
+| `.list.max()` | Maximum element | `ListOp[DType]` |
