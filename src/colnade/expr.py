@@ -30,13 +30,13 @@ class Expr(Generic[DType]):
 
     # --- Logical operators (for chaining boolean expressions) ---
 
-    def __and__(self, other: Expr[Any]) -> BinOp[DType]:
+    def __and__(self, other: Expr[Any]) -> BinOp[Bool]:
         return BinOp(left=self, right=_wrap(other), op="&")
 
-    def __or__(self, other: Expr[Any]) -> BinOp[DType]:
+    def __or__(self, other: Expr[Any]) -> BinOp[Bool]:
         return BinOp(left=self, right=_wrap(other), op="|")
 
-    def __invert__(self) -> UnaryOp[DType]:
+    def __invert__(self) -> UnaryOp[Bool]:
         return UnaryOp(operand=self, op="~")
 
     # --- Comparison operators (for expression chaining) ---
