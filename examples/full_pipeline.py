@@ -9,10 +9,8 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
-import polars as pl
-
-from colnade import Column, DataFrame, Float64, Schema, UInt64, Utf8, mapped_from
-from colnade_polars import PolarsBackend, from_dict, write_parquet
+from colnade import Column, Float64, Schema, UInt64, Utf8, mapped_from
+from colnade_polars import from_dict, write_parquet
 from colnade_polars.io import read_parquet
 
 # ---------------------------------------------------------------------------
@@ -33,11 +31,19 @@ class Orders(Schema):
     amount: Column[Float64]
 
 
-class UserRevenue(Schema):
-    """Output schema: per-user revenue summary."""
+class UserOrders(Schema):
+    """Intermediate schema after joining users with orders."""
 
     user_name: Column[Utf8] = mapped_from(Users.name)
     user_id: Column[UInt64] = mapped_from(Users.id)
+    amount: Column[Float64] = mapped_from(Orders.amount)
+
+
+class UserRevenue(Schema):
+    """Output schema: per-user revenue summary."""
+
+    user_name: Column[Utf8]
+    user_id: Column[UInt64]
     total_amount: Column[Float64]
 
 
@@ -106,32 +112,28 @@ print("=== ETL Pipeline ===\n")
 # Step 1: Read typed data
 users = read_parquet(users_path, Users)
 orders = read_parquet(orders_path, Orders)
-print(f"Step 1: Read {users._data.shape[0]} users, {orders._data.shape[0]} orders")
+print(f"Step 1: Read {len(users)} users, {len(orders)} orders")
 
 # Step 2: Clean nulls — fill missing scores with 0
 users_clean = users.with_columns(Users.score.fill_null(0.0).alias(Users.score))
-print(f"Step 2: Filled null scores (was {users._data['score'].null_count()} nulls)")
+print("Step 2: Filled null scores")
 
 # Step 3: Filter — only users aged 25+
 active_users = users_clean.filter(Users.age >= 25)
-print(f"Step 3: Filtered to {active_users._data.shape[0]} users aged 25+")
+print(f"Step 3: Filtered to {len(active_users)} users aged 25+")
 
 # Step 4: Join users with orders
-joined = active_users.join(orders, on=Users.id == Orders.user_id)  # type: ignore[invalid-argument-type]
-print(f"Step 4: Joined — {joined._data.shape[0]} matched order rows")
+joined = active_users.join(orders, on=Users.id == Orders.user_id)
+print("Step 4: Joined users with orders")
 
-# Step 5: Aggregate — total amount per user
-# First cast to get user info, then aggregate
-user_orders = joined.cast_schema(
-    UserRevenue,
-    mapping={
-        UserRevenue.total_amount: Orders.amount,
-    },
+# Step 5: Cast joined data to intermediate schema, then aggregate
+user_orders = joined.cast_schema(UserOrders)
+
+revenue = (
+    user_orders.group_by(UserOrders.user_name, UserOrders.user_id)
+    .agg(UserOrders.amount.sum().alias(UserRevenue.total_amount))
+    .cast_schema(UserRevenue)
 )
-
-# Use raw Polars for the aggregation since group_by returns DataFrame[Any]
-agg_data = user_orders._data.group_by("user_name", "user_id").agg(pl.col("total_amount").sum())
-revenue = DataFrame(_data=agg_data, _schema=UserRevenue, _backend=PolarsBackend())
 
 # Step 6: Sort by revenue descending
 result = revenue.sort(UserRevenue.total_amount, descending=True)
@@ -140,7 +142,7 @@ print()
 
 # Step 7: Display results
 print("=== User Revenue Report ===")
-print(result._data)
+print(result)
 print()
 
 # Step 8: Write output
@@ -150,6 +152,6 @@ print(f"Step 8: Wrote results to {output_path}")
 
 # Step 9: Verify — read back and validate
 restored = read_parquet(output_path, UserRevenue)
-print(f"Step 9: Verified — read back {restored._data.shape[0]} rows")
+print(f"Step 9: Verified — read back {len(restored)} rows")
 
 print("\nDone!")
