@@ -110,8 +110,7 @@ df = read_parquet("users.parquet", Users)  # DataFrame[Users]
 result = (
     df.filter(Users.age > 25)
       .sort(Users.score.desc())
-      .select(Users.name, Users.score)
-)  # still typed — your checker knows which columns remain
+)  # DataFrame[Users] — schema preserved through the pipeline
 ```
 
 ---
