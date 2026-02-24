@@ -43,7 +43,7 @@ All of these must pass before submitting a PR:
 ```bash
 uv run ruff check .              # Lint
 uv run ruff format --check .     # Format
-uv run pytest tests/ -v          # Tests (1087+)
+uv run pytest tests/ -v          # Tests
 uv run ty check tests/typing/ --error-on-warning  # Static type tests
 uv run python scripts/check_api_docs.py            # API docs completeness
 uv run mkdocs build --strict     # Docs build
