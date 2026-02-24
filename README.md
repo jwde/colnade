@@ -5,14 +5,14 @@
 | Name                                               |    Stmts |     Miss |   Cover |   Missing |
 |--------------------------------------------------- | -------: | -------: | ------: | --------: |
 | colnade-dask/src/colnade\_dask/\_\_init\_\_.py     |        5 |        0 |    100% |           |
-| colnade-dask/src/colnade\_dask/adapter.py          |      391 |       16 |     96% |131-133, 144, 328-329, 348-349, 358-359, 364, 383-384, 398, 404, 478 |
+| colnade-dask/src/colnade\_dask/adapter.py          |      398 |       16 |     96% |131-133, 144, 339-340, 359-360, 369-370, 375, 394-395, 409, 415, 489 |
 | colnade-dask/src/colnade\_dask/io.py               |       44 |        0 |    100% |           |
 | colnade-pandas/src/colnade\_pandas/\_\_init\_\_.py |        6 |        0 |    100% |           |
-| colnade-pandas/src/colnade\_pandas/adapter.py      |      383 |       11 |     97% |317-318, 337-338, 350-351, 357, 375-376, 411, 466 |
+| colnade-pandas/src/colnade\_pandas/adapter.py      |      390 |       11 |     97% |328-329, 348-349, 361-362, 368, 386-387, 422, 477 |
 | colnade-pandas/src/colnade\_pandas/conversion.py   |       28 |        0 |    100% |           |
 | colnade-pandas/src/colnade\_pandas/io.py           |       39 |        0 |    100% |           |
 | colnade-polars/src/colnade\_polars/\_\_init\_\_.py |        6 |        0 |    100% |           |
-| colnade-polars/src/colnade\_polars/adapter.py      |      307 |        1 |     99% |       339 |
+| colnade-polars/src/colnade\_polars/adapter.py      |      312 |        1 |     99% |       348 |
 | colnade-polars/src/colnade\_polars/conversion.py   |       37 |        0 |    100% |           |
 | colnade-polars/src/colnade\_polars/io.py           |       48 |        0 |    100% |           |
 | src/colnade/\_\_init\_\_.py                        |       11 |        0 |    100% |           |
@@ -25,7 +25,7 @@
 | src/colnade/expr.py                                |      182 |        0 |    100% |           |
 | src/colnade/schema.py                              |      326 |        1 |     99% |       192 |
 | src/colnade/validation.py                          |       93 |        1 |     99% |       196 |
-| **TOTAL**                                          | **2555** |   **33** | **99%** |           |
+| **TOTAL**                                          | **2574** |   **33** | **99%** |           |
 
 
 ## Setup coverage badge
