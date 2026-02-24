@@ -50,7 +50,9 @@ df = read_parquet("users.parquet", Users)
 | | DataFrame | LazyFrame |
 |-|-----------|-----------|
 | Execution | Immediate (eager) | Deferred (lazy) |
-| `head()`, `tail()`, `sample()` | Available | Not available |
+| `head()`, `tail()` | Available | Available |
+| `height`, `len()` | Available | Available (triggers computation) |
+| `to_batches()` | Available | Available (triggers computation) |
 | `collect()` | N/A | Materializes to DataFrame |
 | Best for | Interactive work, small data | Optimized pipelines, large data |
 

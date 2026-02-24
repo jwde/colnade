@@ -577,8 +577,7 @@ class DataFrame(Generic[S]):
 class LazyFrame(Generic[S]):
     """A typed, lazy query plan parameterized by a Schema.
 
-    Same operations as DataFrame except: no head(), tail(), sample(),
-    to_batches() (materialized-only ops). Use collect() to materialize.
+    Supports the same operations as DataFrame. Use collect() to materialize.
     """
 
     __slots__ = ("_data", "_schema", "_backend")
