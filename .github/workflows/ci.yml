@@ -30,17 +30,27 @@ jobs:
 
   coverage:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
       - run: uv sync
-      - run: uv run pytest tests/ --cov=colnade --cov=colnade_polars --cov=colnade_pandas --cov=colnade_dask --cov-report=xml --cov-fail-under=95
-      - uses: codecov/codecov-action@v5
+      - run: uv run pytest tests/ --cov=colnade --cov=colnade_polars --cov=colnade_pandas --cov=colnade_dask --cov-fail-under=95
+      - name: Coverage comment
+        id: coverage_comment
+        uses: py-cov-action/python-coverage-comment-action@v3
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: coverage.xml
-          fail_ci_if_error: true
-          verbose: true
+          GITHUB_TOKEN: ${{ github.token }}
+          MINIMUM_GREEN: 95
+          MINIMUM_ORANGE: 80
+      - name: Store coverage comment artifact
+        uses: actions/upload-artifact@v4
+        if: steps.coverage_comment.outputs.COMMENT_FILE_WRITTEN == 'true'
+        with:
+          name: python-coverage-comment-action
+          path: python-coverage-comment-action.txt
 
   test-backend-versions:
     runs-on: ubuntu-latest

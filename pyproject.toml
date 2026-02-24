@@ -74,6 +74,9 @@ select = ["E", "F", "W", "I", "UP", "B", "SIM"]
 [tool.ruff.lint.isort]
 known-first-party = ["colnade", "colnade_polars", "colnade_pandas", "colnade_dask"]
 
+[tool.coverage.run]
+relative_files = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
