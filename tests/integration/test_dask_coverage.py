@@ -611,6 +611,19 @@ class TestFunctionCallExecution:
         result = df.with_columns(Users.age.assert_non_null().alias(Users.age))
         assert result._data.compute()["age"].tolist() == [30, 25, 35, 28, 40]
 
+    def test_assert_non_null_raises_on_nulls(self) -> None:
+        data = pd.DataFrame(
+            {
+                "id": pd.array([1, 2], dtype=pd.UInt64Dtype()),
+                "name": pd.array(["Alice", "Bob"], dtype=pd.StringDtype()),
+                "age": pd.array([30, None], dtype=pd.UInt64Dtype()),
+                "score": pd.array([85.0, 92.5], dtype=pd.Float64Dtype()),
+            }
+        )
+        df = DataFrame(_data=dd.from_pandas(data, npartitions=1), _schema=Users, _backend=_backend)
+        with pytest.raises(ValueError, match="assert_non_null failed"):
+            df.with_columns(Users.age.assert_non_null().alias(Users.age))
+
     def test_cast(self) -> None:
         df = _users_ddf()
         result = df.with_columns(Users.age.cast(Float64).alias(Users.age))

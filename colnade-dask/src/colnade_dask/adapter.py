@@ -212,7 +212,18 @@ class DaskBackend:
             fill_fn = self._ensure_callable(self.translate_expr(expr.args[1]))
             return lambda df, _s=source_fn, _f=fill_fn: _s(df).fillna(_f(df))
         if name == "assert_non_null":
-            return self._ensure_callable(self.translate_expr(expr.args[0]))
+            source_fn = self._ensure_callable(self.translate_expr(expr.args[0]))
+
+            def _check_nulls(df: Any, _s: Any = source_fn) -> Any:
+                result = _s(df)
+                null_count = int(result.isna().sum().compute())
+                if null_count > 0:
+                    raise ValueError(
+                        f"assert_non_null failed: column contains {null_count} null values"
+                    )
+                return result
+
+            return _check_nulls
 
         # Cast
         if name == "cast":

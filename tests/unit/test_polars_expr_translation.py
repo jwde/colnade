@@ -428,6 +428,12 @@ class TestMiscFunctions:
         result = df.select(backend.translate_expr(expr)).to_series()
         assert result.to_list() == ["Alice", "Bob"]
 
+    def test_assert_non_null_raises_on_nulls(self) -> None:
+        expr = Users.name.assert_non_null()
+        df = pl.DataFrame({"name": ["Alice", None]})
+        with pytest.raises(ValueError, match="assert_non_null failed"):
+            df.select(backend.translate_expr(expr))
+
     def test_cast(self) -> None:
 
         expr = Users.age.cast(Float64)
