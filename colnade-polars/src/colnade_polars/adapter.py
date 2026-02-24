@@ -169,7 +169,16 @@ class PolarsBackend:
             fill_val = self.translate_expr(expr.args[1])
             return source.fill_nan(fill_val)
         if name == "assert_non_null":
-            return self.translate_expr(expr.args[0])
+            source = self.translate_expr(expr.args[0])
+
+            def _check_nulls(s: Any) -> Any:
+                if s.null_count() > 0:
+                    raise ValueError(
+                        f"assert_non_null failed: column contains {s.null_count()} null values"
+                    )
+                return s
+
+            return source.map_batches(_check_nulls)
 
         # Cast
         if name == "cast":
