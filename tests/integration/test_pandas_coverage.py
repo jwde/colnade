@@ -649,7 +649,21 @@ class TestFunctionCallExecution:
         result = df.with_columns(Users.age.cast(Float64).alias(Users.age))
         assert result._data["age"].dtype == pd.Float64Dtype()
 
-    def test_over_window(self) -> None:
+    def test_over_window_with_agg(self) -> None:
+        data = pd.DataFrame(
+            {
+                "id": pd.array([1, 2, 3, 4], dtype=pd.UInt64Dtype()),
+                "name": pd.array(["Alice", "Alice", "Bob", "Bob"], dtype=pd.StringDtype()),
+                "age": pd.array([30, 25, 35, 28], dtype=pd.UInt64Dtype()),
+            }
+        )
+        df = DataFrame(_data=data, _schema=Users, _backend=_backend)
+        result = df.with_columns(Users.age.sum().over(Users.name).alias(Users.age))
+        ages = result._data["age"].tolist()
+        # Alice group: 30+25=55, Bob group: 35+28=63
+        assert ages == [55, 55, 63, 63]
+
+    def test_over_window_no_agg(self) -> None:
         data = pd.DataFrame(
             {
                 "id": pd.array([1, 2, 3, 4], dtype=pd.UInt64Dtype()),
@@ -659,7 +673,8 @@ class TestFunctionCallExecution:
         )
         df = DataFrame(_data=data, _schema=Users, _backend=_backend)
         result = df.with_columns(Users.age.over(Users.name).alias(Users.age))
-        assert result._data.shape[0] == 4
+        ages = result._data["age"].tolist()
+        assert ages == [30, 25, 35, 28]
 
     def test_dt_truncate(self) -> None:
         import pyarrow as pa

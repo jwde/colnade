@@ -149,8 +149,9 @@ Users.id.cast(Float64)                # cast UInt64 → Float64
 
 ## Window functions
 
-Compute values over partitions:
+Apply an aggregation within each partition and broadcast the result back to every row:
 
 ```python
-Users.score.over(Users.name)          # score partitioned by name
+Users.score.sum().over(Users.name)    # per-name total, broadcast to each row
+Users.score.mean().over(Users.name)   # per-name average
 ```

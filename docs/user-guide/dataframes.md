@@ -90,8 +90,8 @@ selected = df.select(Users.name, Users.score)  # DataFrame[Any]
 
 # agg — aggregate all rows into a single row
 summary = df.agg(
-    Users.score.mean().as_column(Stats.avg_score),
-    Users.id.count().as_column(Stats.user_count),
+    Users.score.mean().alias(Stats.avg_score),
+    Users.id.count().alias(Stats.user_count),
 )  # DataFrame[Any]
 
 # group_by + agg — grouped aggregation
