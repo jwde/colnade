@@ -23,10 +23,9 @@
 | src/colnade/dataframe.py                           |      525 |        3 |     99% |   566-568 |
 | src/colnade/dtypes.py                              |       27 |        0 |    100% |           |
 | src/colnade/expr.py                                |      182 |        0 |    100% |           |
-| src/colnade/schema.py                              |      329 |        1 |     99% |       197 |
-| src/colnade/udf.py                                 |        0 |        0 |    100% |           |
+| src/colnade/schema.py                              |      326 |        1 |     99% |       192 |
 | src/colnade/validation.py                          |       93 |        1 |     99% |       196 |
-| **TOTAL**                                          | **2558** |   **33** | **99%** |           |
+| **TOTAL**                                          | **2555** |   **33** | **99%** |           |
 
 
 ## Setup coverage badge
