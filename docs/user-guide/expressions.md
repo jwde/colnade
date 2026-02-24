@@ -155,9 +155,3 @@ Apply an aggregation within each partition and broadcast the result back to ever
 Users.score.sum().over(Users.name)    # per-name total, broadcast to each row
 Users.score.mean().over(Users.name)   # per-name average
 ```
-
-Without an aggregation, `over()` broadcasts the raw column values within each group (identity per partition):
-
-```python
-Users.score.over(Users.name)          # score values, grouped by name
-```
