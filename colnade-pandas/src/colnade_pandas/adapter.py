@@ -329,8 +329,8 @@ class PandasBackend:
                 raise ValueError(msg)
         return result
 
-    def select(self, source: Any, columns: Sequence[Column[Any]]) -> Any:
-        return source[[c.name for c in columns]].reset_index(drop=True)
+    def select(self, source: Any, columns: Sequence[Column[Any] | str]) -> Any:
+        return source[[c.name if hasattr(c, "name") else c for c in columns]].reset_index(drop=True)
 
     def group_by_agg(
         self,

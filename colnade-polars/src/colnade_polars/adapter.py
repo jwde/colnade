@@ -263,8 +263,8 @@ class PolarsBackend:
     def with_columns(self, source: Any, exprs: Sequence[AliasedExpr[Any] | Expr[Any]]) -> Any:
         return source.with_columns([self.translate_expr(e) for e in exprs])
 
-    def select(self, source: Any, columns: Sequence[Column[Any]]) -> Any:
-        return source.select([c.name for c in columns])
+    def select(self, source: Any, columns: Sequence[Column[Any] | str]) -> Any:
+        return source.select([c.name if hasattr(c, "name") else c for c in columns])
 
     def group_by_agg(
         self,
