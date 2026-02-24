@@ -28,6 +28,7 @@ if TYPE_CHECKING:
         UnaryOp,
     )
 
+
 # ---------------------------------------------------------------------------
 # Schema-bound TypeVars (must live here because they reference Schema)
 # ---------------------------------------------------------------------------
@@ -38,6 +39,10 @@ S = TypeVar("S", bound="Schema")
 # Additional schema TypeVars for joins and multi-schema operations
 S2 = TypeVar("S2", bound="Schema")
 S3 = TypeVar("S3", bound="Schema")
+
+# TypeVars for self-narrowing on nested types
+_S2 = TypeVar("_S2")  # inner schema for Struct[_S2]
+_E = TypeVar("_E")  # element type for List[_E]
 
 # ---------------------------------------------------------------------------
 # Schema registry
@@ -272,10 +277,10 @@ class Column(Generic[DType]):
 
         return Agg(source=ColumnRef(column=self), agg_type=agg_type)
 
-    def sum(self) -> Agg[DType]:
+    def sum(self: _NumericSelf) -> Agg[DType]:
         return self._agg("sum")
 
-    def mean(self) -> Agg[Float64]:
+    def mean(self: _NumericSelf) -> Agg[Float64]:
         return self._agg("mean")
 
     def min(self) -> Agg[DType]:
@@ -287,10 +292,10 @@ class Column(Generic[DType]):
     def count(self) -> Agg[UInt32]:
         return self._agg("count")
 
-    def std(self) -> Agg[Float64]:
+    def std(self: _NumericSelf) -> Agg[Float64]:
         return self._agg("std")
 
-    def var(self) -> Agg[Float64]:
+    def var(self: _NumericSelf) -> Agg[Float64]:
         return self._agg("var")
 
     def first(self) -> Agg[DType]:
@@ -302,63 +307,63 @@ class Column(Generic[DType]):
     def n_unique(self) -> Agg[UInt32]:
         return self._agg("n_unique")
 
-    # --- String methods (Utf8 only at type level) ---
+    # --- String methods (Utf8 only) ---
 
     def _str_fn(self, name: str, *args: Any) -> FunctionCall[Any]:
         from colnade.expr import ColumnRef, FunctionCall
 
         return FunctionCall(name=name, args=(ColumnRef(column=self), *args))
 
-    def str_contains(self, pattern: str) -> FunctionCall[Bool]:
+    def str_contains(self: _StrSelf, pattern: str) -> FunctionCall[Bool]:
         return self._str_fn("str_contains", pattern)
 
-    def str_starts_with(self, prefix: str) -> FunctionCall[Bool]:
+    def str_starts_with(self: _StrSelf, prefix: str) -> FunctionCall[Bool]:
         return self._str_fn("str_starts_with", prefix)
 
-    def str_ends_with(self, suffix: str) -> FunctionCall[Bool]:
+    def str_ends_with(self: _StrSelf, suffix: str) -> FunctionCall[Bool]:
         return self._str_fn("str_ends_with", suffix)
 
-    def str_len(self) -> FunctionCall[UInt32]:
+    def str_len(self: _StrSelf) -> FunctionCall[UInt32]:
         return self._str_fn("str_len")
 
-    def str_to_lowercase(self) -> FunctionCall[Utf8]:
+    def str_to_lowercase(self: _StrSelf) -> FunctionCall[Utf8]:
         return self._str_fn("str_to_lowercase")
 
-    def str_to_uppercase(self) -> FunctionCall[Utf8]:
+    def str_to_uppercase(self: _StrSelf) -> FunctionCall[Utf8]:
         return self._str_fn("str_to_uppercase")
 
-    def str_strip(self) -> FunctionCall[Utf8]:
+    def str_strip(self: _StrSelf) -> FunctionCall[Utf8]:
         return self._str_fn("str_strip")
 
-    def str_replace(self, pattern: str, replacement: str) -> FunctionCall[Utf8]:
+    def str_replace(self: _StrSelf, pattern: str, replacement: str) -> FunctionCall[Utf8]:
         return self._str_fn("str_replace", pattern, replacement)
 
-    # --- Temporal methods (Datetime only at type level) ---
+    # --- Temporal methods ---
 
     def _dt_fn(self, name: str) -> FunctionCall[Any]:
         from colnade.expr import ColumnRef, FunctionCall
 
         return FunctionCall(name=name, args=(ColumnRef(column=self),))
 
-    def dt_year(self) -> FunctionCall[Int32]:
+    def dt_year(self: _DateSelf) -> FunctionCall[Int32]:
         return self._dt_fn("dt_year")
 
-    def dt_month(self) -> FunctionCall[Int32]:
+    def dt_month(self: _DateSelf) -> FunctionCall[Int32]:
         return self._dt_fn("dt_month")
 
-    def dt_day(self) -> FunctionCall[Int32]:
+    def dt_day(self: _DateSelf) -> FunctionCall[Int32]:
         return self._dt_fn("dt_day")
 
-    def dt_hour(self) -> FunctionCall[Int32]:
+    def dt_hour(self: _TimeSelf) -> FunctionCall[Int32]:
         return self._dt_fn("dt_hour")
 
-    def dt_minute(self) -> FunctionCall[Int32]:
+    def dt_minute(self: _TimeSelf) -> FunctionCall[Int32]:
         return self._dt_fn("dt_minute")
 
-    def dt_second(self) -> FunctionCall[Int32]:
+    def dt_second(self: _TimeSelf) -> FunctionCall[Int32]:
         return self._dt_fn("dt_second")
 
-    def dt_truncate(self, interval: str) -> FunctionCall[Datetime]:
+    def dt_truncate(self: _DatetimeSelf, interval: str) -> FunctionCall[Datetime]:
         from colnade.expr import ColumnRef, FunctionCall
 
         return FunctionCall(name="dt_truncate", args=(ColumnRef(column=self), interval))
@@ -393,14 +398,14 @@ class Column(Generic[DType]):
 
         return FunctionCall(name="assert_non_null", args=(ColumnRef(column=self),))
 
-    # --- NaN handling (Float32/Float64 only at type level) ---
+    # --- NaN handling (Float32/Float64 only) ---
 
-    def is_nan(self) -> UnaryOp[Bool]:
+    def is_nan(self: _FloatSelf) -> UnaryOp[Bool]:
         from colnade.expr import ColumnRef, UnaryOp
 
         return UnaryOp(operand=ColumnRef(column=self), op="is_nan")
 
-    def fill_nan(self, value: Any) -> FunctionCall[DType]:
+    def fill_nan(self: _FloatSelf, value: Any) -> FunctionCall[DType]:
         from colnade.expr import ColumnRef, FunctionCall, Literal
 
         if not isinstance(value, Literal):
@@ -444,17 +449,11 @@ class Column(Generic[DType]):
         return SortExpr(expr=ColumnRef(column=self), descending=False)
 
     # --- Struct field access ---
-    #
-    # Limitation: .field() is available on ALL Column instances, not just
-    # Column[Struct[S]]. Restricting it requires self narrowing:
-    #
-    #     def field(self: Column[Struct[S2]], col: Column[T]) -> StructFieldAccess[T]: ...
-    #
-    # ty does not yet support self narrowing on non-Protocol generic classes.
-    # When it does, calling .field() on a non-struct column (e.g., Users.name)
-    # would become a static type error. See §4.3.
 
-    def field(self, col: Column[T]) -> StructFieldAccess[T]:
+    def field(
+        self: Column[Struct[_S2]] | Column[Struct[_S2] | None],
+        col: Column[T],
+    ) -> StructFieldAccess[T]:
         """Access a field within a struct column.
 
         The ``col`` argument must be a Column descriptor from the struct's schema::
@@ -466,19 +465,9 @@ class Column(Generic[DType]):
         return StructFieldAccess(struct_expr=ColumnRef(column=self), field=col)
 
     # --- List accessor ---
-    #
-    # Limitation: returns ListAccessor[Any] because extracting the element type
-    # T from Column[List[T]] requires self narrowing:
-    #
-    #     @property
-    #     def list(self: Column[List[T]]) -> ListAccessor[T]: ...
-    #
-    # ty does not yet support self narrowing on non-Protocol generic classes.
-    # When it does, this property and all ListAccessor methods that return
-    # ListOp[Any] can be tightened to preserve the element type. See §4.3.
 
     @property
-    def list(self) -> ListAccessor[Any]:
+    def list(self: Column[List[_E]] | Column[List[_E] | None]) -> ListAccessor[_E]:
         """Access list operations on a list column.
 
         Returns a ``ListAccessor`` that provides list-specific methods::
@@ -488,6 +477,67 @@ class Column(Generic[DType]):
             Users.tags.list.contains("x")  # ListOp node
         """
         return ListAccessor(column=self)
+
+
+# ---------------------------------------------------------------------------
+# Self-narrowing type aliases (must be after Column definition)
+# ---------------------------------------------------------------------------
+
+if TYPE_CHECKING:
+    from colnade.dtypes import (  # noqa: F811
+        Date,
+        Datetime,
+        Float32,
+        Float64,
+        Int8,
+        Int16,
+        Int32,
+        Int64,
+        List,
+        Struct,
+        Time,
+        UInt8,
+        UInt16,
+        UInt32,
+        UInt64,
+        Utf8,
+    )
+
+    # Each alias includes both non-nullable and nullable variants because
+    # Column is invariant (Column[UInt8 | None] != Column[UInt8]).
+
+    _NumericSelf = (
+        Column[UInt8]
+        | Column[UInt8 | None]
+        | Column[UInt16]
+        | Column[UInt16 | None]
+        | Column[UInt32]
+        | Column[UInt32 | None]
+        | Column[UInt64]
+        | Column[UInt64 | None]
+        | Column[Int8]
+        | Column[Int8 | None]
+        | Column[Int16]
+        | Column[Int16 | None]
+        | Column[Int32]
+        | Column[Int32 | None]
+        | Column[Int64]
+        | Column[Int64 | None]
+        | Column[Float32]
+        | Column[Float32 | None]
+        | Column[Float64]
+        | Column[Float64 | None]
+    )
+
+    _FloatSelf = Column[Float32] | Column[Float32 | None] | Column[Float64] | Column[Float64 | None]
+
+    _StrSelf = Column[Utf8] | Column[Utf8 | None]
+
+    _DateSelf = Column[Date] | Column[Date | None] | Column[Datetime] | Column[Datetime | None]
+
+    _TimeSelf = Column[Datetime] | Column[Datetime | None] | Column[Time] | Column[Time | None]
+
+    _DatetimeSelf = Column[Datetime] | Column[Datetime | None]
 
 
 # ---------------------------------------------------------------------------
@@ -507,18 +557,8 @@ class ListAccessor(Generic[DType]):
         Users.tags.list.get(0)         # ListOp(op="get", args=(0,))
         Users.tags.list.contains("x")  # ListOp(op="contains", args=("x",))
 
-    **Type precision limitation:** Methods like ``get()``, ``sum()``, etc. return
-    ``ListOp[Any]`` because the list element type ``T`` is not available — it is
-    lost at the ``.list`` property boundary (see comment on ``Column.list``).
-    With self narrowing support, these would become:
-
-    - ``get(index) -> ListOp[T | None]``
-    - ``sum() -> ListOp[T]``
-    - ``contains(value: T) -> ListOp[Bool]``
-    - etc.
-
-    Methods with fixed return types (``len() -> ListOp[UInt32]``,
-    ``contains() -> ListOp[Bool]``) are already precise.
+    The element type ``DType`` flows from the ``.list`` property via self-narrowing,
+    so ``get()``, ``sum()``, etc. preserve element types.
     """
 
     __slots__ = ("_column",)
@@ -537,22 +577,22 @@ class ListAccessor(Generic[DType]):
     def len(self) -> ListOp[UInt32]:
         return self._list_op("len")
 
-    def get(self, index: int) -> ListOp[Any]:
+    def get(self, index: int) -> ListOp[DType]:
         return self._list_op("get", index)
 
     def contains(self, value: Any) -> ListOp[Bool]:
         return self._list_op("contains", value)
 
-    def sum(self) -> ListOp[Any]:
+    def sum(self) -> ListOp[DType]:
         return self._list_op("sum")
 
-    def mean(self) -> ListOp[Any]:
+    def mean(self) -> ListOp[DType]:
         return self._list_op("mean")
 
-    def min(self) -> ListOp[Any]:
+    def min(self) -> ListOp[DType]:
         return self._list_op("min")
 
-    def max(self) -> ListOp[Any]:
+    def max(self) -> ListOp[DType]:
         return self._list_op("max")
 
 

@@ -10,7 +10,7 @@ Coverage index (where each row is tested):
 
   ✅ Row 1  Column reference exists         → test_schema.py::check_column_access
   ✅ Row 2  Column correct type             → test_schema.py::check_column_access
-  ✅ Row 3  Method availability by dtype    → LIMITATION: no self-narrowing (§4.3)
+  ✅ Row 3  Method availability by dtype    → test_error_messages.py::check_neg_* (self-narrowing)
   ✅ Row 4  Filter preserves schema         → test_dataframe.py::check_filter_preserves_schema
   ✅ Row 5  With_columns preserves schema   → test_dataframe.py::check_with_columns_preserves_schema
   ✅ Row 6  Function schema passthrough     → test_generic_functions.py::check_passthrough_*
@@ -29,11 +29,11 @@ Coverage index (where each row is tested):
   ✅ Row 17 Null propagation                → test_expr.py::check_null_handling
   ✅ Row 18 fill_null strips nullability    → LIMITATION: preserves DType including None
   ✅ Row 19 Nullability in cast_schema      → THIS FILE (NullToNonNull)
-  ✅ Row 20 is_nan/fill_nan float only      → LIMITATION: no self-narrowing (§4.3)
+  ✅ Row 20 is_nan/fill_nan float only      → test_error_messages.py::check_neg_float_on_non_float
   ✅ Row 21 Struct field type-safe          → test_nested_types.py::check_struct_field_*
-  ✅ Row 22 Struct field schema match       → LIMITATION: no self-narrowing (§4.3)
-  ✅ Row 23 List ops on list columns        → LIMITATION: no self-narrowing (§4.3)
-  ✅ Row 24 List element type flows         → LIMITATION: returns Any
+  ✅ Row 22 Struct field schema match       → test_error_messages.py::check_neg_struct_on_non_struct
+  ✅ Row 23 List ops on list columns        → LIMITATION: property self-narrowing unsupported
+  ✅ Row 24 List element type flows         → LIMITATION: property self-narrowing unsupported
 
   ❌ Row 25 Wrong-schema col in filter      → BY DESIGN: Expr[Bool] erases source
   ❌ Row 26 Select infers output schema     → LANGUAGE: requires TypeVarDict
@@ -41,8 +41,7 @@ Coverage index (where each row is tested):
   ❌ Row 28 Join infers combined schema     → LANGUAGE: requires record types
   ❌ Row 29 "Add column to generic S"       → LANGUAGE: requires record combination
 
-Rows marked LIMITATION will improve when ty adds self-narrowing support.
-See AGENTS.md "Self Narrowing Limitation" for details.
+Rows marked LIMITATION are blocked by type checker features (property self-narrowing).
 """
 
 from typing import Any

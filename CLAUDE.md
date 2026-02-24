@@ -88,15 +88,8 @@ class Users(Schema):
 
 **Rationale:** All Python type checkers (ty, mypy, pyright) read static annotations, not runtime metaclass replacements. With bare `age: UInt8`, the type checker thinks `Users.age` is `UInt8` — a sentinel class with no `.sum()`, `.mean()`, etc. The `Column[DType]` pattern (inspired by SQLAlchemy 2.0's `Mapped[T]`) makes the annotation _be_ the descriptor type.
 
-### Self Narrowing Limitation
+### Self Narrowing
 
-The spec envisions dtype-conditional method availability using `self` type narrowing (e.g. `.field()` only on Struct columns, `.list` only on List columns). ty does not yet support `self` narrowing on non-Protocol generic classes, so these methods are available on all `Column` instances at the type level.
+Column methods are restricted to appropriate dtypes via `self:` type annotations (self-narrowing). This catches misuse like `Users.name.sum()` (string column) at type-check time. Uses explicit union types (not TypeVar bounds) because Column is invariant and nullable columns (`Column[UInt8 | None]`) must be included.
 
-**What returns `Any` (improvable with self narrowing):**
-- `.list` property → `ListAccessor[Any]` (should be `ListAccessor[T]`)
-- `.get()`, `.sum()`, `.mean()`, `.min()`, `.max()` → `ListOp[Any]`
-
-**What would become static errors (not currently caught):**
-- `.field()` on non-Struct column, `.list` on non-List column, `.sum()` on non-numeric list
-
-When ty adds self narrowing support, these can be tightened without changing runtime behavior.
+**Remaining limitation:** `.list` property self-narrowing does not work in ty (property self types are not enforced). `.list` returns `ListAccessor[Any]` — `ListAccessor` methods like `.get()`, `.sum()` return `ListOp[Any]`. The annotations are in place and will become precise when ty adds property self-narrowing support.

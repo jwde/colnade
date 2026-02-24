@@ -38,6 +38,24 @@ to `DataFrame[Orders]`
 
 Generic invariance ensures that schemas are not accidentally swapped between functions.
 
+### Method availability by dtype
+
+Column methods are restricted to appropriate types. Calling `.sum()` on a string column is caught at type-check time:
+
+```python
+Users.name.sum()
+```
+
+```
+error[invalid-argument-type]: Argument to bound method `sum` is incorrect
+  --> example.py:10:5
+   |
+10 | _ = Users.name.sum()
+   |     ^^^^^^^^^^^^^^^^ Expected numeric Column, found `Column[Utf8]`
+```
+
+This applies to numeric aggregations (`sum`, `mean`, `std`, `var`), NaN methods (`is_nan`, `fill_nan` — float only), string methods (`str_contains`, `str_len`, etc. — Utf8 only), temporal methods (`dt_year`, `dt_hour`, etc.), and struct field access (`.field()` — Struct only).
+
 ### Nullability mismatch in mapped_from
 
 ```python
@@ -110,16 +128,6 @@ df.filter(Orders.amount > 100)
 ```
 
 This guard covers `filter`, `sort`, `with_columns`, `select`, `unique`, `drop_nulls`, `group_by`, and `agg`. On `JoinedDataFrame`/`JoinedLazyFrame`, columns from either schema are accepted.
-
-### Method availability by dtype
-
-All `Column` methods (`.sum()`, `.str_contains()`, `.dt_year()`) are available on every `Column` regardless of dtype. Calling `.sum()` on a string column is not caught statically:
-
-```python
-Users.name.sum()  # NOT caught — fails at runtime
-```
-
-This requires self-narrowing support in type checkers (e.g., `def sum(self: Column[NumericType]) -> Agg`), which is not yet available.
 
 ### Cross-schema equality return type
 

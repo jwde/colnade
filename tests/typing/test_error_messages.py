@@ -13,8 +13,12 @@ when they make common mistakes.
 from colnade import (
     Column,
     DataFrame,
+    Date,
+    Datetime,
     Float64,
+    List,
     Schema,
+    Struct,
     UInt8,
     UInt32,
     UInt64,
@@ -25,11 +29,20 @@ from colnade import (
 # --- Schema definitions ---
 
 
+class Address(Schema):
+    city: Column[Utf8]
+    zip_code: Column[Utf8]
+
+
 class Users(Schema):
     id: Column[UInt64]
     name: Column[Utf8]
     age: Column[UInt8 | None]
     score: Column[Float64]
+    created: Column[Datetime]
+    birthday: Column[Date | None]
+    address: Column[Struct[Address]]
+    tags: Column[List[Utf8]]
 
 
 class Orders(Schema):
@@ -58,27 +71,110 @@ def check_misspelled_column() -> None:
 
 
 # ===================================================================
-# §11.2 Wrong type operation
+# §11.2 Wrong type operation — CAUGHT via self-narrowing
 #
-# KNOWN LIMITATION: Without self-narrowing, all Column methods (sum, mean,
-# str_contains, dt_year, etc.) are available on every Column regardless of
-# dtype. So Users.name.sum() is NOT caught at the type level.
-#
-# When ty adds self-narrowing support, .sum() would only be available on
-# Column[NumericType], .str_contains() only on Column[Utf8], etc.
-# See AGENTS.md "Self Narrowing Limitation" for details.
+# Column methods are restricted to appropriate dtypes using self-narrowing:
+#   - sum/mean/std/var → numeric types only
+#   - is_nan/fill_nan → float types only
+#   - str_* → Utf8 only
+#   - dt_year/month/day → Date or Datetime only
+#   - dt_hour/minute/second → Datetime or Time only
+#   - dt_truncate → Datetime only
+#   - .field() → Struct columns only
+#   - .list → List columns only
 # ===================================================================
 
 
-def check_wrong_type_op_not_caught() -> None:
-    """§11.2: Wrong-type operations are NOT caught (self-narrowing limitation).
+# --- Positive tests (must NOT produce errors) ---
 
-    These calls are type-valid today but semantically wrong.
-    They will fail at runtime when the backend tries to execute them.
-    """
-    _ = Users.name.sum()  # Should be error: sum() on Utf8
-    _ = Users.name.is_nan()  # Should be error: is_nan() on Utf8
-    # No type: ignore needed — these are currently accepted
+
+def check_numeric_agg_on_numeric() -> None:
+    """§11.2+: Numeric aggregations work on numeric columns."""
+    _ = Users.score.sum()  # Float64 — numeric
+    _ = Users.id.mean()  # UInt64 — numeric
+    _ = Users.age.sum()  # UInt8 | None — nullable numeric
+    _ = Users.score.std()  # Float64 — numeric
+    _ = Users.score.var()  # Float64 — numeric
+
+
+def check_float_on_float() -> None:
+    """§11.2+: NaN methods work on float columns."""
+    _ = Users.score.is_nan()  # Float64
+    _ = Users.score.fill_nan(0.0)  # Float64
+
+
+def check_str_on_str() -> None:
+    """§11.2+: String methods work on Utf8 columns."""
+    _ = Users.name.str_contains("x")  # Utf8
+    _ = Users.name.str_len()
+    _ = Users.name.str_to_lowercase()
+    _ = Users.name.str_starts_with("A")
+    _ = Users.name.str_ends_with("z")
+    _ = Users.name.str_to_uppercase()
+    _ = Users.name.str_strip()
+    _ = Users.name.str_replace("a", "b")
+
+
+def check_temporal_on_temporal() -> None:
+    """§11.2+: Temporal methods work on appropriate temporal columns."""
+    _ = Users.created.dt_year()  # Datetime
+    _ = Users.created.dt_hour()  # Datetime
+    _ = Users.created.dt_truncate("1h")  # Datetime
+    _ = Users.birthday.dt_year()  # Date | None
+    _ = Users.birthday.dt_month()  # Date | None
+    _ = Users.birthday.dt_day()  # Date | None
+
+
+def check_struct_on_struct() -> None:
+    """§11.2+: .field() works on Struct columns."""
+    _ = Users.address.field(Address.city)
+
+
+def check_list_on_list() -> None:
+    """§11.2+: .list works on List columns."""
+    _ = Users.tags.list.len()
+    _ = Users.tags.list.get(0)
+    _ = Users.tags.list.contains("x")
+
+
+# --- Negative tests (each MUST produce an error) ---
+
+
+def check_neg_numeric_agg_on_string() -> None:
+    """§11.2: sum/mean/std/var on Utf8 is caught."""
+    _ = Users.name.sum()  # type: ignore[invalid-argument-type]
+    _ = Users.name.mean()  # type: ignore[invalid-argument-type]
+    _ = Users.name.std()  # type: ignore[invalid-argument-type]
+    _ = Users.name.var()  # type: ignore[invalid-argument-type]
+
+
+def check_neg_float_on_non_float() -> None:
+    """§11.2: is_nan/fill_nan on non-float is caught."""
+    _ = Users.name.is_nan()  # type: ignore[invalid-argument-type]
+    _ = Users.age.is_nan()  # type: ignore[invalid-argument-type]
+    _ = Users.id.fill_nan(0)  # type: ignore[invalid-argument-type]
+
+
+def check_neg_str_on_non_str() -> None:
+    """§11.2: String methods on non-Utf8 is caught."""
+    _ = Users.score.str_contains("x")  # type: ignore[invalid-argument-type]
+    _ = Users.id.str_len()  # type: ignore[invalid-argument-type]
+
+
+def check_neg_temporal_on_non_temporal() -> None:
+    """§11.2: Temporal methods on non-temporal is caught."""
+    _ = Users.name.dt_year()  # type: ignore[invalid-argument-type]
+    _ = Users.score.dt_hour()  # type: ignore[invalid-argument-type]
+
+
+def check_neg_struct_on_non_struct() -> None:
+    """§11.2: .field() on non-Struct is caught."""
+    _ = Users.name.field(Address.city)  # type: ignore[invalid-argument-type]
+
+
+def check_neg_list_on_non_list() -> None:
+    """§11.2: .list on non-List — NOT caught (property self-narrowing unsupported)."""
+    _ = Users.name.list  # Accepted — ty doesn't narrow property self types
 
 
 # ===================================================================
