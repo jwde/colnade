@@ -41,6 +41,19 @@ jobs:
         with:
           use_oidc: true
           files: coverage.xml
+          verbose: true
+          run_command: create-commit
+      - uses: codecov/codecov-action@v5
+        with:
+          use_oidc: true
+          files: coverage.xml
+          verbose: true
+          run_command: create-report
+      - uses: codecov/codecov-action@v5
+        with:
+          use_oidc: true
+          files: coverage.xml
+          verbose: true
 
   test-backend-versions:
     runs-on: ubuntu-latest
