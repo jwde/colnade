@@ -52,9 +52,8 @@ with tempfile.NamedTemporaryFile(suffix=".parquet", delete=False) as f:
 # ---------------------------------------------------------------------------
 
 df = read_parquet(parquet_path, Users)
-print(f"Read {df._data.shape[0]} users")
-schema_name = df._schema.__name__ if df._schema else "None"
-print(f"Schema: {schema_name}")
+print(f"Read {len(df)} users")
+print(f"Schema: {df!r}")
 print()
 
 # ---------------------------------------------------------------------------
@@ -64,7 +63,7 @@ print()
 # Users.age is a Column[UInt64] descriptor — misspelling it is a type error
 adults = df.filter(Users.age >= 30)
 print("Users aged 30+:")
-print(adults._data)
+print(adults)
 print()
 
 # ---------------------------------------------------------------------------
@@ -73,7 +72,7 @@ print()
 
 by_score = df.sort(Users.score.desc())
 print("Users by score (descending):")
-print(by_score._data)
+print(by_score)
 print()
 
 # ---------------------------------------------------------------------------
@@ -82,7 +81,7 @@ print()
 
 doubled = df.with_columns((Users.score * 2).alias(Users.score))
 print("Doubled scores:")
-print(doubled._data)
+print(doubled)
 print()
 
 # ---------------------------------------------------------------------------
@@ -90,10 +89,8 @@ print()
 # ---------------------------------------------------------------------------
 
 summary = df.select(Users.name, Users.score).cast_schema(UserSummary)
-summary_name = summary._schema.__name__ if summary._schema else "None"
-print(f"Summary schema: {summary_name}")
-print(f"Summary columns: {summary._data.columns}")
-print(summary._data)
+print(f"Summary: {summary!r}")
+print(summary)
 print()
 
 # ---------------------------------------------------------------------------

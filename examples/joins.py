@@ -56,10 +56,10 @@ orders = from_rows(
 )
 
 print("Users:")
-print(users._data)
+print(users)
 print()
 print("Orders:")
-print(orders._data)
+print(orders)
 print()
 
 # ---------------------------------------------------------------------------
@@ -68,10 +68,8 @@ print()
 
 # Users.id == Orders.user_id produces a JoinCondition (not BinOp)
 # because the columns belong to different schemas
-joined = users.join(orders, on=Users.id == Orders.user_id)  # type: ignore[invalid-argument-type]
-print(f"Join result type: {joined!r}")
-print(f"Rows after join: {joined._data.shape[0]}")
-print(joined._data)
+joined = users.join(orders, on=Users.id == Orders.user_id)
+print(f"Join result: {joined!r}")
 print()
 
 # ---------------------------------------------------------------------------
@@ -82,8 +80,7 @@ print()
 # Users.name → "user_name", Users.id → "user_id", amount matches by name
 result = joined.cast_schema(UserOrders)
 print(f"After cast_schema: {result!r}")
-print(f"Columns: {result._data.columns}")
-print(result._data)
+print(result)
 print()
 
 # ---------------------------------------------------------------------------
@@ -92,6 +89,6 @@ print()
 
 big_orders = joined.filter(Orders.amount >= 150).cast_schema(UserOrders)
 print("Big orders (amount >= 150):")
-print(big_orders._data)
+print(big_orders)
 
 print("\nDone!")

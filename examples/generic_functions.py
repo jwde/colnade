@@ -49,7 +49,7 @@ def drop_null_rows(df: DataFrame[S]) -> DataFrame[S]:
 
 def count_rows(df: DataFrame[S]) -> int:
     """Count rows in any typed DataFrame."""
-    return df._data.shape[0]
+    return len(df)
 
 
 # ---------------------------------------------------------------------------
@@ -83,13 +83,13 @@ products = from_rows(
 # first_n(users, 3) returns DataFrame[Users]
 top_users = first_n(users, 3)
 print(f"first_n(users, 3) -> {top_users!r}")
-print(top_users._data)
+print(top_users)
 print()
 
 # first_n(products, 2) returns DataFrame[Products]
 top_products = first_n(products, 2)
 print(f"first_n(products, 2) -> {top_products!r}")
-print(top_products._data)
+print(top_products)
 print()
 
 # count_rows works on both
@@ -100,6 +100,6 @@ print()
 # drop_null_rows preserves schema
 clean_users = drop_null_rows(users)
 print(f"drop_null_rows(users) -> {clean_users!r}")
-print(f"Rows: {clean_users._data.shape[0]}")
+print(f"Rows: {len(clean_users)}")
 
 print("\nDone!")
