@@ -30,28 +30,14 @@ jobs:
 
   coverage:
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
       - run: uv sync
       - run: uv run pytest tests/ --cov=colnade --cov=colnade_polars --cov=colnade_pandas --cov=colnade_dask --cov-report=xml --cov-fail-under=95
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@v4
         with:
-          use_oidc: true
-          files: coverage.xml
-          verbose: true
-          run_command: create-commit
-      - uses: codecov/codecov-action@v5
-        with:
-          use_oidc: true
-          files: coverage.xml
-          verbose: true
-          run_command: create-report
-      - uses: codecov/codecov-action@v5
-        with:
-          use_oidc: true
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage.xml
           verbose: true
 
