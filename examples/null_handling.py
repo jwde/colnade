@@ -16,8 +16,8 @@ from colnade_polars import from_dict
 class Users(Schema):
     id: Column[UInt64]
     name: Column[Utf8]
-    age: Column[UInt64]
-    score: Column[Float64]
+    age: Column[UInt64 | None]
+    score: Column[Float64 | None]
 
 
 # ---------------------------------------------------------------------------
@@ -34,9 +34,7 @@ df = from_dict(
     },
 )
 print("Original data:")
-print(df._data)
-print(f"Age nulls: {df._data['age'].null_count()}")
-print(f"Score nulls: {df._data['score'].null_count()}")
+print(df)
 print()
 
 # ---------------------------------------------------------------------------
@@ -48,9 +46,7 @@ filled = df.with_columns(
     Users.score.fill_null(0.0).alias(Users.score),
 )
 print("After fill_null(0):")
-print(filled._data)
-print(f"Age nulls: {filled._data['age'].null_count()}")
-print(f"Score nulls: {filled._data['score'].null_count()}")
+print(filled)
 print()
 
 # ---------------------------------------------------------------------------
@@ -59,12 +55,12 @@ print()
 
 no_null_scores = df.drop_nulls(Users.score)
 print("After drop_nulls(Users.score):")
-print(no_null_scores._data)
+print(no_null_scores)
 print()
 
 no_nulls_at_all = df.drop_nulls(Users.age, Users.score)
 print("After drop_nulls(Users.age, Users.score):")
-print(no_nulls_at_all._data)
+print(no_nulls_at_all)
 print()
 
 # ---------------------------------------------------------------------------
@@ -73,12 +69,12 @@ print()
 
 null_scores = df.filter(Users.score.is_null())
 print("Rows with null scores:")
-print(null_scores._data)
+print(null_scores)
 print()
 
 valid_scores = df.filter(Users.score.is_not_null())
 print("Rows with non-null scores:")
-print(valid_scores._data)
+print(valid_scores)
 print()
 
 # ---------------------------------------------------------------------------
@@ -90,6 +86,6 @@ result = df.with_columns(
 ).filter(Users.score > 50)
 
 print("After fill_null(0.0) then filter(score > 50):")
-print(result._data)
+print(result)
 
 print("\nDone!")

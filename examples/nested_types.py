@@ -45,7 +45,7 @@ df = from_dict(
     },
 )
 print("User profiles:")
-print(df._data)
+print(df)
 print()
 
 # ---------------------------------------------------------------------------
@@ -56,7 +56,7 @@ print()
 # UserProfile.address.field(Address.city) creates a StructFieldAccess node
 new_yorkers = df.filter(UserProfile.address.field(Address.city) == "New York")
 print("Users in New York:")
-print(new_yorkers._data)
+print(new_yorkers)
 print()
 
 # ---------------------------------------------------------------------------
@@ -66,24 +66,24 @@ print()
 # .list.len() — count elements in each list
 print("Tag counts:")
 tag_lengths = df.with_columns(UserProfile.tags.list.len().alias(UserProfile.tags))
-print(tag_lengths._data.select("name", "tags"))
+print(tag_lengths.select(UserProfile.name, UserProfile.tags))
 print()
 
 # .list.contains() — check if list contains a value
 python_users = df.filter(UserProfile.tags.list.contains("python"))
 print("Users with 'python' tag:")
-print(python_users._data.select("name", "tags"))
+print(python_users.select(UserProfile.name, UserProfile.tags))
 print()
 
 # .list.get() — get element by index
 first_tags = df.with_columns(UserProfile.tags.list.get(0).alias(UserProfile.tags))
 print("First tag per user:")
-print(first_tags._data.select("name", "tags"))
+print(first_tags.select(UserProfile.name, UserProfile.tags))
 print()
 
 # .list.sum() — sum list elements (for numeric lists)
 score_totals = df.with_columns(UserProfile.scores.list.sum().alias(UserProfile.scores))
 print("Total scores per user:")
-print(score_totals._data.select("name", "scores"))
+print(score_totals.select(UserProfile.name, UserProfile.scores))
 
 print("\nDone!")
