@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.6.0] - 2026-02-11
+## [0.6.0] - 2026-02-23
 
 ### Added
 
@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`over()` window function in Pandas and Dask** — `col.sum().over(partition)` now correctly computes per-group aggregations instead of returning raw column values. Polars was unaffected (#112, #117)
 
-## [0.5.5] - 2026-02-23
+## [0.5.5] - 2026-02-22
 
 ### Fixed
 
@@ -29,13 +29,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`LazyFrame.height` and `len()`** — trigger computation on lazy backends (#113)
 - **`LazyFrame.to_batches()`** — converts to Arrow batches, triggering computation on lazy backends (#114)
 
-## [0.5.4] - 2026-02-23
+## [0.5.4] - 2026-02-22
 
 ### Fixed
 
 - **Restore `from_dict` and `from_rows` to Dask backend** — these construct DataFrames from in-memory data and were incorrectly removed in v0.5.3. They now return `LazyFrame` (not `DataFrame`) to match Dask's lazy semantics (#107)
 
-## [0.5.3] - 2026-02-23
+## [0.5.3] - 2026-02-22
 
 ### Changed
 
@@ -51,7 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Dtype validation with NumPy types** — `read_parquet` with structural validation no longer rejects valid data when Dask/Pandas returns NumPy dtypes (`uint64`, `float64`) instead of Pandas extension types (`pd.UInt64Dtype()`, `pd.Float64Dtype()`) (#102, #103)
 
-## [0.5.1] - 2026-02-11
+## [0.5.1] - 2026-02-22
 
 ### Added
 
@@ -67,7 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **CI coverage threshold** raised from 80% to 95% (#96)
 
-## [0.5.0] - 2026-02-11
+## [0.5.0] - 2026-02-22
 
 First public release.
 
@@ -90,7 +90,11 @@ First public release.
 - **Untyped escape hatch** — `df.untyped()` drops to string-based columns, `untyped.to_typed(Schema)` re-binds
 - **Documentation site** — tutorials, user guide, API reference, comparison page at colnade.com
 
-[Unreleased]: https://github.com/jwde/colnade/compare/v0.5.2...HEAD
+[Unreleased]: https://github.com/jwde/colnade/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/jwde/colnade/compare/v0.5.5...v0.6.0
+[0.5.5]: https://github.com/jwde/colnade/compare/v0.5.4...v0.5.5
+[0.5.4]: https://github.com/jwde/colnade/compare/v0.5.3...v0.5.4
+[0.5.3]: https://github.com/jwde/colnade/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/jwde/colnade/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/jwde/colnade/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/jwde/colnade/releases/tag/v0.5.0
