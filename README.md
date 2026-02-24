@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="https://github.com/jwde/colnade/actions/workflows/ci.yml"><img src="https://github.com/jwde/colnade/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://codecov.io/gh/jwde/colnade"><img src="https://codecov.io/gh/jwde/colnade/graph/badge.svg" alt="codecov"></a>
+  <a href="https://htmlpreview.github.io/?https://github.com/jwde/colnade/blob/python-coverage-comment-action-data/htmlcov/index.html"><img src="https://raw.githubusercontent.com/jwde/colnade/python-coverage-comment-action-data/badge.svg" alt="Coverage"></a>
   <a href="https://pypi.org/project/colnade/"><img src="https://img.shields.io/pypi/v/colnade" alt="PyPI"></a>
   <a href="https://pypi.org/project/colnade/"><img src="https://img.shields.io/pypi/pyversions/colnade" alt="Python 3.10+"></a>
 </p>
