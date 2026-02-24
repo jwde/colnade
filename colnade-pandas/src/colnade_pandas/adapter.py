@@ -222,9 +222,15 @@ class PandasBackend:
 
         # Window function (over)
         if name == "over":
-            source_fn = self._ensure_callable(self.translate_expr(expr.args[0]))
-            partition_names = [self._ensure_callable(self.translate_expr(a)) for a in expr.args[1:]]
-            return lambda df, _s=source_fn, _p=partition_names: df.groupby(
+            raw_source = self.translate_expr(expr.args[0])
+            partition_fns = [self._ensure_callable(self.translate_expr(a)) for a in expr.args[1:]]
+            if isinstance(raw_source, tuple):
+                col_fn, agg_name = raw_source
+                return lambda df, _c=col_fn, _a=agg_name, _p=partition_fns: df.groupby(
+                    [p(df).name for p in _p]
+                )[_c(df).name].transform(_a)
+            source_fn = raw_source
+            return lambda df, _s=source_fn, _p=partition_fns: df.groupby(
                 [p(df).name for p in _p]
             )[_s(df).name].transform(lambda x: x)
 

@@ -162,7 +162,23 @@ class TestPolarsSpecificPaths:
         native = result.to_native()
         assert native["ts"][0].day == 15
 
-    def test_over_window(self) -> None:
+    def test_over_window_with_agg(self) -> None:
+        from colnade_polars.io import from_dict
+
+        df = from_dict(
+            Users,
+            {
+                "id": [1, 2, 3, 4],
+                "name": ["Alice", "Alice", "Bob", "Bob"],
+                "age": [30, 25, 35, 28],
+            },
+        )
+        result = df.with_columns(Users.age.sum().over(Users.name).alias(Users.age))
+        ages = result.to_native()["age"].to_list()
+        # Alice group: 30+25=55, Bob group: 35+28=63
+        assert ages == [55, 55, 63, 63]
+
+    def test_over_window_no_agg(self) -> None:
         from colnade_polars.io import from_dict
 
         df = from_dict(
@@ -174,4 +190,5 @@ class TestPolarsSpecificPaths:
             },
         )
         result = df.with_columns(Users.age.over(Users.name).alias(Users.age))
-        assert result.to_native().shape == (4, 3)
+        ages = result.to_native()["age"].to_list()
+        assert ages == [30, 25, 35, 28]
