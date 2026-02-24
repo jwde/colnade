@@ -21,9 +21,16 @@ class Orders(Schema):
     user_id: Column[UInt64]
     amount: Column[Float64]
 
-class UserRevenue(Schema):
+class UserOrders(Schema):
+    """Intermediate schema after joining users with orders."""
     user_name: Column[Utf8] = mapped_from(Users.name)
     user_id: Column[UInt64] = mapped_from(Users.id)
+    amount: Column[Float64] = mapped_from(Orders.amount)
+
+class UserRevenue(Schema):
+    """Output schema: per-user revenue summary."""
+    user_name: Column[Utf8]
+    user_id: Column[UInt64]
     total_amount: Column[Float64]
 ```
 
@@ -58,26 +65,36 @@ active_users = users_clean.filter(Users.age >= 25)
 joined = active_users.join(orders, on=Users.id == Orders.user_id)
 ```
 
-## Step 5: Cast to output schema
+## Step 5: Cast to intermediate schema
 
 ```python
-user_orders = joined.cast_schema(UserRevenue, mapping={
-    UserRevenue.total_amount: Orders.amount,
-})
+user_orders = joined.cast_schema(UserOrders)
 ```
 
-`mapped_from` resolves `user_name` and `user_id`. The explicit mapping handles `total_amount` → `Orders.amount`.
+`mapped_from` resolves `user_name`, `user_id`, and `amount` automatically from the join result.
 
-## Step 6: Sort and write
+## Step 6: Aggregate
+
+```python
+revenue = (
+    user_orders.group_by(UserOrders.user_name, UserOrders.user_id)
+    .agg(UserOrders.amount.sum().alias(UserRevenue.total_amount))
+    .cast_schema(UserRevenue)
+)
+```
+
+`group_by().agg()` computes per-user totals. The result is cast to `UserRevenue`.
+
+## Step 7: Sort and write
 
 ```python
 from colnade_polars import write_parquet
 
-result = user_orders.sort(UserRevenue.total_amount, descending=True)
+result = revenue.sort(UserRevenue.total_amount, descending=True)
 write_parquet(result, "user_revenue.parquet")
 ```
 
-## Step 7: Verify
+## Step 8: Verify
 
 ```python
 restored = read_parquet("user_revenue.parquet", UserRevenue)
@@ -91,7 +108,9 @@ read_parquet(Users) → fill_null → filter(age >= 25)
                                         ↓
 read_parquet(Orders) ──────────→ join(Users.id == Orders.user_id)
                                         ↓
-                              cast_schema(UserRevenue)
+                              cast_schema(UserOrders)
+                                        ↓
+                              group_by().agg(sum) → cast_schema(UserRevenue)
                                         ↓
                               sort(total_amount desc)
                                         ↓

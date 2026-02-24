@@ -175,11 +175,11 @@ df.is_empty()  # True if zero rows
 
 | Property/Method | DataFrame | LazyFrame | JoinedDataFrame |
 |----------------|-----------|-----------|-----------------|
-| `height` | Yes | No (requires materialization) | No (cast_schema first) |
-| `len()` | Yes | No | No |
+| `height` | Yes | Available (triggers computation) | No (cast_schema first) |
+| `len()` | Yes | Available (triggers computation) | No |
 | `width` | Yes | Yes (from schema) | No |
-| `shape` | Yes | No | No |
-| `is_empty()` | Yes | No | No |
+| `shape` | Yes | Available (triggers computation) | No |
+| `is_empty()` | Yes | Available (triggers computation) | No |
 
 `width` raises `TypeError` on `DataFrame[Any]` (schema erased) — use `cast_schema()` first.
 

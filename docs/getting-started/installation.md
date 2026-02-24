@@ -39,7 +39,6 @@ uv sync
 
 ```python
 from colnade import Column, Schema, UInt64, Utf8
-from colnade_polars import PolarsBackend
 
 class TestSchema(Schema):
     id: Column[UInt64]

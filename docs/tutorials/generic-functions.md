@@ -29,7 +29,7 @@ def drop_null_rows(df: DataFrame[S]) -> DataFrame[S]:
 
 def count_rows(df: DataFrame[S]) -> int:
     """Count rows in any typed DataFrame."""
-    return df._data.shape[0]
+    return len(df)
 ```
 
 ## Type preservation in action
