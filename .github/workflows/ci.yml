@@ -42,7 +42,7 @@ jobs:
       - name: Codecov create-report
         run: codecovcli create-report -t ${{ secrets.CODECOV_TOKEN }} --git-service github --fail-on-error
       - name: Codecov upload
-        run: codecovcli do-upload -t ${{ secrets.CODECOV_TOKEN }} --git-service github --file coverage.xml --fail-on-error --verbose
+        run: codecovcli do-upload -t ${{ secrets.CODECOV_TOKEN }} --git-service github --file coverage.xml --fail-on-error -d
 
   test-backend-versions:
     runs-on: ubuntu-latest
