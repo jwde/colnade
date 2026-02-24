@@ -1,11 +1,17 @@
-# Colnade
+<p align="center">
+  <img src="docs/assets/images/logo.svg" width="80" alt="Colnade logo">
+</p>
 
-[![CI](https://github.com/jwde/colnade/actions/workflows/ci.yml/badge.svg)](https://github.com/jwde/colnade/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/jwde/colnade/graph/badge.svg)](https://codecov.io/gh/jwde/colnade)
-[![PyPI](https://img.shields.io/pypi/v/colnade)](https://pypi.org/project/colnade/)
-[![Python 3.10+](https://img.shields.io/pypi/pyversions/colnade)](https://pypi.org/project/colnade/)
+<h1 align="center">Colnade</h1>
 
-A statically type-safe DataFrame abstraction layer for Python.
+<p align="center">
+  <a href="https://github.com/jwde/colnade/actions/workflows/ci.yml"><img src="https://github.com/jwde/colnade/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://codecov.io/gh/jwde/colnade"><img src="https://codecov.io/gh/jwde/colnade/graph/badge.svg" alt="codecov"></a>
+  <a href="https://pypi.org/project/colnade/"><img src="https://img.shields.io/pypi/v/colnade" alt="PyPI"></a>
+  <a href="https://pypi.org/project/colnade/"><img src="https://img.shields.io/pypi/pyversions/colnade" alt="Python 3.10+"></a>
+</p>
+
+<p align="center">A statically type-safe DataFrame abstraction layer for Python.</p>
 
 Colnade replaces string-based column references (`pl.col("age")`) with typed descriptors (`Users.age`), so column misspellings, type mismatches, and schema violations are caught by your type checker — before your code runs.
 
