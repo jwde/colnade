@@ -14,11 +14,13 @@ hide:
 ```python
 import polars as pl
 
-# Typo silently produces wrong results
+df = pl.read_parquet("users.parquet")
+
+# Typo — silently produces zero rows
 df.filter(pl.col("naem") == "Alice")
 
-# Wrong column from wrong table — no error
-df.select(pl.col("amount"))  # amount is on orders, not users
+# Wrong method on column — crashes at runtime
+df.select(pl.col("name").sum())
 ```
 
 </div>
@@ -28,12 +30,15 @@ df.select(pl.col("amount"))  # amount is on orders, not users
 
 ```python
 from colnade_polars import read_parquet
+from myapp.schemas import Users
 
-# Typo caught by type checker instantly
-df.filter(Users.naem == "Alice")  # error: no attribute 'naem'
+df = read_parquet("users.parquet", Users)
 
-# Schema mismatch caught at function boundaries
-process_orders(users_df)  # error: expected DataFrame[Orders]
+# Typo — caught by your type checker
+df.filter(Users.naem == "Alice")  # error!
+
+# Wrong method on column — caught by your type checker
+df.select(Users.name.sum())  # error! sum() requires numeric
 ```
 
 </div>
@@ -46,21 +51,21 @@ process_orders(users_df)  # error: expected DataFrame[Orders]
 
 ### Type-safe columns
 
-`Users.naem` is a type error, not a runtime crash. Column references are class attributes checked by your editor.
+Column references are class attributes. `Users.naem` is a type error. `.sum()` on a string column is a type error. Caught in your editor, not in production.
 
 </div>
 <div class="feature-card" markdown>
 
 ### Schema preserved
 
-`filter`, `sort`, `with_columns` return `DataFrame[S]`. The type parameter flows through your entire pipeline.
+`filter`, `sort`, `with_columns` return `DataFrame[S]`. The schema flows through your entire pipeline.
 
 </div>
 <div class="feature-card" markdown>
 
 ### Static + runtime safety
 
-Your type checker catches wrong columns and schema mismatches in your code. Runtime validation catches wrong *data* — files with missing columns, unexpected dtypes, or values out of range.
+Your type checker catches wrong columns and schema mismatches. Runtime validation catches wrong *data* — missing columns, unexpected dtypes, or out-of-range values.
 
 </div>
 <div class="feature-card" markdown>
@@ -81,7 +86,7 @@ Write once, run on **Polars**, **Pandas**, or **Dask**. Same schema, same expres
 
 ### No plugins or codegen
 
-Works with `ty`, `mypy`, and `pyright` out of the box. Standard Python type annotations, nothing extra to install.
+Works with `ty`, `mypy`, and `pyright` out of the box. Standard Python classes, nothing extra to install.
 
 </div>
 </div>
@@ -90,47 +95,38 @@ Works with `ty`, `mypy`, and `pyright` out of the box. Standard Python type anno
 
 ## Quick Example
 
-=== "Define Schema"
+```python
+from colnade import Column, Schema, UInt64, Float64, Utf8
+from colnade_polars import read_parquet
 
-    ```python
-    from colnade import Column, Schema, UInt64, Float64, Utf8
+class Users(Schema):
+    id:    Column[UInt64]
+    name:  Column[Utf8]
+    age:   Column[UInt64]
+    score: Column[Float64]
 
-    class Users(Schema):
-        id: Column[UInt64]
-        name: Column[Utf8]
-        age: Column[UInt64]
-        score: Column[Float64]
-    ```
+df = read_parquet("users.parquet", Users)  # DataFrame[Users]
 
-=== "Read & Transform"
+result = (
+    df.filter(Users.age > 25)
+      .sort(Users.score.desc())
+)  # DataFrame[Users] — schema preserved through the pipeline
+```
 
-    ```python
-    from colnade_polars import read_parquet
+---
 
-    df = read_parquet("users.parquet", Users)
+**Install:**
 
-    result = (
-        df.filter(Users.age > 25)
-          .sort(Users.score.desc())
-          .select(Users.name, Users.score)
-    )
-    ```
+```
+pip install colnade colnade-polars
+```
 
-=== "Output Schema"
-
-    ```python
-    class UserSummary(Schema):
-        name: Column[Utf8]
-        score: Column[Float64]
-
-    output = result.cast_schema(UserSummary)
-    # output is DataFrame[UserSummary]
-    ```
+Or with Pandas: `pip install colnade colnade-pandas` — or Dask: `pip install colnade colnade-dask`
 
 ---
 
 <p style="text-align: center; opacity: 0.7; font-size: 0.9rem;">
-<a href="getting-started/installation/">Installation</a> &middot;
+<a href="getting-started/installation/">Getting Started</a> &middot;
 <a href="user-guide/core-concepts/">User Guide</a> &middot;
 <a href="tutorials/basic-usage/">Tutorials</a> &middot;
 <a href="api/">API Reference</a> &middot;

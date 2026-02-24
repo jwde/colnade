@@ -57,6 +57,5 @@ For transparency, here are things Colnade's type system cannot catch statically:
 - **Schema-transforming output types** — `select()` and `group_by().agg()` return `DataFrame[Any]`; `cast_schema()` binds to the output schema at runtime. A type checker plugin could theoretically infer the output schema, but this would couple Colnade to specific type checkers.
 - **Cross-schema expression misuse** — `df.filter(Orders.amount > 100)` on a `DataFrame[Users]` is not caught statically (column descriptors lack a schema type parameter). Enable runtime validation to catch this.
 - **Literal value types** — `Users.age + "hello"` is not caught (Python lacks type-level functions to map `Column[UInt8]` → operator overloads that only accept `int`).
-- **Method availability by dtype** — `Users.name.sum()` is not caught (requires self-narrowing support in type checkers).
 
 See [Type Checker Integration](user-guide/type-checking.md) for the full list of what is and isn't checked.
