@@ -230,9 +230,9 @@ class PandasBackend:
                     [p(df).name for p in _p]
                 )[_c(df).name].transform(_a)
             source_fn = raw_source
-            return lambda df, _s=source_fn, _p=partition_fns: df.groupby(
-                [p(df).name for p in _p]
-            )[_s(df).name].transform(lambda x: x)
+            return lambda df, _s=source_fn, _p=partition_fns: df.groupby([p(df).name for p in _p])[
+                _s(df).name
+            ].transform(lambda x: x)
 
         msg = f"Unsupported FunctionCall: {name}"
         raise ValueError(msg)
