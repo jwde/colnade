@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-02-11
+
+### Added
+
+- **Self-narrowing for dtype-restricted methods** — calling `.sum()` on a string column, `.str_contains()` on a numeric column, `.is_nan()` on an integer column, etc. is now a static type error in ty, mypy, and pyright. 22 methods across numeric, float, string, temporal, struct, and list categories are restricted to appropriate dtypes (#115, #116)
+
+### Fixed
+
+- **`over()` window function in Pandas and Dask** — `col.sum().over(partition)` now correctly computes per-group aggregations instead of returning raw column values. Polars was unaffected (#112, #117)
+
 ## [0.5.5] - 2026-02-23
 
 ### Fixed
