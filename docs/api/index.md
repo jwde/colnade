@@ -5,7 +5,7 @@
 | Module | Description |
 |--------|-------------|
 | [`colnade core`](schema.md) | Schema, Column, Field, FieldInfo, ValidationLevel, BackendProtocol, ArrowBatch |
-| [`colnade.dataframe`](dataframe.md) | DataFrame, LazyFrame, GroupBy, JoinedDataFrame, Untyped frames |
+| [`colnade.dataframe`](dataframe.md) | DataFrame, LazyFrame, GroupBy, JoinedDataFrame, JoinedLazyFrame |
 | [`colnade.expr`](expressions.md) | Expression AST nodes (ColumnRef, BinOp, Agg, etc.) |
 | [`colnade.dtypes`](types.md) | Data type definitions (UInt64, Float64, Utf8, Struct, List, etc.) |
 

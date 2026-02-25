@@ -819,7 +819,7 @@ class DataFrame(Generic[S]):
 
     # Conversion
     def lazy(self) -> LazyFrame[S]: ...
-    def untyped(self) -> UntypedDataFrame: ...
+    def with_raw(self, fn: Callable[[Any], Any]) -> DataFrame[S]: ...
 
     # Boundary methods
     def to_batches(self, batch_size: int | None = None) -> Iterator[ArrowBatch[S]]: ...
@@ -865,7 +865,7 @@ class LazyFrame(Generic[S]):
     def collect(self) -> DataFrame[S]: ...
 
     # Conversion
-    def untyped(self) -> UntypedLazyFrame: ...
+    def with_raw(self, fn: Callable[[Any], Any]) -> LazyFrame[S]: ...
 
 
 class JoinedDataFrame(Generic[S, S2]):
@@ -900,7 +900,6 @@ class JoinedDataFrame(Generic[S, S2]):
 
     # Conversion
     def lazy(self) -> JoinedLazyFrame[S, S2]: ...
-    def untyped(self) -> UntypedDataFrame: ...
 
 
 class JoinedLazyFrame(Generic[S, S2]):
@@ -934,7 +933,6 @@ class JoinedLazyFrame(Generic[S, S2]):
     ) -> LazyFrame[S3]: ...
 
     def collect(self) -> JoinedDataFrame[S, S2]: ...
-    def untyped(self) -> UntypedLazyFrame: ...
 ```
 
 **JoinCondition** constrains the join predicate to compare columns that exist in their respective schemas:
@@ -1171,38 +1169,32 @@ users_df.join(orders_df, on=...).cast_schema(SimpleUserOrders)  # just works
 class GroupBy(Generic[S]):
     def agg(self, *exprs: AliasedExpr) -> DataFrame[Any]:
         """
-        Perform aggregation. Returns untyped DataFrame that must be
+        Perform aggregation. Returns DataFrame[Any] (schema erased) that must be
         cast to an explicit output schema via .cast_schema().
         """
         ...
 ```
 
-### 6.7 The Untyped Escape Hatch
+### 6.7 Escape Hatches
 
-For exploratory work, prototyping, or operations not yet covered by the typed API:
+Two escape hatches exist for operations that need direct engine access:
 
-```python
-class UntypedDataFrame:
-    """A DataFrame with no schema parameter. String-based column access."""
-
-    def select(self, *columns: str) -> UntypedDataFrame: ...
-    def filter(self, expr: Any) -> UntypedDataFrame: ...
-    def to_typed(self, schema: type[S]) -> DataFrame[S]: ...
-    # ... full Polars-like API with string column references
-```
-
-Usage:
+**`with_raw(fn)`** — bounded escape hatch (like Rust's `unsafe` block). The function receives the raw engine DataFrame/LazyFrame, must return the same type, and the result is re-wrapped with schema and backend intact:
 
 ```python
-# Drop into untyped mode for complex or unsupported operations
-result = (
-    df.untyped()
-    .with_columns(some_complex_operation())
-    .to_typed(OutputSchema)
-)
+result = df.with_raw(lambda raw: raw.with_columns(
+    pl.col("name").str.to_uppercase()
+))
+# result is still DataFrame[Users]
 ```
 
-`to_typed()` performs runtime validation. This is the "TypeScript `any`" equivalent — it exists for pragmatism but can be linted against in CI (e.g., a custom lint rule that flags `.untyped()` calls).
+**`to_native()`** — full escape. Returns the raw engine object with no re-wrapping:
+
+```python
+raw_df = df.to_native()  # pl.DataFrame / pd.DataFrame / dd.DataFrame
+```
+
+`with_raw` is preferred because it preserves type safety. `to_native` is the last resort.
 
 ---
 
@@ -1908,7 +1900,8 @@ joined.cast_schema(FlatSchema)  # → DataFrame[FlatSchema]
 
 # Conversion:
 df.lazy() -> LazyFrame[S]
-df.untyped() -> UntypedDataFrame
+df.with_raw(fn) -> DataFrame[S]
+df.to_native() -> engine DataFrame
 lf.collect() -> DataFrame[S]
 ```
 
