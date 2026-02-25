@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-02-11
+
+### Removed
+
+- **`UntypedDataFrame` and `UntypedLazyFrame`** — these string-based escape hatch types have been removed. Use `with_raw()` for scoped engine-native operations or `to_native()` for full escape (#150)
+
+### Added
+
+- **Schema inheritance in `cast_schema`** — `with_columns` + `cast_schema` to a child schema now works. When the target schema extends the source schema, unresolved columns fall back to identity mapping, enabling the common pattern of adding computed columns via `with_columns` and binding to a richer child schema (#150)
+
+### Fixed
+
+- **`str_contains` uses literal matching** — Polars backend now correctly uses `literal=True` instead of treating the argument as a regex pattern (#130, #148)
+- **`assert_non_null` actually raises** — now raises `SchemaError` when null values are present instead of being a no-op (#129, #147)
+- **`__and__`, `__or__`, `__invert__` return types** — boolean operators now correctly return `BinOp[Bool]` / `UnaryOp[Bool]` instead of `BinOp[Any]` (#137, #146)
+- Various documentation fixes and example code cleanup (#120, #121, #123, #124, #125, #128, #132, #133, #134, #135, #136)
+
+### Infrastructure
+
+- Switched from Codecov to coverage-comment-action (#119)
+
 ## [0.6.0] - 2026-02-23
 
 ### Added
@@ -90,7 +111,8 @@ First public release.
 - **Untyped escape hatch** — `df.untyped()` drops to string-based columns, `untyped.to_typed(Schema)` re-binds
 - **Documentation site** — tutorials, user guide, API reference, comparison page at colnade.com
 
-[Unreleased]: https://github.com/jwde/colnade/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/jwde/colnade/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/jwde/colnade/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/jwde/colnade/compare/v0.5.5...v0.6.0
 [0.5.5]: https://github.com/jwde/colnade/compare/v0.5.4...v0.5.5
 [0.5.4]: https://github.com/jwde/colnade/compare/v0.5.3...v0.5.4
