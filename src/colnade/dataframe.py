@@ -1391,6 +1391,3 @@ class JoinedLazyFrame(Generic[S, S2]):
             _schema_right=self._schema_right,
             _backend=self._backend,
         )
-
-
-
