@@ -27,7 +27,6 @@ The `how` parameter controls the join type:
 users.join(orders, on=Users.id == Orders.user_id, how="inner")   # default
 users.join(orders, on=Users.id == Orders.user_id, how="left")
 users.join(orders, on=Users.id == Orders.user_id, how="outer")
-users.join(orders, on=Users.id == Orders.user_id, how="cross")
 ```
 
 ## JoinedDataFrame — a transitional type
