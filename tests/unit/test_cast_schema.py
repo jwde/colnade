@@ -325,7 +325,7 @@ class TestCastSchemaOnLazy:
 
 
 # ---------------------------------------------------------------------------
-# cast_schema on untyped (None schema) DataFrame
+# cast_schema on None-schema DataFrame (e.g. from select())
 # ---------------------------------------------------------------------------
 
 

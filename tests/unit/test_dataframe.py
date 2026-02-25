@@ -1,4 +1,4 @@
-"""Unit tests for DataFrame[S], LazyFrame[S], GroupBy, and untyped escape hatches."""
+"""Unit tests for DataFrame[S], LazyFrame[S], and GroupBy."""
 
 from __future__ import annotations
 
@@ -16,8 +16,6 @@ from colnade import (
     Schema,
     UInt8,
     UInt64,
-    UntypedDataFrame,
-    UntypedLazyFrame,
     Utf8,
 )
 
@@ -271,7 +269,7 @@ class TestGroupBy:
 
 
 # ---------------------------------------------------------------------------
-# Conversion: lazy, untyped, collect
+# Conversion: lazy, collect
 # ---------------------------------------------------------------------------
 
 
@@ -281,16 +279,6 @@ class TestConversion:
         result = df.lazy()
         assert isinstance(result, LazyFrame)
         assert result._schema is Users
-
-    def test_untyped_returns_untyped(self) -> None:
-        df: DataFrame[Users] = DataFrame(_schema=Users, _backend=_BACKEND)
-        result = df.untyped()
-        assert isinstance(result, UntypedDataFrame)
-
-    def test_untyped_preserves_backend(self) -> None:
-        df: DataFrame[Users] = DataFrame(_schema=Users, _backend=_BACKEND)
-        result = df.untyped()
-        assert result._backend is _BACKEND
 
     def test_collect_returns_dataframe(self) -> None:
         lf: LazyFrame[Users] = LazyFrame(_schema=Users, _backend=_BACKEND)
@@ -391,14 +379,6 @@ class TestLazyFrame:
         result = self.lf.collect()
         assert isinstance(result, DataFrame)
         assert result._schema is Users
-
-    def test_untyped_returns_untyped_lazy(self) -> None:
-        result = self.lf.untyped()
-        assert isinstance(result, UntypedLazyFrame)
-
-    def test_untyped_preserves_backend(self) -> None:
-        result = self.lf.untyped()
-        assert result._backend is _BACKEND
 
     def test_validate_returns_self(self) -> None:
         lf = LazyFrame(_schema=Users)
@@ -745,143 +725,6 @@ class TestJoinedIntrospectionRestrictions:
         jlf = JoinedLazyFrame(_backend=_BACKEND)
         with pytest.raises(TypeError):
             len(jlf)
-
-
-# ---------------------------------------------------------------------------
-# Untyped frame introspection restrictions
-# ---------------------------------------------------------------------------
-
-
-class TestUntypedIntrospectionRestrictions:
-    def test_untyped_df_no_height(self) -> None:
-        assert not hasattr(UntypedDataFrame, "height")
-
-    def test_untyped_df_no_width(self) -> None:
-        assert not hasattr(UntypedDataFrame, "width")
-
-    def test_untyped_df_no_shape(self) -> None:
-        assert not hasattr(UntypedDataFrame, "shape")
-
-    def test_untyped_df_no_is_empty(self) -> None:
-        assert not hasattr(UntypedDataFrame, "is_empty")
-
-    def test_untyped_df_no_iter_rows_as(self) -> None:
-        assert not hasattr(UntypedDataFrame, "iter_rows_as")
-
-    def test_untyped_lf_no_height(self) -> None:
-        assert not hasattr(UntypedLazyFrame, "height")
-
-    def test_untyped_lf_no_width(self) -> None:
-        assert not hasattr(UntypedLazyFrame, "width")
-
-    def test_untyped_lf_no_shape(self) -> None:
-        assert not hasattr(UntypedLazyFrame, "shape")
-
-    def test_untyped_lf_no_is_empty(self) -> None:
-        assert not hasattr(UntypedLazyFrame, "is_empty")
-
-    def test_untyped_lf_no_iter_rows_as(self) -> None:
-        assert not hasattr(UntypedLazyFrame, "iter_rows_as")
-
-
-# ---------------------------------------------------------------------------
-# UntypedDataFrame
-# ---------------------------------------------------------------------------
-
-
-class TestUntypedDataFrame:
-    def setup_method(self) -> None:
-        self.udf = UntypedDataFrame(_backend=_BACKEND)
-
-    def test_select_returns_untyped(self) -> None:
-        result = self.udf.select("name", "age")
-        assert isinstance(result, UntypedDataFrame)
-
-    def test_filter_returns_untyped(self) -> None:
-        result = self.udf.filter("age > 18")
-        assert isinstance(result, UntypedDataFrame)
-
-    def test_with_columns_returns_untyped(self) -> None:
-        result = self.udf.with_columns("something")
-        assert isinstance(result, UntypedDataFrame)
-
-    def test_sort_returns_untyped(self) -> None:
-        result = self.udf.sort("name")
-        assert isinstance(result, UntypedDataFrame)
-
-    def test_limit_returns_untyped(self) -> None:
-        result = self.udf.limit(10)
-        assert isinstance(result, UntypedDataFrame)
-
-    def test_head_returns_untyped(self) -> None:
-        result = self.udf.head()
-        assert isinstance(result, UntypedDataFrame)
-
-    def test_tail_returns_untyped(self) -> None:
-        result = self.udf.tail()
-        assert isinstance(result, UntypedDataFrame)
-
-    def test_to_typed_returns_dataframe(self) -> None:
-        result = self.udf.to_typed(Users)
-        assert isinstance(result, DataFrame)
-        assert result._schema is Users
-
-    def test_to_typed_preserves_backend(self) -> None:
-        result = self.udf.to_typed(Users)
-        assert result._backend is _BACKEND
-
-    def test_no_backend_raises(self) -> None:
-        udf = UntypedDataFrame()
-        with pytest.raises(RuntimeError, match="requires a backend"):
-            udf.select("name")
-
-
-# ---------------------------------------------------------------------------
-# UntypedLazyFrame
-# ---------------------------------------------------------------------------
-
-
-class TestUntypedLazyFrame:
-    def setup_method(self) -> None:
-        self.ulf = UntypedLazyFrame(_backend=_BACKEND)
-
-    def test_select_returns_untyped_lazy(self) -> None:
-        result = self.ulf.select("name")
-        assert isinstance(result, UntypedLazyFrame)
-
-    def test_filter_returns_untyped_lazy(self) -> None:
-        result = self.ulf.filter("age > 18")
-        assert isinstance(result, UntypedLazyFrame)
-
-    def test_with_columns_returns_untyped_lazy(self) -> None:
-        result = self.ulf.with_columns("something")
-        assert isinstance(result, UntypedLazyFrame)
-
-    def test_sort_returns_untyped_lazy(self) -> None:
-        result = self.ulf.sort("name")
-        assert isinstance(result, UntypedLazyFrame)
-
-    def test_limit_returns_untyped_lazy(self) -> None:
-        result = self.ulf.limit(10)
-        assert isinstance(result, UntypedLazyFrame)
-
-    def test_collect_returns_untyped_dataframe(self) -> None:
-        result = self.ulf.collect()
-        assert isinstance(result, UntypedDataFrame)
-
-    def test_to_typed_returns_lazyframe(self) -> None:
-        result = self.ulf.to_typed(Users)
-        assert isinstance(result, LazyFrame)
-        assert result._schema is Users
-
-    def test_to_typed_preserves_backend(self) -> None:
-        result = self.ulf.to_typed(Users)
-        assert result._backend is _BACKEND
-
-    def test_no_backend_raises(self) -> None:
-        ulf = UntypedLazyFrame()
-        with pytest.raises(RuntimeError, match="requires a backend"):
-            ulf.select("name")
 
 
 # ---------------------------------------------------------------------------

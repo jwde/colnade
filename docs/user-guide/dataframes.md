@@ -348,13 +348,3 @@ result = df.with_raw(custom_transform)
 ```
 
 `with_raw` is available on `DataFrame` and `LazyFrame`, but **not** on `JoinedDataFrame` — use `cast_schema()` first.
-
-### untyped — full escape
-
-When you need to drop type safety entirely:
-
-```python
-untyped = df.untyped()                   # UntypedDataFrame
-untyped.select("name", "age")            # string-based columns
-retyped = untyped.to_typed(Users)        # back to DataFrame[Users]
-```

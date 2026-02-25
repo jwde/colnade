@@ -46,7 +46,6 @@ Available operations on `JoinedDataFrame`:
 | `select()` | `DataFrame[Any]` | Select columns (untyped) |
 | `cast_schema()` | `DataFrame[S3]` | Flatten to a single schema |
 | `lazy()` | `JoinedLazyFrame[S, S2]` | Convert to lazy |
-| `untyped()` | `UntypedDataFrame` | Drop type information |
 
 Operations **not** available on joined frames (use `cast_schema()` first):
 

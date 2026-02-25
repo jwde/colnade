@@ -1,8 +1,8 @@
 """Cross-layer integration tests spanning expression → translation → execution.
 
 Tests the full roundtrip: Colnade expression tree → PolarsBackend translation →
-Polars execution → correct results. Also tests schema validation, generic
-functions with concrete schemas, and untyped escape hatches.
+Polars execution → correct results. Also tests schema validation and generic
+functions with concrete schemas.
 """
 
 from __future__ import annotations
@@ -17,7 +17,6 @@ from colnade import (
     Schema,
     SchemaError,
     UInt64,
-    UntypedDataFrame,
     Utf8,
     mapped_from,
 )
@@ -244,21 +243,11 @@ class TestGenericFunction:
 
 
 # ---------------------------------------------------------------------------
-# Untyped escape hatch
+# cast_schema
 # ---------------------------------------------------------------------------
 
 
-class TestUntypedEscapeHatch:
-    def test_untyped_roundtrip(self) -> None:
-        """DataFrame → untyped → to_typed → validate."""
-        df = _users_df()
-        untyped = df.untyped()
-        assert isinstance(untyped, UntypedDataFrame)
-
-        retyped = untyped.to_typed(Users)
-        assert isinstance(retyped, DataFrame)
-        assert retyped._schema is Users
-
+class TestCastSchema:
     def test_cast_schema_with_name_match(self) -> None:
         """cast_schema resolves by name when no mapped_from is set."""
         df = _users_df()

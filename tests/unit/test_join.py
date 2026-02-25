@@ -14,8 +14,6 @@ from colnade import (
     LazyFrame,
     Schema,
     UInt64,
-    UntypedDataFrame,
-    UntypedLazyFrame,
     Utf8,
 )
 
@@ -178,14 +176,6 @@ class TestJoinedDataFrameConversions:
         assert result._schema_left is Users
         assert result._schema_right is Orders
 
-    def test_untyped_returns_untyped(self) -> None:
-        result = self.joined.untyped()
-        assert isinstance(result, UntypedDataFrame)
-
-    def test_untyped_preserves_backend(self) -> None:
-        result = self.joined.untyped()
-        assert result._backend is _BACKEND
-
 
 # ---------------------------------------------------------------------------
 # JoinedLazyFrame — construction and operations
@@ -248,14 +238,6 @@ class TestJoinedLazyFrame:
         assert isinstance(result, JoinedDataFrame)
         assert result._schema_left is Users
         assert result._schema_right is Orders
-
-    def test_untyped_returns_untyped_lazy(self) -> None:
-        result = self.joined.untyped()
-        assert isinstance(result, UntypedLazyFrame)
-
-    def test_untyped_preserves_backend(self) -> None:
-        result = self.joined.untyped()
-        assert result._backend is _BACKEND
 
 
 # ---------------------------------------------------------------------------
