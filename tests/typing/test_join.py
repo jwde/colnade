@@ -7,7 +7,7 @@ Tests cover:
 - .join() return types on DataFrame and LazyFrame
 - JoinedDataFrame schema-preserving ops
 - JoinedLazyFrame ops and collect()
-- Conversions (lazy, untyped)
+- Conversions (lazy)
 - Negative regression guards
 """
 
@@ -22,8 +22,6 @@ from colnade import (
     LazyFrame,
     Schema,
     UInt64,
-    UntypedDataFrame,
-    UntypedLazyFrame,
     Utf8,
 )
 
@@ -112,10 +110,6 @@ def check_joined_lazy(
     return j.lazy()
 
 
-def check_joined_untyped(j: JoinedDataFrame[Users, Orders]) -> UntypedDataFrame:
-    return j.untyped()
-
-
 # --- JoinedLazyFrame ops ---
 
 
@@ -129,12 +123,6 @@ def check_joined_lazy_collect(
     j: JoinedLazyFrame[Users, Orders],
 ) -> JoinedDataFrame[Users, Orders]:
     return j.collect()
-
-
-def check_joined_lazy_untyped(
-    j: JoinedLazyFrame[Users, Orders],
-) -> UntypedLazyFrame:
-    return j.untyped()
 
 
 # ---------------------------------------------------------------------------

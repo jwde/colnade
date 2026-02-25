@@ -43,10 +43,9 @@ Available operations on `JoinedDataFrame`:
 | `unique()` | `JoinedDataFrame[S, S2]` | Deduplicate by columns |
 | `drop_nulls()` | `JoinedDataFrame[S, S2]` | Drop rows with nulls |
 | `with_columns()` | `JoinedDataFrame[S, S2]` | Add or overwrite columns |
-| `select()` | `DataFrame[Any]` | Select columns (untyped) |
+| `select()` | `DataFrame[Any]` | Select columns (schema erased) |
 | `cast_schema()` | `DataFrame[S3]` | Flatten to a single schema |
 | `lazy()` | `JoinedLazyFrame[S, S2]` | Convert to lazy |
-| `untyped()` | `UntypedDataFrame` | Drop type information |
 
 Operations **not** available on joined frames (use `cast_schema()` first):
 

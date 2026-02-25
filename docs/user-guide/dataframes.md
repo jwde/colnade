@@ -320,6 +320,22 @@ Column type parameters carry the data type (`Column[UInt64]`) but not the schema
 
 **Runtime mitigation:** When validation is enabled (`STRUCTURAL` or `FULL`), all DataFrame/LazyFrame operations validate expression column membership at runtime. See [Type Checker Integration: Wrong-schema columns](type-checking.md#wrong-schema-columns-in-expressions) for details.
 
+## Adding computed columns
+
+Use `with_columns` to add a computed column, then `cast_schema` to transition to a richer child schema:
+
+```python
+class EnrichedUsers(Users):
+    risk_score: Column[Float64]
+
+result = df.with_columns(
+    (Users.age * 0.1 + Users.score * 0.9).alias(EnrichedUsers.risk_score)
+).cast_schema(EnrichedUsers)
+# result is DataFrame[EnrichedUsers]
+```
+
+This works because `cast_schema` recognizes schema inheritance — columns declared on the child schema (`risk_score`) that aren't in the parent (`Users`) are resolved by identity (the column name matches itself in the data). Columns inherited from the parent resolve by normal name matching.
+
 ## Escape hatches
 
 ### with_raw — scoped escape (recommended)
@@ -348,13 +364,3 @@ result = df.with_raw(custom_transform)
 ```
 
 `with_raw` is available on `DataFrame` and `LazyFrame`, but **not** on `JoinedDataFrame` — use `cast_schema()` first.
-
-### untyped — full escape
-
-When you need to drop type safety entirely:
-
-```python
-untyped = df.untyped()                   # UntypedDataFrame
-untyped.select("name", "age")            # string-based columns
-retyped = untyped.to_typed(Users)        # back to DataFrame[Users]
-```

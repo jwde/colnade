@@ -1,9 +1,9 @@
-"""DataFrame[S], LazyFrame[S], GroupBy, and untyped escape hatches.
+"""DataFrame[S], LazyFrame[S], GroupBy, JoinedDataFrame, and JoinedLazyFrame.
 
 Typed DataFrame interfaces parameterized by Schema. All data operations
 require a backend adapter (``_backend``); calling them without one raises
-``RuntimeError``.  Construction, repr, ``to_native()``, ``untyped()``, and
-``validate()`` still work without a backend.
+``RuntimeError``.  Construction, repr, ``to_native()``, and ``validate()``
+still work without a backend.
 
 Limitation: Column[DType] has a single type parameter (no schema binding),
 so methods like select(), sort(), group_by() accept Column[Any] and cannot
@@ -133,6 +133,7 @@ def _resolve_mapping(
     mapping: dict[Column[Any], Column[Any]] | None,
     extra: Literal["drop", "forbid"],
     ambiguous_names: set[str] | None = None,
+    source_schema: type[Schema] | None = None,
 ) -> dict[str, str]:
     """Resolve target→source column name mapping.
 
@@ -143,6 +144,7 @@ def _resolve_mapping(
     1. Explicit ``mapping`` dict
     2. Target column's ``_mapped_from`` attribute
     3. Name matching against source columns (skipped for ambiguous names)
+    4. Schema-inheritance identity fallback (when target extends source schema)
     """
     result: dict[str, str] = {}
     explicit = mapping or {}
@@ -162,6 +164,14 @@ def _resolve_mapping(
         if target_name in source_columns and target_name not in ambiguous:
             result[target_name] = target_name
             continue
+
+    # 4. Schema-inheritance identity fallback: if the target schema extends
+    # the source schema, unresolved columns are assumed to exist in the data
+    # with their declared name (e.g. added by with_columns).
+    if source_schema is not None and issubclass(target_schema, source_schema):
+        for target_name in target_columns:
+            if target_name not in result:
+                result[target_name] = target_name
 
     missing = [name for name in target_columns if name not in result]
     if missing:
@@ -458,7 +468,13 @@ class DataFrame(Generic[S]):
         backend = _require_backend(self._backend)
         data = self._data
         if self._schema is not None:
-            name_map = _resolve_mapping(schema, self._schema._columns, mapping, extra)
+            name_map = _resolve_mapping(
+                schema,
+                self._schema._columns,
+                mapping,
+                extra,
+                source_schema=self._schema,
+            )
             data = backend.cast_schema(data, name_map)
         return DataFrame(_data=data, _schema=schema, _backend=self._backend)
 
@@ -469,10 +485,6 @@ class DataFrame(Generic[S]):
         data = _require_backend(self._backend).lazy(self._data)
         return LazyFrame(_data=data, _schema=self._schema, _backend=self._backend)
 
-    def untyped(self) -> UntypedDataFrame:
-        """Drop type information — string-based escape hatch."""
-        return UntypedDataFrame(_data=self._data, _backend=self._backend)
-
     def with_raw(self, fn: Callable[[Any], Any]) -> DataFrame[S]:
         """Apply a function to the raw engine DataFrame and re-wrap.
 
@@ -482,8 +494,7 @@ class DataFrame(Generic[S]):
         schema and backend.  If validation is enabled, the result is
         validated before returning.
 
-        Use this instead of ``untyped()`` when you need a bounded escape
-        hatch — like Rust's ``unsafe`` block.
+        A bounded escape hatch — like Rust's ``unsafe`` block.
         """
         from colnade.validation import ValidationLevel, get_validation_level, is_validation_enabled
 
@@ -839,7 +850,13 @@ class LazyFrame(Generic[S]):
         backend = _require_backend(self._backend)
         data = self._data
         if self._schema is not None:
-            name_map = _resolve_mapping(schema, self._schema._columns, mapping, extra)
+            name_map = _resolve_mapping(
+                schema,
+                self._schema._columns,
+                mapping,
+                extra,
+                source_schema=self._schema,
+            )
             data = backend.cast_schema(data, name_map)
         return LazyFrame(_data=data, _schema=schema, _backend=self._backend)
 
@@ -851,10 +868,6 @@ class LazyFrame(Generic[S]):
         return DataFrame(_data=data, _schema=self._schema, _backend=self._backend)
 
     # --- Conversion ---
-
-    def untyped(self) -> UntypedLazyFrame:
-        """Drop type information — string-based escape hatch."""
-        return UntypedLazyFrame(_data=self._data, _backend=self._backend)
 
     def with_raw(self, fn: Callable[[Any], Any]) -> LazyFrame[S]:
         """Apply a function to the raw engine LazyFrame and re-wrap.
@@ -1170,10 +1183,6 @@ class JoinedDataFrame(Generic[S, S2]):
             _backend=self._backend,
         )
 
-    def untyped(self) -> UntypedDataFrame:
-        """Drop type information — string-based escape hatch."""
-        return UntypedDataFrame(_data=self._data, _backend=self._backend)
-
 
 # ---------------------------------------------------------------------------
 # JoinedLazyFrame[S, S2] — lazy result of joining two LazyFrames
@@ -1404,113 +1413,3 @@ class JoinedLazyFrame(Generic[S, S2]):
             _schema_right=self._schema_right,
             _backend=self._backend,
         )
-
-    # --- Conversion ---
-
-    def untyped(self) -> UntypedLazyFrame:
-        """Drop type information — string-based escape hatch."""
-        return UntypedLazyFrame(_data=self._data, _backend=self._backend)
-
-
-# ---------------------------------------------------------------------------
-# Untyped escape hatches
-# ---------------------------------------------------------------------------
-
-
-class UntypedDataFrame:
-    """A DataFrame with no schema parameter. String-based column access.
-
-    Operations delegate to the backend when available.
-    """
-
-    __slots__ = ("_data", "_backend")
-
-    def __init__(self, *, _data: Any = None, _backend: BackendProtocol | None = None) -> None:
-        self._data = _data
-        self._backend = _backend
-
-    def select(self, *columns: str) -> UntypedDataFrame:
-        """Select columns by name."""
-        data = _require_backend(self._backend).select(self._data, columns)
-        return UntypedDataFrame(_data=data, _backend=self._backend)
-
-    def filter(self, expr: Any) -> UntypedDataFrame:
-        """Filter rows."""
-        data = _require_backend(self._backend).filter(self._data, expr)
-        return UntypedDataFrame(_data=data, _backend=self._backend)
-
-    def with_columns(self, *exprs: Any) -> UntypedDataFrame:
-        """Add or overwrite columns."""
-        data = _require_backend(self._backend).with_columns(self._data, exprs)
-        return UntypedDataFrame(_data=data, _backend=self._backend)
-
-    def sort(self, *columns: str, descending: bool = False) -> UntypedDataFrame:
-        """Sort rows by column names."""
-        data = _require_backend(self._backend).sort(self._data, columns, descending)
-        return UntypedDataFrame(_data=data, _backend=self._backend)
-
-    def limit(self, n: int) -> UntypedDataFrame:
-        """Limit to the first n rows."""
-        data = _require_backend(self._backend).limit(self._data, n)
-        return UntypedDataFrame(_data=data, _backend=self._backend)
-
-    def head(self, n: int = 5) -> UntypedDataFrame:
-        """Return the first n rows."""
-        data = _require_backend(self._backend).head(self._data, n)
-        return UntypedDataFrame(_data=data, _backend=self._backend)
-
-    def tail(self, n: int = 5) -> UntypedDataFrame:
-        """Return the last n rows."""
-        data = _require_backend(self._backend).tail(self._data, n)
-        return UntypedDataFrame(_data=data, _backend=self._backend)
-
-    def to_typed(self, schema: type[S]) -> DataFrame[S]:
-        """Bind to a schema."""
-        return DataFrame(_data=self._data, _schema=schema, _backend=self._backend)
-
-
-class UntypedLazyFrame:
-    """A LazyFrame with no schema parameter. String-based column access.
-
-    Operations delegate to the backend when available.
-    """
-
-    __slots__ = ("_data", "_backend")
-
-    def __init__(self, *, _data: Any = None, _backend: BackendProtocol | None = None) -> None:
-        self._data = _data
-        self._backend = _backend
-
-    def select(self, *columns: str) -> UntypedLazyFrame:
-        """Select columns by name."""
-        data = _require_backend(self._backend).select(self._data, columns)
-        return UntypedLazyFrame(_data=data, _backend=self._backend)
-
-    def filter(self, expr: Any) -> UntypedLazyFrame:
-        """Filter rows."""
-        data = _require_backend(self._backend).filter(self._data, expr)
-        return UntypedLazyFrame(_data=data, _backend=self._backend)
-
-    def with_columns(self, *exprs: Any) -> UntypedLazyFrame:
-        """Add or overwrite columns."""
-        data = _require_backend(self._backend).with_columns(self._data, exprs)
-        return UntypedLazyFrame(_data=data, _backend=self._backend)
-
-    def sort(self, *columns: str, descending: bool = False) -> UntypedLazyFrame:
-        """Sort rows by column names."""
-        data = _require_backend(self._backend).sort(self._data, columns, descending)
-        return UntypedLazyFrame(_data=data, _backend=self._backend)
-
-    def limit(self, n: int) -> UntypedLazyFrame:
-        """Limit to the first n rows."""
-        data = _require_backend(self._backend).limit(self._data, n)
-        return UntypedLazyFrame(_data=data, _backend=self._backend)
-
-    def collect(self) -> UntypedDataFrame:
-        """Materialize the lazy query plan."""
-        data = _require_backend(self._backend).collect(self._data)
-        return UntypedDataFrame(_data=data, _backend=self._backend)
-
-    def to_typed(self, schema: type[S]) -> LazyFrame[S]:
-        """Bind to a schema."""
-        return LazyFrame(_data=self._data, _schema=schema, _backend=self._backend)

@@ -1,4 +1,4 @@
-"""Static type tests for DataFrame[S], LazyFrame[S], GroupBy, and untyped escape hatches.
+"""Static type tests for DataFrame[S], LazyFrame[S], and GroupBy.
 
 This file is checked by ty — it must produce zero type errors.
 
@@ -7,8 +7,6 @@ Tests cover:
 - Schema-transforming ops (select, group_by+agg) return Any-parameterized frames
 - lazy()/collect() conversions preserve schema
 - GroupBy/LazyGroupBy types
-- UntypedDataFrame/UntypedLazyFrame string-based escape hatches
-- to_typed() re-entry to typed world
 - Negative regression guards (LazyFrame NOT assignable to DataFrame, etc.)
 """
 
@@ -21,8 +19,6 @@ from colnade import (
     Schema,
     UInt8,
     UInt64,
-    UntypedDataFrame,
-    UntypedLazyFrame,
     Utf8,
 )
 
@@ -128,29 +124,6 @@ def check_lazy_group_by_type(lf: LazyFrame[Users]) -> LazyGroupBy[Users]:
     return lf.group_by(Users.age)
 
 
-# --- Untyped escape hatches ---
-
-
-def check_untyped_dataframe(df: DataFrame[Users]) -> UntypedDataFrame:
-    return df.untyped()
-
-
-def check_untyped_lazyframe(lf: LazyFrame[Users]) -> UntypedLazyFrame:
-    return lf.untyped()
-
-
-def check_untyped_to_typed(udf: UntypedDataFrame) -> DataFrame[Users]:
-    return udf.to_typed(Users)
-
-
-def check_untyped_lazy_to_typed(ulf: UntypedLazyFrame) -> LazyFrame[Users]:
-    return ulf.to_typed(Users)
-
-
-def check_untyped_lazy_collect(ulf: UntypedLazyFrame) -> UntypedDataFrame:
-    return ulf.collect()
-
-
 # --- Validate returns same type ---
 
 
@@ -181,12 +154,6 @@ def check_neg_dataframe_not_lazyframe() -> None:
     """DataFrame[Users] is NOT assignable to LazyFrame[Users]."""
     df: DataFrame[Users] = DataFrame(_schema=Users)
     _: LazyFrame[Users] = df  # type: ignore[invalid-assignment]
-
-
-def check_neg_untyped_not_dataframe() -> None:
-    """UntypedDataFrame is NOT assignable to DataFrame[Users]."""
-    udf = UntypedDataFrame()
-    _: DataFrame[Users] = udf  # type: ignore[invalid-assignment]
 
 
 def check_neg_groupby_schema_distinct() -> None:
@@ -265,12 +232,6 @@ def check_neg_lazyframe_schema_invariant() -> None:
     """LazyFrame[Users] is NOT assignable to LazyFrame[AgeStats]."""
     lf: LazyFrame[Users] = LazyFrame(_schema=Users)
     _: LazyFrame[AgeStats] = lf  # type: ignore[invalid-assignment]
-
-
-def check_neg_untyped_lazy_not_lazyframe() -> None:
-    """UntypedLazyFrame is NOT assignable to LazyFrame[Users]."""
-    ulf = UntypedLazyFrame()
-    _: LazyFrame[Users] = ulf  # type: ignore[invalid-assignment]
 
 
 def check_neg_groupby_not_dataframe() -> None:

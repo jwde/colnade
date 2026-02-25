@@ -24,7 +24,7 @@ class UserSummary(Schema):
 ## Read typed data
 
 ```python
-from colnade_polars.io import read_parquet
+from colnade_polars import read_parquet
 
 df = read_parquet("users.parquet", Users)
 # df is DataFrame[Users] — the type checker knows the schema

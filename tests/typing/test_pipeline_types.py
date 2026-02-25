@@ -153,14 +153,6 @@ def check_lazy_cast_pipeline(lf: LazyFrame[Users]) -> LazyFrame[UserSummary]:
     return lf.filter(Users.age > 18).cast_schema(UserSummary)
 
 
-# --- Untyped escape and re-entry ---
-
-
-def check_untyped_roundtrip(df: DataFrame[Users]) -> DataFrame[Users]:
-    """Pipeline: typed → untyped → to_typed re-enters typed world."""
-    return df.untyped().to_typed(Users)
-
-
 # --- Validate in pipeline ---
 
 

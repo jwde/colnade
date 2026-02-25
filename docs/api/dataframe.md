@@ -1,6 +1,6 @@
 # colnade.dataframe
 
-DataFrame, LazyFrame, GroupBy, JoinedDataFrame, and untyped escape hatches.
+DataFrame, LazyFrame, GroupBy, JoinedDataFrame, and JoinedLazyFrame.
 
 ## DataFrame
 
@@ -25,11 +25,3 @@ DataFrame, LazyFrame, GroupBy, JoinedDataFrame, and untyped escape hatches.
 ## JoinedLazyFrame
 
 ::: colnade.dataframe.JoinedLazyFrame
-
-## UntypedDataFrame
-
-::: colnade.dataframe.UntypedDataFrame
-
-## UntypedLazyFrame
-
-::: colnade.dataframe.UntypedLazyFrame

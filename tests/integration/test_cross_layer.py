@@ -1,8 +1,8 @@
 """Cross-layer integration tests spanning expression → translation → execution.
 
 Tests the full roundtrip: Colnade expression tree → PolarsBackend translation →
-Polars execution → correct results. Also tests schema validation, generic
-functions with concrete schemas, and untyped escape hatches.
+Polars execution → correct results. Also tests schema validation and generic
+functions with concrete schemas.
 """
 
 from __future__ import annotations
@@ -17,7 +17,6 @@ from colnade import (
     Schema,
     SchemaError,
     UInt64,
-    UntypedDataFrame,
     Utf8,
     mapped_from,
 )
@@ -244,21 +243,11 @@ class TestGenericFunction:
 
 
 # ---------------------------------------------------------------------------
-# Untyped escape hatch
+# cast_schema
 # ---------------------------------------------------------------------------
 
 
-class TestUntypedEscapeHatch:
-    def test_untyped_roundtrip(self) -> None:
-        """DataFrame → untyped → to_typed → validate."""
-        df = _users_df()
-        untyped = df.untyped()
-        assert isinstance(untyped, UntypedDataFrame)
-
-        retyped = untyped.to_typed(Users)
-        assert isinstance(retyped, DataFrame)
-        assert retyped._schema is Users
-
+class TestCastSchema:
     def test_cast_schema_with_name_match(self) -> None:
         """cast_schema resolves by name when no mapped_from is set."""
         df = _users_df()
@@ -272,3 +261,17 @@ class TestUntypedEscapeHatch:
         result = df.cast_schema(RenamedUsers)
         assert result._data.columns == ["user_id", "user_name"]
         assert result._data["user_id"].to_list() == [1, 2, 3, 4, 5]
+
+    def test_cast_schema_child_schema_after_with_columns(self) -> None:
+        """with_columns adds a column, cast_schema to child schema picks it up."""
+
+        class EnrichedUsers(Users):
+            risk_score: Column[Float64]
+
+        df = _users_df()
+        result = df.with_columns(
+            (Users.age * 0.1 + Users.score * 0.9).alias(EnrichedUsers.risk_score)
+        ).cast_schema(EnrichedUsers)
+        assert result._schema is EnrichedUsers
+        assert "risk_score" in result._data.columns
+        assert result._data.shape == (5, 5)
