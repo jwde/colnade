@@ -65,7 +65,7 @@
             <a id="nextFileLink" class="nav" href="z_1f21014f288dcb7f_conversion_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.13.1">coverage.py v7.13.1</a>,
-            created at 2026-02-24 03:56 +0000
+            created at 2026-02-25 03:00 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -411,8 +411,8 @@
     <p class="mis show_mis"><span class="n"><a id="t329" href="#t329">329</a></span><span class="t">                <span class="key">raise</span> <span class="nam">ValueError</span><span class="op">(</span><span class="nam">msg</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t330" href="#t330">330</a></span><span class="t">        <span class="key">return</span> <span class="nam">result</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t331" href="#t331">331</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t332" href="#t332">332</a></span><span class="t">    <span class="key">def</span> <span class="nam">select</span><span class="op">(</span><span class="nam">self</span><span class="op">,</span> <span class="nam">source</span><span class="op">:</span> <span class="nam">Any</span><span class="op">,</span> <span class="nam">columns</span><span class="op">:</span> <span class="nam">Sequence</span><span class="op">[</span><span class="nam">Column</span><span class="op">[</span><span class="nam">Any</span><span class="op">]</span><span class="op">]</span><span class="op">)</span> <span class="op">-></span> <span class="nam">Any</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t333" href="#t333">333</a></span><span class="t">        <span class="key">return</span> <span class="nam">source</span><span class="op">[</span><span class="op">[</span><span class="nam">c</span><span class="op">.</span><span class="nam">name</span> <span class="key">for</span> <span class="nam">c</span> <span class="key">in</span> <span class="nam">columns</span><span class="op">]</span><span class="op">]</span><span class="op">.</span><span class="nam">reset_index</span><span class="op">(</span><span class="nam">drop</span><span class="op">=</span><span class="key">True</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t332" href="#t332">332</a></span><span class="t">    <span class="key">def</span> <span class="nam">select</span><span class="op">(</span><span class="nam">self</span><span class="op">,</span> <span class="nam">source</span><span class="op">:</span> <span class="nam">Any</span><span class="op">,</span> <span class="nam">columns</span><span class="op">:</span> <span class="nam">Sequence</span><span class="op">[</span><span class="nam">Column</span><span class="op">[</span><span class="nam">Any</span><span class="op">]</span> <span class="op">|</span> <span class="nam">str</span><span class="op">]</span><span class="op">)</span> <span class="op">-></span> <span class="nam">Any</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t333" href="#t333">333</a></span><span class="t">        <span class="key">return</span> <span class="nam">source</span><span class="op">[</span><span class="op">[</span><span class="nam">c</span><span class="op">.</span><span class="nam">name</span> <span class="key">if</span> <span class="nam">hasattr</span><span class="op">(</span><span class="nam">c</span><span class="op">,</span> <span class="str">"name"</span><span class="op">)</span> <span class="key">else</span> <span class="nam">c</span> <span class="key">for</span> <span class="nam">c</span> <span class="key">in</span> <span class="nam">columns</span><span class="op">]</span><span class="op">]</span><span class="op">.</span><span class="nam">reset_index</span><span class="op">(</span><span class="nam">drop</span><span class="op">=</span><span class="key">True</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t334" href="#t334">334</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t335" href="#t335">335</a></span><span class="t">    <span class="key">def</span> <span class="nam">group_by_agg</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t336" href="#t336">336</a></span><span class="t">        <span class="nam">self</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
@@ -764,7 +764,7 @@
             <a class="nav" href="z_1f21014f288dcb7f_conversion_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.13.1">coverage.py v7.13.1</a>,
-            created at 2026-02-24 03:56 +0000
+            created at 2026-02-25 03:00 +0000
         </p>
     </div>
 </footer>

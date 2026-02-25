@@ -65,7 +65,7 @@
             <a id="nextFileLink" class="nav" href="z_77a1616fd4c7b32b_io_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.13.1">coverage.py v7.13.1</a>,
-            created at 2026-02-24 03:56 +0000
+            created at 2026-02-25 03:00 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -422,8 +422,8 @@
     <p class="mis show_mis"><span class="n"><a id="t340" href="#t340">340</a></span><span class="t">                <span class="key">raise</span> <span class="nam">ValueError</span><span class="op">(</span><span class="nam">msg</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t341" href="#t341">341</a></span><span class="t">        <span class="key">return</span> <span class="nam">result</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t342" href="#t342">342</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t343" href="#t343">343</a></span><span class="t">    <span class="key">def</span> <span class="nam">select</span><span class="op">(</span><span class="nam">self</span><span class="op">,</span> <span class="nam">source</span><span class="op">:</span> <span class="nam">Any</span><span class="op">,</span> <span class="nam">columns</span><span class="op">:</span> <span class="nam">Sequence</span><span class="op">[</span><span class="nam">Column</span><span class="op">[</span><span class="nam">Any</span><span class="op">]</span><span class="op">]</span><span class="op">)</span> <span class="op">-></span> <span class="nam">Any</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run"><span class="n"><a id="t344" href="#t344">344</a></span><span class="t">        <span class="key">return</span> <span class="nam">source</span><span class="op">[</span><span class="op">[</span><span class="nam">c</span><span class="op">.</span><span class="nam">name</span> <span class="key">for</span> <span class="nam">c</span> <span class="key">in</span> <span class="nam">columns</span><span class="op">]</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t343" href="#t343">343</a></span><span class="t">    <span class="key">def</span> <span class="nam">select</span><span class="op">(</span><span class="nam">self</span><span class="op">,</span> <span class="nam">source</span><span class="op">:</span> <span class="nam">Any</span><span class="op">,</span> <span class="nam">columns</span><span class="op">:</span> <span class="nam">Sequence</span><span class="op">[</span><span class="nam">Column</span><span class="op">[</span><span class="nam">Any</span><span class="op">]</span> <span class="op">|</span> <span class="nam">str</span><span class="op">]</span><span class="op">)</span> <span class="op">-></span> <span class="nam">Any</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run"><span class="n"><a id="t344" href="#t344">344</a></span><span class="t">        <span class="key">return</span> <span class="nam">source</span><span class="op">[</span><span class="op">[</span><span class="nam">c</span><span class="op">.</span><span class="nam">name</span> <span class="key">if</span> <span class="nam">hasattr</span><span class="op">(</span><span class="nam">c</span><span class="op">,</span> <span class="str">"name"</span><span class="op">)</span> <span class="key">else</span> <span class="nam">c</span> <span class="key">for</span> <span class="nam">c</span> <span class="key">in</span> <span class="nam">columns</span><span class="op">]</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t345" href="#t345">345</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t346" href="#t346">346</a></span><span class="t">    <span class="key">def</span> <span class="nam">group_by_agg</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t347" href="#t347">347</a></span><span class="t">        <span class="nam">self</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
@@ -780,7 +780,7 @@
             <a class="nav" href="z_77a1616fd4c7b32b_io_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.13.1">coverage.py v7.13.1</a>,
-            created at 2026-02-24 03:56 +0000
+            created at 2026-02-25 03:00 +0000
         </p>
     </div>
 </footer>
