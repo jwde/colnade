@@ -261,3 +261,17 @@ class TestCastSchema:
         result = df.cast_schema(RenamedUsers)
         assert result._data.columns == ["user_id", "user_name"]
         assert result._data["user_id"].to_list() == [1, 2, 3, 4, 5]
+
+    def test_cast_schema_child_schema_after_with_columns(self) -> None:
+        """with_columns adds a column, cast_schema to child schema picks it up."""
+
+        class EnrichedUsers(Users):
+            risk_score: Column[Float64]
+
+        df = _users_df()
+        result = df.with_columns(
+            (Users.age * 0.1 + Users.score * 0.9).alias(EnrichedUsers.risk_score)
+        ).cast_schema(EnrichedUsers)
+        assert result._schema is EnrichedUsers
+        assert "risk_score" in result._data.columns
+        assert result._data.shape == (5, 5)

@@ -336,3 +336,54 @@ class TestCastSchemaOnUntyped:
         result = df.cast_schema(UsersSummary)
         assert isinstance(result, DataFrame)
         assert result._schema is UsersSummary
+
+
+# ---------------------------------------------------------------------------
+# cast_schema with schema inheritance (child schema identity fallback)
+# ---------------------------------------------------------------------------
+
+
+class EnrichedUsers(Users):
+    """Child schema that adds a computed column."""
+
+    score: Column[UInt64]
+
+
+class UnrelatedOutput(Schema):
+    """Unrelated schema with a column not in Users."""
+
+    id: Column[UInt64]
+    rating: Column[UInt64]
+
+
+class TestCastSchemaInheritance:
+    def test_child_schema_identity_fallback(self) -> None:
+        """Columns added by with_columns resolve via inheritance fallback."""
+        df: DataFrame[Users] = DataFrame(_schema=Users, _backend=_BACKEND)
+        result = df.cast_schema(EnrichedUsers)
+        assert isinstance(result, DataFrame)
+        assert result._schema is EnrichedUsers
+
+    def test_child_schema_lazyframe(self) -> None:
+        """Same fallback works on LazyFrame."""
+        lf: LazyFrame[Users] = LazyFrame(_schema=Users, _backend=_BACKEND)
+        result = lf.cast_schema(EnrichedUsers)
+        assert isinstance(result, LazyFrame)
+        assert result._schema is EnrichedUsers
+
+    def test_unrelated_schema_still_raises(self) -> None:
+        """Unrelated target schema with missing columns still raises."""
+        df: DataFrame[Users] = DataFrame(_schema=Users, _backend=_BACKEND)
+        with pytest.raises(SchemaError, match="rating"):
+            df.cast_schema(UnrelatedOutput)
+
+    def test_child_schema_with_mapped_from(self) -> None:
+        """Child schema can mix mapped_from and identity fallback."""
+
+        class RenamedEnriched(Users):
+            full_name: Column[Utf8] = mapped_from(Users.name)
+            score: Column[UInt64]
+
+        df: DataFrame[Users] = DataFrame(_schema=Users, _backend=_BACKEND)
+        result = df.cast_schema(RenamedEnriched)
+        assert result._schema is RenamedEnriched

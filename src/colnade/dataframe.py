@@ -133,6 +133,7 @@ def _resolve_mapping(
     mapping: dict[Column[Any], Column[Any]] | None,
     extra: Literal["drop", "forbid"],
     ambiguous_names: set[str] | None = None,
+    source_schema: type[Schema] | None = None,
 ) -> dict[str, str]:
     """Resolve target→source column name mapping.
 
@@ -143,6 +144,7 @@ def _resolve_mapping(
     1. Explicit ``mapping`` dict
     2. Target column's ``_mapped_from`` attribute
     3. Name matching against source columns (skipped for ambiguous names)
+    4. Schema-inheritance identity fallback (when target extends source schema)
     """
     result: dict[str, str] = {}
     explicit = mapping or {}
@@ -162,6 +164,14 @@ def _resolve_mapping(
         if target_name in source_columns and target_name not in ambiguous:
             result[target_name] = target_name
             continue
+
+    # 4. Schema-inheritance identity fallback: if the target schema extends
+    # the source schema, unresolved columns are assumed to exist in the data
+    # with their declared name (e.g. added by with_columns).
+    if source_schema is not None and issubclass(target_schema, source_schema):
+        for target_name in target_columns:
+            if target_name not in result:
+                result[target_name] = target_name
 
     missing = [name for name in target_columns if name not in result]
     if missing:
@@ -458,7 +468,13 @@ class DataFrame(Generic[S]):
         backend = _require_backend(self._backend)
         data = self._data
         if self._schema is not None:
-            name_map = _resolve_mapping(schema, self._schema._columns, mapping, extra)
+            name_map = _resolve_mapping(
+                schema,
+                self._schema._columns,
+                mapping,
+                extra,
+                source_schema=self._schema,
+            )
             data = backend.cast_schema(data, name_map)
         return DataFrame(_data=data, _schema=schema, _backend=self._backend)
 
@@ -834,7 +850,13 @@ class LazyFrame(Generic[S]):
         backend = _require_backend(self._backend)
         data = self._data
         if self._schema is not None:
-            name_map = _resolve_mapping(schema, self._schema._columns, mapping, extra)
+            name_map = _resolve_mapping(
+                schema,
+                self._schema._columns,
+                mapping,
+                extra,
+                source_schema=self._schema,
+            )
             data = backend.cast_schema(data, name_map)
         return LazyFrame(_data=data, _schema=schema, _backend=self._backend)
 
