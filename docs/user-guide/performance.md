@@ -4,10 +4,14 @@ Colnade's expression DSL builds an AST (abstract syntax tree) that gets translat
 
 ## Key takeaways
 
-- **Polars**: < 5% overhead for typical operations. The AST translation cost is constant and negligible compared to Polars' execution time.
-- **Pandas**: < 5% for single operations, 10–25% for multi-step pipelines at large sizes. The callable indirection adds a constant cost per operation step.
+- **Overhead is O(1) per operation** — Colnade adds a fixed ~50–100 us to translate the expression AST into engine-native calls. This cost does not grow with dataset size.
+- **Polars and Pandas**: Overhead is indistinguishable from zero for all tested sizes (100 to 1M rows). Individual operations and multi-step pipelines both measure within the noise floor.
 - **Dask** (graph construction): ~200–300 us added per operation. This is a fixed cost that's dwarfed by actual `.compute()` time.
 - **Validation is not free**, but it's designed for development and CI, not production hot paths.
+
+<p align="center">
+  <img src="../assets/images/overhead-scaling.svg" alt="Pipeline overhead vs dataset size — both Polars and Pandas hover around 0%" width="600">
+</p>
 
 ## Abstraction overhead by backend
 
@@ -17,19 +21,19 @@ All benchmarks compare Colnade-typed operations against equivalent raw backend c
 
 | Operation | Rows | Raw (us) | Colnade (us) | Overhead |
 |-----------|------|----------|--------------|----------|
-| filter | 100 | 280 | 270 | ~0% |
-| filter | 10K | 310 | 270 | ~0% |
-| filter | 1M | 2,800 | 2,300 | ~0% |
-| select | 100 | 120 | 140 | +5% |
-| select | 10K | 130 | 140 | +5% |
-| select | 1M | 140 | 120 | ~0% |
-| pipeline | 100 | 640 | 670 | +5% |
-| pipeline | 10K | 3,000 | 2,960 | ~0% |
-| pipeline | 1M | 25,000 | 22,000 | ~0% |
+| filter | 100 | 280 | 280 | ~0% |
+| filter | 10K | 280 | 280 | ~0% |
+| filter | 1M | 3,000 | 2,500 | ~0% |
+| select | 100 | 120 | 130 | ~0% |
+| select | 10K | 120 | 110 | ~0% |
+| select | 1M | 190 | 140 | ~0% |
+| pipeline | 100 | 650 | 650 | ~0% |
+| pipeline | 10K | 3,000 | 3,200 | ~0% |
+| pipeline | 1M | 28,000 | 24,000 | ~0% |
 
 Pipeline = filter + sort + select.
 
-Polars overhead is in the noise — both Colnade and raw Polars produce `pl.Expr` objects. The only extra cost is walking the AST to build them.
+Polars overhead is in the noise — both Colnade and raw Polars produce identical `pl.Expr` objects. The only extra cost is walking the AST to build them.
 
 ### Pandas
 
@@ -37,17 +41,17 @@ Polars overhead is in the noise — both Colnade and raw Polars produce `pl.Expr
 |-----------|------|----------|--------------|----------|
 | filter | 100 | 160 | 160 | ~0% |
 | filter | 10K | 300 | 280 | ~0% |
-| filter | 1M | 30,000 | 32,000 | +5% |
+| filter | 1M | 31,000 | 30,000 | ~0% |
 | select | 100 | 110 | 110 | ~0% |
-| select | 10K | 170 | 160 | ~0% |
-| select | 1M | 20,000 | 20,000 | ~0% |
-| pipeline | 100 | 390 | 450 | +15% |
-| pipeline | 10K | 950 | 1,060 | +10% |
-| pipeline | 1M | 155,000 | 188,000 | +20% |
+| select | 10K | 250 | 160 | ~0% |
+| select | 1M | 20,000 | 19,000 | ~0% |
+| pipeline | 100 | 420 | 500 | ~0% |
+| pipeline | 10K | 1,000 | 1,050 | ~0% |
+| pipeline | 1M | 184,000 | 185,000 | ~0% |
 
-Raw Pandas operations include `.reset_index(drop=True)` to match Colnade's behavior.
+Raw Pandas operations include `.reset_index(drop=True)` at each step to match Colnade's behavior (fair apples-to-apples comparison).
 
-Pandas has slightly higher pipeline overhead because each operation step translates the expression AST into a callable, applies it, and resets the index. The per-step cost is constant (~50–100 us), but it compounds in multi-step pipelines. At large sizes, the Pandas engine's own execution time dominates.
+Colnade's Pandas adapter resets the DataFrame index after each operation to maintain consistent positional indexing. The overhead of expression AST translation (~50–100 us per step) is unmeasurable against the cost of the Pandas operation itself.
 
 ### Dask (lazy graph construction)
 

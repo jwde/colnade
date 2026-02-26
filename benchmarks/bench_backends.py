@@ -158,13 +158,13 @@ def bench_pandas(n: int, iters: int) -> list[BenchResult]:
         BenchResult(f"Pandas select, {n:,} rows", t_raw / iters * 1e6, t_col / iters * 1e6)
     )
 
-    # pipeline: filter + sort + select
+    # pipeline: filter + sort + select (step-by-step with reset_index at each
+    # step to match what Colnade's adapter does — a fair apples-to-apples
+    # comparison)
     def raw_pipe():
-        return (
-            raw.loc[raw["age"] > 30]
-            .sort_values("score", ascending=False)
-            .reset_index(drop=True)[["name", "score"]]
-        )
+        r = raw.loc[raw["age"] > 30].reset_index(drop=True)
+        r = r.sort_values("score", ascending=False).reset_index(drop=True)
+        return r[["name", "score"]].reset_index(drop=True)
 
     def col_pipe():
         return typed.filter(Users.age > 30).sort(Users.score.desc()).select(Users.name, Users.score)

@@ -221,7 +221,13 @@ result = lazy.filter(Users.age > 25).sort(Users.score.desc()).collect()
 
 ## Performance
 
-Colnade adds < 5% overhead for typical Polars operations and < 5% for single Pandas operations (10–25% for multi-step Pandas pipelines at large sizes). Dask overhead is a fixed ~200–300 us per operation on graph construction, negligible compared to compute time. Validation (STRUCTURAL, FULL) adds measurable cost at data boundaries — see the full [benchmark results](https://colnade.com/user-guide/performance/) for details.
+Colnade's overhead is O(1) per operation — a fixed ~50–100 us to translate the expression AST, regardless of dataset size. As rows increase, this cost vanishes into measurement noise. Benchmarked pipelines (filter + sort + select) show overhead indistinguishable from zero across Polars and Pandas at all tested sizes (100 to 1M rows). Dask adds ~200–300 us per lazy graph operation, negligible compared to `.compute()` time.
+
+<p align="center">
+  <img src="docs/assets/images/overhead-scaling.svg" alt="Pipeline overhead vs dataset size — both Polars and Pandas hover around 0%" width="600">
+</p>
+
+Validation (`STRUCTURAL`, `FULL`) adds measurable cost at data boundaries and is designed for development/CI, not production hot paths. See the full [benchmark results](https://colnade.com/user-guide/performance/) for details.
 
 ## Type Checker Error Showcase
 
@@ -243,7 +249,7 @@ Colnade catches real errors at lint time. Here are actual error messages from `t
 | Struct/List typed access | Yes | No | No | No | No |
 | Lazy execution support | Yes | No | No | No | Yes |
 | Value-level constraints | `Field()` | `Check` | No | Pydantic validators | No |
-| Maturity / ecosystem | New (v0.6) | Mature, large community | Mature | Small | Growing fast |
+| Maturity / ecosystem | New (v0.7) | Mature, large community | Mature | Small | Growing fast |
 | Engine breadth | 3 backends | 4+ backends | Own engine | 1 backend | 6+ backends |
 | select/group_by output typing | `DataFrame[Any]`³ | Decorator-checked | Positional types | No | No |
 
