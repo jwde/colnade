@@ -91,7 +91,7 @@ Colnade catches errors at three levels:
 2. **At data boundaries** — runtime validation ensures files and external data match your schemas (columns, types, nullability) and that expressions reference columns from the correct schema
 3. **On your data values** — `Field()` constraints validate domain invariants like ranges, patterns, and uniqueness
 
-**Where static safety ends:** Static checking covers column references and schema-preserving operations (`filter`, `sort`, `with_columns`). Schema-transforming operations (`select`, `group_by`) return `DataFrame[Any]` — `cast_schema()` re-binds to a named schema and is a runtime trust boundary. No type checker plugin is needed, but this is a deliberate tradeoff: plugins could theoretically infer output schemas at the cost of type-checker coupling and maintenance burden. See [Type Checker Integration](https://colnade.com/user-guide/type-checking/) for the full list of what is and isn't checked.
+**Where static safety ends:** Static checking covers column references and schema-preserving operations (`filter`, `sort`, `with_columns`). Schema-transforming operations (`select`, `group_by`) return `DataFrame[Any]` — you call `cast_schema()` to assert the output schema, and runtime validation (if enabled) verifies it. No type checker plugin is needed, but this means output schemas aren't inferred statically. See [Type Checker Integration](https://colnade.com/user-guide/type-checking/) for the full list of what is and isn't checked.
 
 ## Key Features
 
@@ -127,6 +127,11 @@ Users.name.str_starts_with("A")        # Expr[Bool] — string method
 ### Aggregations
 
 ```python
+class UserStats(Schema):
+    name: Column[Utf8]
+    avg_score: Column[Float64]
+    user_count: Column[UInt64]
+
 result = df.group_by(Users.name).agg(
     Users.score.mean().alias(UserStats.avg_score),
     Users.id.count().alias(UserStats.user_count),
@@ -148,9 +153,10 @@ df.drop_nulls(Users.score)
 joined = users.join(orders, on=Users.id == Orders.user_id)
 # JoinedDataFrame[Users, Orders] — both schemas accessible
 
+# mapped_from tells cast_schema which source column maps to each target column
 class UserOrders(Schema):
     user_name: Column[Utf8] = mapped_from(Users.name)
-    amount: Column[Float64]
+    amount: Column[Float64]  # same name as Orders.amount — matched automatically
 
 result = joined.cast_schema(UserOrders)
 ```
@@ -221,10 +227,10 @@ result = lazy.filter(Users.age > 25).sort(Users.score.desc()).collect()
 
 ## Performance
 
-Colnade's overhead is O(1) per operation — a fixed ~50–100 us to translate the expression AST, regardless of dataset size. As rows increase, this cost vanishes into measurement noise. Benchmarked pipelines (filter + sort + select) show overhead indistinguishable from zero across Polars and Pandas at all tested sizes (100 to 1M rows). Dask adds ~200–300 us per lazy graph operation, negligible compared to `.compute()` time.
+Colnade adds a fixed ~50–100 us per operation to translate the expression AST into engine-native calls. This cost doesn't grow with dataset size — even the smallest DataFrame operations (300+ us) dwarf it. Benchmarked pipelines (filter + sort + select) show no measurable difference between raw Polars and Colnade from 100 to 1M rows. Dask adds ~200–300 us per lazy graph operation, negligible compared to `.compute()` time.
 
 <p align="center">
-  <img src="docs/assets/images/overhead-scaling.svg" alt="Pipeline overhead vs dataset size — both Polars and Pandas hover around 0%" width="600">
+  <img src="docs/assets/images/overhead-scaling.svg" alt="Pipeline overhead vs dataset size — Raw Polars and Colnade lines overlap completely" width="600">
 </p>
 
 Validation (`STRUCTURAL`, `FULL`) adds measurable cost at data boundaries and is designed for development/CI, not production hot paths. See the full [benchmark results](https://colnade.com/user-guide/performance/) for details.

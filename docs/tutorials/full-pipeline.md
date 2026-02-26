@@ -90,7 +90,7 @@ revenue = (
 ```python
 from colnade_polars import write_parquet
 
-result = revenue.sort(UserRevenue.total_amount, descending=True)
+result = revenue.sort(UserRevenue.total_amount.desc())
 write_parquet(result, "user_revenue.parquet")
 ```
 

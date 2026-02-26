@@ -75,4 +75,5 @@ jobs:
       - uses: astral-sh/setup-uv@v5
       - run: uv sync
       - run: uv run python scripts/check_api_docs.py
+      - run: uv run python scripts/check_changelog.py
       - run: uv run mkdocs build --strict

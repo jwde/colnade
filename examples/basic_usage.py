@@ -8,8 +8,7 @@ from __future__ import annotations
 import tempfile
 
 from colnade import Column, Float64, Schema, UInt64, Utf8
-from colnade_polars import from_rows, write_parquet
-from colnade_polars.io import read_parquet
+from colnade_polars import from_rows, read_parquet, write_parquet
 
 # ---------------------------------------------------------------------------
 # 1. Define schemas — typed column references, verified by the type checker
