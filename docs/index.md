@@ -16,10 +16,10 @@ import polars as pl
 
 df = pl.read_parquet("users.parquet")
 
-# Typo — silently produces zero rows
+# Typo — crashes at runtime
 df.filter(pl.col("naem") == "Alice")
 
-# Wrong method on column — crashes at runtime
+# Wrong method — crashes at runtime
 df.select(pl.col("name").sum())
 ```
 
@@ -34,11 +34,11 @@ from myapp.schemas import Users
 
 df = read_parquet("users.parquet", Users)
 
-# Typo — caught by your type checker
+# Typo — caught in your editor
 df.filter(Users.naem == "Alice")  # error!
 
-# Wrong method on column — caught by your type checker
-df.select(Users.name.sum())  # error! sum() requires numeric
+# Wrong method — caught in your editor
+df.select(Users.name.sum())  # error!
 ```
 
 </div>

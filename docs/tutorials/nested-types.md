@@ -43,25 +43,23 @@ df.filter(UserProfile.address.field(Address.zip_code).is_not_null())
 Access list methods via the `.list` property:
 
 ```python
-# Count elements in each list
-tag_counts = df.with_columns(
-    UserProfile.tags.list.len().alias(UserProfile.tags)
-)
-
 # Check if list contains a value
 python_users = df.filter(
     UserProfile.tags.list.contains("python")
 )
 
-# Get element by index (0-based)
-first_tags = df.with_columns(
-    UserProfile.tags.list.get(0).alias(UserProfile.tags)
-)
+# Count elements in each list — use a separate output column
+class ProfileWithCounts(UserProfile):
+    tag_count: Column[UInt32]
 
-# Aggregate list elements (numeric lists)
-score_totals = df.with_columns(
-    UserProfile.scores.list.sum().alias(UserProfile.scores)
-)
+tag_counts = df.with_columns(
+    UserProfile.tags.list.len().alias(ProfileWithCounts.tag_count)
+).cast_schema(ProfileWithCounts)
+
+# Get element by index, aggregate list elements
+UserProfile.tags.list.get(0)      # first tag
+UserProfile.scores.list.sum()     # sum of scores
+UserProfile.scores.list.mean()    # mean of scores
 ```
 
 ## Available list methods

@@ -13,7 +13,7 @@
 
 <p align="center">A statically type-safe DataFrame abstraction layer for Python.</p>
 
-Colnade replaces string-based column references (`pl.col("age")`) with typed descriptors (`Users.age`), so column misspellings, type mismatches, and schema violations are caught by your type checker — before your code runs.
+Colnade replaces string-based column references (`pl.col("age")`) with typed descriptors (`Users.age`), so column misspellings and type mismatches are caught by your type checker — before your code runs.
 
 Works with [ty](https://github.com/astral-sh/ty), mypy, and pyright. No plugins, no code generation.
 
@@ -186,10 +186,11 @@ class UserProfile(Schema):
     name: Column[Utf8]
     address: Column[Struct[Address]]
     tags: Column[List[Utf8]]
+    tag_count: Column[UInt32]
 
 # Access nested data
 df.filter(UserProfile.address.field(Address.city) == "New York")
-df.with_columns(UserProfile.tags.list.len().alias(UserProfile.tags))
+df.with_columns(UserProfile.tags.list.len().alias(UserProfile.tag_count))
 ```
 
 ### Value-level constraints

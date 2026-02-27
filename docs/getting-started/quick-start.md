@@ -46,13 +46,13 @@ All these operations return `DataFrame[Users]` — the schema type is preserved.
 
 ## 4. Select and bind to an output schema
 
+Operations like `filter` and `sort` keep all columns, so they preserve `DataFrame[Users]`. But `select` changes which columns exist, so it returns `DataFrame[Any]`. Use `cast_schema()` to bind the result to a new schema:
+
 ```python
 class UserSummary(Schema):
     name: Column[Utf8]
     score: Column[Float64]
 
-# select returns DataFrame[Any] — columns changed
-# cast_schema binds to the target schema
 summary = df.select(Users.name, Users.score).cast_schema(UserSummary)
 # summary is DataFrame[UserSummary]
 ```
