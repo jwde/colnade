@@ -45,7 +45,6 @@ class TestSchema(Schema):
     name: Column[Utf8]
 
 print("Colnade installed successfully!")
-print(f"Columns: {list(TestSchema._columns.keys())}")
 ```
 
 ## Type checker setup

@@ -14,8 +14,8 @@ from colnade_polars import from_dict
 class Users(Schema):
     id: Column[UInt64]
     name: Column[Utf8]
-    age: Column[UInt64]
-    score: Column[Float64]
+    age: Column[UInt64 | None]
+    score: Column[Float64 | None]
 
 df = from_dict(Users, {
     "id": [1, 2, 3, 4, 5],

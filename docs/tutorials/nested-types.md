@@ -8,7 +8,7 @@ This tutorial demonstrates working with struct and list columns.
 ## Define schemas with nested types
 
 ```python
-from colnade import Column, Schema, Struct, List, UInt64, Float64, Utf8
+from colnade import Column, Schema, Struct, List, UInt32, UInt64, Float64, Utf8
 
 class Address(Schema):
     city: Column[Utf8]
@@ -56,10 +56,6 @@ tag_counts = df.with_columns(
     UserProfile.tags.list.len().alias(ProfileWithCounts.tag_count)
 ).cast_schema(ProfileWithCounts)
 
-# Get element by index, aggregate list elements
-UserProfile.tags.list.get(0)      # first tag
-UserProfile.scores.list.sum()     # sum of scores
-UserProfile.scores.list.mean()    # mean of scores
 ```
 
 ## Available list methods
