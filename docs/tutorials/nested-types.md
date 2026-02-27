@@ -8,7 +8,7 @@ This tutorial demonstrates working with struct and list columns.
 ## Define schemas with nested types
 
 ```python
-from colnade import Column, Schema, Struct, List, UInt64, Float64, Utf8
+from colnade import Column, Schema, Struct, List, UInt32, UInt64, Float64, Utf8
 
 class Address(Schema):
     city: Column[Utf8]
@@ -48,18 +48,17 @@ python_users = df.filter(
     UserProfile.tags.list.contains("python")
 )
 
-# Count elements in each list — use a separate output column
-class ProfileWithCounts(UserProfile):
+# Compute list aggregations into new columns
+class ProfileWithStats(UserProfile):
     tag_count: Column[UInt32]
+    first_tag: Column[Utf8]
+    total_score: Column[Float64]
 
-tag_counts = df.with_columns(
-    UserProfile.tags.list.len().alias(ProfileWithCounts.tag_count)
-).cast_schema(ProfileWithCounts)
-
-# Get element by index, aggregate list elements
-UserProfile.tags.list.get(0)      # first tag
-UserProfile.scores.list.sum()     # sum of scores
-UserProfile.scores.list.mean()    # mean of scores
+enriched = df.with_columns(
+    UserProfile.tags.list.len().alias(ProfileWithStats.tag_count),
+    UserProfile.tags.list.get(0).alias(ProfileWithStats.first_tag),
+    UserProfile.scores.list.sum().alias(ProfileWithStats.total_score),
+).cast_schema(ProfileWithStats)
 ```
 
 ## Available list methods

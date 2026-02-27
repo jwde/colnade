@@ -228,7 +228,7 @@ result = lazy.filter(Users.age > 25).sort(Users.score.desc()).collect()
 
 ## Performance
 
-Colnade adds a fixed ~50–100 us per operation to translate the expression AST into engine-native calls. This cost doesn't grow with dataset size — even the smallest DataFrame operations (300+ us) dwarf it. Benchmarked pipelines (filter + sort + select) show no measurable difference between raw Polars and Colnade from 100 to 1M rows. Dask adds ~200–300 us per lazy graph operation, negligible compared to `.compute()` time.
+Colnade translates an expression AST into engine-native calls, adding a fixed cost per operation that doesn't grow with dataset size. For Polars and Pandas, this overhead is below the measurement noise floor — benchmarked pipelines (filter + sort + select) show no measurable difference from 100 to 1M rows. Dask graph construction adds ~200–300 us per operation, negligible compared to `.compute()` time.
 
 <p align="center">
   <img src="docs/assets/images/overhead-scaling.svg" alt="Pipeline overhead vs dataset size — Raw Polars and Colnade lines overlap completely" width="600">
