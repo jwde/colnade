@@ -18,7 +18,7 @@ error[unresolved-attribute]: Class `Users` has no attribute `agee`
    |     ^^^^^^^^^^
 ```
 
-This is the most common mistake with string-based DataFrame libraries — a typo in `pl.col("agee")` silently produces wrong results. With Colnade, it's caught immediately.
+With string-based DataFrame libraries, a typo in `pl.col("agee")` isn't caught until your code runs. With Colnade, it's caught in your editor before you run anything.
 
 ### Schema mismatch at function boundary
 
@@ -128,6 +128,16 @@ df.filter(Orders.amount > 100)
 ```
 
 This guard covers `filter`, `sort`, `with_columns`, `select`, `unique`, `drop_nulls`, `group_by`, and `agg`. On `JoinedDataFrame`/`JoinedLazyFrame`, columns from either schema are accepted.
+
+### List operations return untyped results
+
+The `.list` property on a `Column[List[DType]]` returns a `ListAccessor` whose methods (`.len()`, `.get()`, `.sum()`, etc.) return `ListOp[Any]` rather than a precisely typed result. This means the type checker won't catch misuse like calling `.sum()` on a list of strings:
+
+```python
+UserProfile.tags.list.sum()   # NOT caught — tags is List[Utf8], sum makes no sense
+```
+
+This is a current limitation of Python type checkers — property-based self-narrowing (needed to restrict `.list` to `Column[List[...]]`) is not yet supported. The annotations are in place and will become precise when type checker support improves.
 
 ### Cross-schema equality return type
 

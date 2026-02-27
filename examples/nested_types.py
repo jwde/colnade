@@ -5,7 +5,7 @@ Demonstrates typed access to struct fields and list operations.
 
 from __future__ import annotations
 
-from colnade import Column, Float64, List, Schema, Struct, UInt64, Utf8
+from colnade import Column, Float64, List, Schema, Struct, UInt32, UInt64, Utf8
 from colnade_polars import from_dict
 
 # ---------------------------------------------------------------------------
@@ -24,6 +24,14 @@ class UserProfile(Schema):
     address: Column[Struct[Address]]
     tags: Column[List[Utf8]]
     scores: Column[List[Float64]]
+
+
+class ProfileWithCounts(UserProfile):
+    """Extended schema with computed columns from list operations."""
+
+    tag_count: Column[UInt32]
+    first_tag: Column[Utf8]
+    total_score: Column[Float64]
 
 
 # ---------------------------------------------------------------------------
@@ -63,27 +71,29 @@ print()
 # List operations — typed list access via .list property
 # ---------------------------------------------------------------------------
 
-# .list.len() — count elements in each list
-print("Tag counts:")
-tag_lengths = df.with_columns(UserProfile.tags.list.len().alias(UserProfile.tags))
-print(tag_lengths.select(UserProfile.name, UserProfile.tags))
-print()
-
-# .list.contains() — check if list contains a value
+# .list.contains() — filter by list contents
 python_users = df.filter(UserProfile.tags.list.contains("python"))
 print("Users with 'python' tag:")
 print(python_users.select(UserProfile.name, UserProfile.tags))
 print()
 
-# .list.get() — get element by index
-first_tags = df.with_columns(UserProfile.tags.list.get(0).alias(UserProfile.tags))
-print("First tag per user:")
-print(first_tags.select(UserProfile.name, UserProfile.tags))
+# .list.len(), .list.get(), .list.sum() — compute into separate columns
+# Use a child schema (ProfileWithCounts) so output columns have their own types
+enriched = df.with_columns(
+    UserProfile.tags.list.len().alias(ProfileWithCounts.tag_count),
+    UserProfile.tags.list.get(0).alias(ProfileWithCounts.first_tag),
+    UserProfile.scores.list.sum().alias(ProfileWithCounts.total_score),
+).cast_schema(ProfileWithCounts)
+
+print("Tag count per user:")
+print(enriched.select(UserProfile.name, ProfileWithCounts.tag_count))
 print()
 
-# .list.sum() — sum list elements (for numeric lists)
-score_totals = df.with_columns(UserProfile.scores.list.sum().alias(UserProfile.scores))
-print("Total scores per user:")
-print(score_totals.select(UserProfile.name, UserProfile.scores))
+print("First tag per user:")
+print(enriched.select(UserProfile.name, ProfileWithCounts.first_tag))
+print()
+
+print("Total score per user:")
+print(enriched.select(UserProfile.name, ProfileWithCounts.total_score))
 
 print("\nDone!")

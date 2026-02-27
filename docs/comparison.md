@@ -18,7 +18,7 @@
 
 ¹ StaticFrame encodes column *types* positionally via `TypeVarTuple`, but column *names* are not part of the type signature.
 
-² Schema-preserving ops (filter, sort, with_columns) retain `DataFrame[S]`. Schema-transforming ops (select, group_by) return `DataFrame[Any]` — `cast_schema()` is needed to bind to the output schema and acts as a runtime trust boundary.
+² Schema-preserving ops (filter, sort, with_columns) retain `DataFrame[S]`. Schema-transforming ops (select, group_by) return `DataFrame[Any]` — use `cast_schema()` to bind to the output schema, which validates column names and types at runtime.
 
 ³ Pandera's `@check_types` decorator validates schemas at function entry/exit, but column references within function bodies remain unchecked strings (`pa.Column("age")`).
 
