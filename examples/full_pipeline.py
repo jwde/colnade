@@ -10,8 +10,7 @@ import tempfile
 from pathlib import Path
 
 from colnade import Column, Float64, Schema, UInt64, Utf8, mapped_from
-from colnade_polars import from_dict, write_parquet
-from colnade_polars.io import read_parquet
+from colnade_polars import from_dict, read_parquet, write_parquet
 
 # ---------------------------------------------------------------------------
 # Schemas

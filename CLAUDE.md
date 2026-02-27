@@ -10,6 +10,7 @@ uv run ruff format --check .
 uv run pytest tests/ -v
 uv run ty check tests/typing/ --error-on-warning
 uv run python scripts/check_api_docs.py
+uv run python scripts/check_changelog.py
 uv run mkdocs build --strict
 ```
 

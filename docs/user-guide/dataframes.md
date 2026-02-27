@@ -226,6 +226,7 @@ Checks column existence, data types, and nullability constraints.
 Enable auto-validation at data boundaries:
 
 ```python
+import colnade
 from colnade import ValidationLevel
 
 colnade.set_validation(ValidationLevel.STRUCTURAL)  # or FULL

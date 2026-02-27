@@ -10,7 +10,7 @@ Colnade's expression DSL builds an AST (abstract syntax tree) that gets translat
 - **Validation is not free**, but it's designed for development and CI, not production hot paths.
 
 <p align="center">
-  <img src="../assets/images/overhead-scaling.svg" alt="Pipeline overhead vs dataset size — both Polars and Pandas hover around 0%" width="600">
+  <img src="../assets/images/overhead-scaling.svg" alt="Pipeline overhead vs dataset size — Raw Polars and Colnade lines overlap completely" width="600">
 </p>
 
 ## Abstraction overhead by backend
