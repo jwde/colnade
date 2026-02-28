@@ -666,15 +666,19 @@ class PandasBackend:
         return source.to_dict(orient="records")
 
     def item(self, source: Any, column: str | None = None) -> Any:
+        import pandas as pd
+
         if column is not None:
             if len(source) != 1:
                 msg = f"item() requires exactly 1 row, got {len(source)}"
                 raise ValueError(msg)
-            return source[column].to_list()[0]
+            value = source[column].to_list()[0]
+            return None if value is pd.NA else value
         if source.shape != (1, 1):
             msg = f"item() requires a 1\u00d71 DataFrame, got shape {source.shape}"
             raise ValueError(msg)
-        return source.iloc[:, 0].to_list()[0]
+        value = source.iloc[:, 0].to_list()[0]
+        return None if value is pd.NA else value
 
     # --- Arrow boundary ---
 

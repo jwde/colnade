@@ -692,3 +692,38 @@ class TestItem:
         df = _users_df()
         with pytest.raises(ValueError, match="1 row"):
             df.item(Users.name)
+
+    def test_item_after_agg(self) -> None:
+        """Primary use case: extract scalar from aggregation result."""
+        df = _users_df()
+        result = df.agg(Users.age.sum().alias(AgeStats.total_age))
+        value = result.item()
+        assert value == 158
+        assert isinstance(value, int)
+
+    def test_item_float_type(self) -> None:
+        """item() returns Python float for floating-point results."""
+        df = _users_df()
+        result = df.agg(Users.age.mean().alias(Users.age))
+        value = result.item()
+        assert isinstance(value, float)
+        assert value == pytest.approx(31.6)
+
+    def test_item_none_value(self) -> None:
+        """item() returns None when cell value is null."""
+        data = pd.DataFrame(
+            {
+                "id": pd.array([1], dtype=pd.UInt64Dtype()),
+                "name": pd.array([None], dtype=pd.StringDtype()),
+                "age": pd.array([30], dtype=pd.UInt64Dtype()),
+            }
+        )
+        df = DataFrame(_data=data, _schema=Users, _backend=PandasBackend())
+        value = df.item(Users.name)
+        assert value is None
+
+    def test_item_empty_dataframe_raises(self) -> None:
+        """item() raises ValueError on empty DataFrame."""
+        df = _users_df().filter(Users.age > 999).select(Users.id)
+        with pytest.raises(ValueError, match="1.1"):
+            df.item()

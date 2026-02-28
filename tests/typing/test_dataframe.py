@@ -13,6 +13,7 @@ Tests cover:
 from colnade import (
     Column,
     DataFrame,
+    Float64,
     GroupBy,
     LazyFrame,
     LazyGroupBy,
@@ -35,6 +36,11 @@ class Users(Schema):
 class AgeStats(Schema):
     age: Column[UInt8]
     count: Column[UInt64]
+
+
+class ItemTypes(Schema):
+    score: Column[Float64]
+    age: Column[UInt8 | None]
 
 
 # --- Schema-preserving ops return DataFrame[Users] ---
@@ -409,4 +415,23 @@ def check_neg_item_str_not_int() -> None:
     """item(Users.name) returns str, NOT int."""
     df: DataFrame[Users] = DataFrame(_schema=Users)
     result = df.item(Users.name)
+    _: int = result  # type: ignore[invalid-assignment]
+
+
+def check_item_float(df: DataFrame[ItemTypes]) -> float:
+    """item(Column[Float64]) returns float."""
+    return df.item(ItemTypes.score)
+
+
+def check_neg_item_float_not_int() -> None:
+    """item(ItemTypes.score) returns float, NOT int."""
+    df: DataFrame[ItemTypes] = DataFrame(_schema=ItemTypes)
+    result = df.item(ItemTypes.score)
+    _: int = result  # type: ignore[invalid-assignment]
+
+
+def check_neg_item_nullable_not_non_optional() -> None:
+    """item(Column[UInt8 | None]) returns int | None, NOT int."""
+    df: DataFrame[ItemTypes] = DataFrame(_schema=ItemTypes)
+    result = df.item(ItemTypes.age)
     _: int = result  # type: ignore[invalid-assignment]

@@ -678,16 +678,20 @@ class DaskBackend:
         return source.compute().to_dict(orient="records")
 
     def item(self, source: Any, column: str | None = None) -> Any:
+        import pandas as pd
+
         computed = source.compute()
         if column is not None:
             if len(computed) != 1:
                 msg = f"item() requires exactly 1 row, got {len(computed)}"
                 raise ValueError(msg)
-            return computed[column].to_list()[0]
+            value = computed[column].to_list()[0]
+            return None if value is pd.NA else value
         if computed.shape != (1, 1):
             msg = f"item() requires a 1\u00d71 DataFrame, got shape {computed.shape}"
             raise ValueError(msg)
-        return computed.iloc[:, 0].to_list()[0]
+        value = computed.iloc[:, 0].to_list()[0]
+        return None if value is pd.NA else value
 
     # --- Arrow boundary ---
 

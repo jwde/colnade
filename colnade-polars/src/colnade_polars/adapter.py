@@ -517,6 +517,10 @@ class PolarsBackend:
         return source.iter_rows(named=True)
 
     def item(self, source: Any, column: str | None = None) -> Any:
+        import polars as pl
+
+        if isinstance(source, pl.LazyFrame):
+            source = source.collect()
         if column is not None:
             if source.shape[0] != 1:
                 msg = f"item() requires exactly 1 row, got {source.shape[0]}"

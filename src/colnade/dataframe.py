@@ -881,10 +881,12 @@ class LazyFrame(Generic[S]):
                 have exactly 1 row **and** 1 column.
 
         Returns:
-            A plain Python scalar whose type corresponds to the column dtype.
+            A plain Python scalar whose type corresponds to the column dtype
+            (e.g. ``int`` for integer columns, ``str`` for ``Utf8``).
 
         Raises:
-            ValueError: If the shape constraint is not met.
+            ValueError: If the shape constraint is not met (1×1 when
+                *column* is ``None``, or 1 row when *column* is given).
         """
         col_name = column.name if column is not None else None
         return _require_backend(self._backend).item(self._data, col_name)
