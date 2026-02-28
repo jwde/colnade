@@ -326,9 +326,46 @@ def check_concat_lazyframe(lf1: LazyFrame[Users], lf2: LazyFrame[Users]) -> Lazy
     return concat(lf1, lf2)
 
 
+def check_concat_three_dataframes(
+    df1: DataFrame[Users], df2: DataFrame[Users], df3: DataFrame[Users]
+) -> DataFrame[Users]:
+    """concat() works with 3+ frames and preserves schema."""
+    return concat(df1, df2, df3)
+
+
 def check_neg_concat_preserves_exact_schema() -> None:
     """concat() returns DataFrame[Users], NOT DataFrame[AgeStats]."""
     df1: DataFrame[Users] = DataFrame(_schema=Users)
     df2: DataFrame[Users] = DataFrame(_schema=Users)
     result = concat(df1, df2)
     _: DataFrame[AgeStats] = result  # type: ignore[invalid-assignment]
+
+
+def check_neg_concat_different_schemas() -> None:
+    """concat(DataFrame[Users], DataFrame[AgeStats]) is rejected."""
+    df1: DataFrame[Users] = DataFrame(_schema=Users)
+    df2: DataFrame[AgeStats] = DataFrame(_schema=AgeStats)
+    concat(df1, df2)  # type: ignore[call-overload]
+
+
+def check_neg_concat_mixed_frame_types() -> None:
+    """concat(DataFrame, LazyFrame) is rejected — no overload matches."""
+    df: DataFrame[Users] = DataFrame(_schema=Users)
+    lf: LazyFrame[Users] = LazyFrame(_schema=Users)
+    concat(df, lf)  # type: ignore[call-overload]
+
+
+def check_neg_concat_dataframe_not_lazyframe() -> None:
+    """concat(DataFrame, DataFrame) returns DataFrame, NOT LazyFrame."""
+    df1: DataFrame[Users] = DataFrame(_schema=Users)
+    df2: DataFrame[Users] = DataFrame(_schema=Users)
+    result = concat(df1, df2)
+    _: LazyFrame[Users] = result  # type: ignore[invalid-assignment]
+
+
+def check_neg_concat_lazyframe_not_dataframe() -> None:
+    """concat(LazyFrame, LazyFrame) returns LazyFrame, NOT DataFrame."""
+    lf1: LazyFrame[Users] = LazyFrame(_schema=Users)
+    lf2: LazyFrame[Users] = LazyFrame(_schema=Users)
+    result = concat(lf1, lf2)
+    _: DataFrame[Users] = result  # type: ignore[invalid-assignment]

@@ -71,18 +71,28 @@ def concat(*frames: LazyFrame[S]) -> LazyFrame[S]: ...
 def concat(*frames: DataFrame[S] | LazyFrame[S]) -> DataFrame[S] | LazyFrame[S]:
     """Concatenate DataFrames or LazyFrames vertically (stack rows).
 
-    All inputs must share the same schema and frame type. The backend is
-    taken from the first frame.
+    All inputs must share the **same schema class** (identity check, not
+    structural equality) and the same frame type (all ``DataFrame`` or all
+    ``LazyFrame``).  The backend is taken from the first frame.
+
+    Args:
+        *frames: Two or more frames to stack.  All must be parameterised by
+            the same ``Schema`` subclass and be the same frame type.
+
+    Returns:
+        A new ``DataFrame[S]`` or ``LazyFrame[S]`` containing all rows from
+        the input frames, in order.
+
+    Raises:
+        ValueError: If fewer than 2 frames are provided, or if any frame's
+            schema does not match the first frame's schema.
+        TypeError: If frames mix ``DataFrame`` and ``LazyFrame``.
+        RuntimeError: If the first frame has no backend attached.
 
     Usage::
 
         combined = concat(df_jan, df_feb, df_mar)  # DataFrame[Sales]
         combined = concat(lazy_jan, lazy_feb)       # LazyFrame[Sales]
-
-    Raises:
-        ValueError: If fewer than 2 frames are provided, or schemas do not match.
-        TypeError: If frames mix DataFrame and LazyFrame.
-        RuntimeError: If the first frame has no backend.
     """
     if len(frames) < 2:
         msg = f"concat() requires at least 2 frames, got {len(frames)}"

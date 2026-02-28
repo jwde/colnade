@@ -590,6 +590,30 @@ class TestConcat:
         result = concat(df1, df2)
         assert isinstance(result, DataFrame)
         assert result._data.shape[0] == 10
+        ids = result._data["id"].to_list()
+        assert ids == [1, 2, 3, 4, 5, 1, 2, 3, 4, 5]
+
+    def test_concat_preserves_row_order(self) -> None:
+        """First frame's rows come before second frame's rows."""
+        data_a = pl.DataFrame(
+            {
+                "id": pl.Series([10, 20], dtype=pl.UInt64),
+                "name": ["X", "Y"],
+                "age": pl.Series([1, 2], dtype=pl.UInt64),
+            }
+        )
+        data_b = pl.DataFrame(
+            {
+                "id": pl.Series([30, 40], dtype=pl.UInt64),
+                "name": ["Z", "W"],
+                "age": pl.Series([3, 4], dtype=pl.UInt64),
+            }
+        )
+        df_a = DataFrame(_data=data_a, _schema=Users, _backend=PolarsBackend())
+        df_b = DataFrame(_data=data_b, _schema=Users, _backend=PolarsBackend())
+        result = concat(df_a, df_b)
+        assert result._data["id"].to_list() == [10, 20, 30, 40]
+        assert result._data["name"].to_list() == ["X", "Y", "Z", "W"]
 
     def test_concat_three(self) -> None:
         df1 = _users_df()
@@ -603,6 +627,15 @@ class TestConcat:
         df2 = _users_df()
         result = concat(df1, df2)
         assert result._schema is Users
+
+    def test_concat_result_supports_filter(self) -> None:
+        """Concat result can be used in downstream operations."""
+        df1 = _users_df()
+        df2 = _users_df()
+        result = concat(df1, df2).filter(Users.age > 30)
+        ages = result._data["age"].to_list()
+        assert all(a > 30 for a in ages)
+        assert len(ages) == 4  # Charlie(35) + Eve(40) × 2
 
     def test_concat_empty_and_nonempty(self) -> None:
         df1 = _users_df()
@@ -624,3 +657,5 @@ class TestConcat:
         assert isinstance(result, LazyFrame)
         collected = result.collect()
         assert collected._data.shape[0] == 10
+        ids = collected._data["id"].to_list()
+        assert ids == [1, 2, 3, 4, 5, 1, 2, 3, 4, 5]
