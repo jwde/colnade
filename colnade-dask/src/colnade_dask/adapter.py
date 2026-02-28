@@ -21,6 +21,7 @@ from colnade.expr import (
     SortExpr,
     StructFieldAccess,
     UnaryOp,
+    WhenThenOtherwise,
 )
 from colnade.schema import Column, Schema, SchemaError
 from colnade_pandas.conversion import map_colnade_dtype, map_pandas_dtype
@@ -134,6 +135,35 @@ class DaskBackend:
 
         if isinstance(expr, ListOp):
             return self._translate_list_op(expr)
+
+        if isinstance(expr, WhenThenOtherwise):
+            import numpy as np
+
+            case_fns = [
+                (
+                    self._ensure_callable(self.translate_expr(c)),
+                    self._ensure_callable(self.translate_expr(v)),
+                )
+                for c, v in expr.cases
+            ]
+            otherwise_fn = self._ensure_callable(self.translate_expr(expr.otherwise_expr))
+
+            def _when(
+                df: Any,
+                _cases: Any = case_fns,
+                _other: Any = otherwise_fn,
+            ) -> Any:
+                condlist = [
+                    np.asarray(pd.array(c(df)).fillna(False), dtype=bool) for c, v in _cases
+                ]
+                choicelist = [v(df) for c, v in _cases]
+                default = _other(df)
+                return pd.Series(
+                    np.select(condlist, choicelist, default=default),
+                    index=df.index,
+                )
+
+            return _when
 
         msg = f"Unsupported expression type: {type(expr).__name__}"
         raise TypeError(msg)

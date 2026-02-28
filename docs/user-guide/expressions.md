@@ -147,6 +147,47 @@ Cast a column to a different type:
 Users.id.cast(Float64)                # cast UInt64 → Float64
 ```
 
+## Conditional expressions
+
+Build if/else logic with `when/then/otherwise`:
+
+```python
+from colnade import when, lit
+
+# Simple condition
+when(Users.age > 65).then("senior").otherwise("standard")
+
+# Multi-branch (chained when)
+when(Users.score > 90).then("A").when(Users.score > 80).then("B").otherwise("C")
+
+# Use in with_columns
+df.with_columns(
+    when(Users.age > 65).then(lit("senior")).otherwise(lit("standard")).alias(Users.tier)
+)
+```
+
+Conditions can use any boolean expression, including combined conditions:
+
+```python
+when((Users.age > 25) & (Users.age < 65)).then("working_age").otherwise("other")
+when(Users.name == "Alice").then("found").otherwise("not_found")
+```
+
+Branch values can be column references or expressions, not just literals:
+
+```python
+when(Users.age > 30).then(Users.age * 2).otherwise(Users.age).alias(Users.age)
+```
+
+Unmatched rows default to `null` if `.otherwise()` is omitted:
+
+```python
+when(Users.age > 65).then("senior")  # non-seniors get null
+```
+
+!!! warning "Chaining `.when()` after `.otherwise()` resets the default"
+    Calling `.when().then()` on a `WhenThenOtherwise` that already has an `.otherwise()` resets the default back to `null`. Always place `.otherwise()` last.
+
 ## Window functions
 
 Apply an aggregation within each partition and broadcast the result back to every row:

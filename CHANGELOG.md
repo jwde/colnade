@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`when/then/otherwise` conditional expressions** — build multi-branch if/else logic in the expression DSL: `when(Users.age > 65).then("senior").otherwise("standard")`. Supports chained conditions and works with all three backends (#159)
+
 ## [0.7.0] - 2026-02-24
 
 ### Removed

@@ -52,6 +52,14 @@ Expression AST nodes produced by column operations.
 
 ::: colnade.expr.JoinCondition
 
+## WhenThenOtherwise
+
+::: colnade.expr.WhenThenOtherwise
+
 ## lit
 
 ::: colnade.expr.lit
+
+## when
+
+::: colnade.expr.when

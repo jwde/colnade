@@ -33,7 +33,9 @@ from colnade import (
     UInt64,
     UnaryOp,
     Utf8,
+    WhenThenOtherwise,
     lit,
+    when,
 )
 
 # --- AST node classes are importable and usable as types ---
@@ -51,6 +53,7 @@ def check_ast_nodes_exist() -> None:
     _: type[SortExpr] = SortExpr
     _: type[StructFieldAccess[object]] = StructFieldAccess
     _: type[ListOp[object]] = ListOp
+    _: type[WhenThenOtherwise[object]] = WhenThenOtherwise
 
 
 # --- Expr inheritance hierarchy ---
@@ -360,3 +363,58 @@ def check_neg_logical_and_preserves_dtype() -> None:
     """Logical & preserves DType — BinOp[Bool] & BinOp[Bool] stays Bool."""
     e = Users.id > 18  # BinOp[Bool]
     _: BinOp[UInt64] = e & e  # type: ignore[invalid-assignment]
+
+
+# ---------------------------------------------------------------------------
+# WhenThenOtherwise type tests
+# ---------------------------------------------------------------------------
+
+
+def check_when_returns_when_then_otherwise() -> None:
+    """when().then().otherwise() returns WhenThenOtherwise."""
+    _: WhenThenOtherwise[object] = when(Users.age > 65).then("senior").otherwise("minor")
+
+
+def check_when_is_expr() -> None:
+    """WhenThenOtherwise is an Expr."""
+    e: WhenThenOtherwise[object] = when(Users.age > 65).then("senior").otherwise("minor")
+    _: Expr[object] = e
+
+
+def check_when_supports_alias() -> None:
+    """alias() works on WhenThenOtherwise result."""
+    _: AliasedExpr[object] = (
+        when(Users.age > 65).then("senior").otherwise("minor").alias(Users.name)
+    )
+
+
+def check_when_chained_is_when_then_otherwise() -> None:
+    """Chained when().then().when().then() returns WhenThenOtherwise."""
+    _: WhenThenOtherwise[object] = (
+        when(Users.age > 65).then("senior").when(Users.age > 18).then("adult").otherwise("minor")
+    )
+
+
+# ---------------------------------------------------------------------------
+# WhenThenOtherwise negative type tests
+# ---------------------------------------------------------------------------
+
+
+def check_neg_when_rejects_uint64_column() -> None:
+    """when() requires Bool condition, not UInt64 column."""
+    when(Users.id)  # type: ignore[arg-type]
+
+
+def check_neg_when_rejects_utf8_column() -> None:
+    """when() requires Bool condition, not Utf8 column."""
+    when(Users.name)  # type: ignore[arg-type]
+
+
+def check_neg_when_rejects_arithmetic_expr() -> None:
+    """when() requires Bool expression, not arithmetic result."""
+    when(Users.id + 1)  # type: ignore[arg-type]
+
+
+def check_neg_chained_when_rejects_non_bool() -> None:
+    """Chained .when() also requires Bool condition."""
+    when(Users.id > 1).then("a").when(Users.name)  # type: ignore[arg-type]

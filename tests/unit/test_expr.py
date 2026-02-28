@@ -20,8 +20,11 @@ from colnade import (
     UInt64,
     UnaryOp,
     Utf8,
+    WhenThenOtherwise,
     lit,
+    when,
 )
+from colnade.expr import collect_column_names
 
 # ---------------------------------------------------------------------------
 # Test fixture schemas
@@ -606,3 +609,137 @@ class TestASTRepr:
         e = Users.age.asc()
         r = repr(e)
         assert "SortExpr" in r and "asc" in r
+
+
+# ---------------------------------------------------------------------------
+# when/then/otherwise
+# ---------------------------------------------------------------------------
+
+
+class TestWhenThenOtherwise:
+    def test_simple_when_then_otherwise(self) -> None:
+        e = when(Users.age > 65).then("senior").otherwise("minor")
+        assert isinstance(e, WhenThenOtherwise)
+        assert len(e.cases) == 1
+        cond, val = e.cases[0]
+        assert isinstance(cond, BinOp)
+        assert isinstance(val, Literal)
+        assert val.value == "senior"
+        assert isinstance(e.otherwise_expr, Literal)
+        assert e.otherwise_expr.value == "minor"
+
+    def test_when_without_otherwise(self) -> None:
+        e = when(Users.age > 65).then("senior")
+        assert isinstance(e, WhenThenOtherwise)
+        assert isinstance(e.otherwise_expr, Literal)
+        assert e.otherwise_expr.value is None
+
+    def test_chained_when(self) -> None:
+        e = when(Users.score > 90).then("A").when(Users.score > 80).then("B").otherwise("C")
+        assert isinstance(e, WhenThenOtherwise)
+        assert len(e.cases) == 2
+        assert isinstance(e.cases[0][1], Literal)
+        assert e.cases[0][1].value == "A"
+        assert isinstance(e.cases[1][1], Literal)
+        assert e.cases[1][1].value == "B"
+        assert isinstance(e.otherwise_expr, Literal)
+        assert e.otherwise_expr.value == "C"
+
+    def test_when_with_column_values(self) -> None:
+        e = when(Users.age > 65).then(Users.name).otherwise(lit("unknown"))
+        assert isinstance(e, WhenThenOtherwise)
+        _, val = e.cases[0]
+        assert isinstance(val, ColumnRef)
+
+    def test_when_alias(self) -> None:
+        e = when(Users.age > 65).then("senior").otherwise("minor").alias(Users.name)
+        assert isinstance(e, AliasedExpr)
+        assert isinstance(e.expr, WhenThenOtherwise)
+
+    def test_collect_column_names_when(self) -> None:
+        e = (
+            when(Users.age > 65)
+            .then(Users.name)
+            .when(Users.score > 90)
+            .then(lit("high"))
+            .otherwise(lit("low"))
+        )
+        names = collect_column_names(e)
+        assert names == {"age", "name", "score"}
+
+    def test_when_repr(self) -> None:
+        e = when(Users.age > 65).then("senior").otherwise("minor")
+        r = repr(e)
+        assert "WhenThenOtherwise" in r
+
+    def test_when_with_complex_condition(self) -> None:
+        e = when((Users.age > 18) & (Users.age < 65)).then("adult").otherwise("other")
+        assert isinstance(e, WhenThenOtherwise)
+        cond, _ = e.cases[0]
+        assert isinstance(cond, BinOp)
+
+    def test_when_with_or_condition(self) -> None:
+        e = when((Users.age > 65) | (Users.score > 90)).then("special").otherwise("normal")
+        assert isinstance(e, WhenThenOtherwise)
+        names = collect_column_names(e)
+        assert names == {"age", "score"}
+
+    def test_when_with_not_condition(self) -> None:
+        e = when(~(Users.age < 18)).then("adult").otherwise("minor")
+        assert isinstance(e, WhenThenOtherwise)
+
+    def test_when_with_expression_values(self) -> None:
+        e = when(Users.age > 65).then(Users.age * 2).otherwise(Users.age)
+        assert isinstance(e, WhenThenOtherwise)
+        _, val = e.cases[0]
+        assert isinstance(val, BinOp)
+        assert isinstance(e.otherwise_expr, ColumnRef)
+
+    def test_double_otherwise_replaces(self) -> None:
+        e = when(Users.age > 65).then("a").otherwise("b").otherwise("c")
+        assert isinstance(e, WhenThenOtherwise)
+        assert isinstance(e.otherwise_expr, Literal)
+        assert e.otherwise_expr.value == "c"
+
+    def test_collect_column_names_otherwise_column(self) -> None:
+        e = when(Users.age > 65).then(lit("senior")).otherwise(Users.name)
+        names = collect_column_names(e)
+        assert names == {"age", "name"}
+
+    def test_many_chained_branches(self) -> None:
+        e = (
+            when(Users.score > 90)
+            .then("A")
+            .when(Users.score > 80)
+            .then("B")
+            .when(Users.score > 70)
+            .then("C")
+            .when(Users.score > 60)
+            .then("D")
+            .otherwise("F")
+        )
+        assert isinstance(e, WhenThenOtherwise)
+        assert len(e.cases) == 4
+
+    def test_otherwise_returns_new_object(self) -> None:
+        """Calling .otherwise() returns a new WhenThenOtherwise; the original is unchanged."""
+        original = when(Users.age > 65).then("senior")
+        modified = original.otherwise("other")
+        assert original is not modified
+        assert original.otherwise_expr.value is None  # type: ignore[union-attr]
+        assert modified.otherwise_expr.value == "other"  # type: ignore[union-attr]
+
+    def test_chained_when_resets_otherwise(self) -> None:
+        """Chaining .when().then() after .otherwise() resets the default to None."""
+        e = when(Users.age > 65).then("senior").otherwise("default")
+        chained = e.when(Users.age > 18).then("adult")
+        # The otherwise from the first expression is NOT preserved
+        assert isinstance(chained.otherwise_expr, Literal)
+        assert chained.otherwise_expr.value is None
+
+    def test_string_equality_condition(self) -> None:
+        e = when(Users.name == "Alice").then("VIP").otherwise("standard")
+        assert isinstance(e, WhenThenOtherwise)
+        cond, _ = e.cases[0]
+        assert isinstance(cond, BinOp)
+        assert cond.op == "=="
