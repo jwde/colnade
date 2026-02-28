@@ -1,6 +1,6 @@
 [project]
 name = "colnade-polars"
-version = "0.5.5"
+version = "0.6.0"
 description = "Polars backend adapter for Colnade"
 requires-python = ">=3.10"
 license = "MIT"

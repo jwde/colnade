@@ -7,11 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-02-28
+
 ### Added
 
 - **`when/then/otherwise` conditional expressions** — build multi-branch if/else logic in the expression DSL: `when(Users.age > 65).then("senior").otherwise("standard")`. Supports chained conditions and works with all three backends (#159)
 - **`concat()` for vertical concatenation** — stack DataFrames or LazyFrames vertically with type-safe schema preservation: `concat(df1, df2, df3)`. Validates all inputs share the same schema (#160)
 - **`.item()` for scalar extraction** — extract a Python scalar from a 1-row DataFrame or LazyFrame: `df.agg(...).item()` or `df.head(1).item(Users.name)`. Return type is inferred from the column dtype via overloads (#161)
+
+### Fixed
+
+- **`.item()` on Polars LazyFrame** no longer crashes — was missing `.collect()` before accessing `.shape` (#165)
+- **`.item()` on Pandas/Dask** now returns `None` instead of leaking `pd.NA` for null cells (#165)
+
+### Changed
+
+- Documentation adopts `import colnade as cn` convention across all examples (#166)
+
+### Infrastructure
+
+- README images use absolute URLs for PyPI rendering (#164)
+- Performance docs rewritten with accurate benchmarks (#151)
+- Three rounds of documentation audit fixes (#153, #155, #157)
+- Removed spec.md — superseded by docs/ and CLAUDE.md (#152)
 
 ## [0.7.0] - 2026-02-24
 
@@ -117,7 +135,8 @@ First public release.
 - **Untyped escape hatch** — `df.untyped()` drops to string-based columns, `untyped.to_typed(Schema)` re-binds
 - **Documentation site** — tutorials, user guide, API reference, comparison page at colnade.com
 
-[Unreleased]: https://github.com/jwde/colnade/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/jwde/colnade/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/jwde/colnade/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/jwde/colnade/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/jwde/colnade/compare/v0.5.5...v0.6.0
 [0.5.5]: https://github.com/jwde/colnade/compare/v0.5.4...v0.5.5
