@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/images/logo.svg" width="80" alt="Colnade logo">
+  <img src="https://raw.githubusercontent.com/jwde/colnade/main/docs/assets/images/logo.svg" width="80" alt="Colnade logo">
 </p>
 
 <h1 align="center">Colnade</h1>
@@ -249,7 +249,7 @@ result = lazy.filter(Users.age > 25).sort(Users.score.desc()).collect()
 Colnade translates an expression AST into engine-native calls, adding a fixed cost per operation that doesn't grow with dataset size. For Polars and Pandas, this overhead is below the measurement noise floor — benchmarked pipelines (filter + sort + select) show no measurable difference from 100 to 1M rows. Dask graph construction adds ~200–300 us per operation, negligible compared to `.compute()` time.
 
 <p align="center">
-  <img src="docs/assets/images/overhead-scaling.svg" alt="Pipeline overhead vs dataset size — Raw Polars and Colnade lines overlap completely" width="600">
+  <img src="https://raw.githubusercontent.com/jwde/colnade/main/docs/assets/images/overhead-scaling.svg" alt="Pipeline overhead vs dataset size — Raw Polars and Colnade lines overlap completely" width="600">
 </p>
 
 Validation (`STRUCTURAL`, `FULL`) adds measurable cost at data boundaries and is designed for development/CI, not production hot paths. See the full [benchmark results](https://colnade.com/user-guide/performance/) for details.
@@ -259,7 +259,7 @@ Validation (`STRUCTURAL`, `FULL`) adds measurable cost at data boundaries and is
 Colnade catches real errors at lint time. Here are actual error messages from `ty`:
 
 <p align="center">
-  <img src="docs/assets/error-showcase.svg" alt="ty catching Colnade type errors — misspelled column, schema mismatch, nullability mismatch" width="800">
+  <img src="https://raw.githubusercontent.com/jwde/colnade/main/docs/assets/error-showcase.svg" alt="ty catching Colnade type errors — misspelled column, schema mismatch, nullability mismatch" width="800">
 </p>
 
 ## Comparison with Existing Solutions
