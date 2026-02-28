@@ -671,3 +671,52 @@ class TestWhenThenOtherwise:
         e = when(Users.age > 65).then("senior").otherwise("minor")
         r = repr(e)
         assert "WhenThenOtherwise" in r
+
+    def test_when_with_complex_condition(self) -> None:
+        e = when((Users.age > 18) & (Users.age < 65)).then("adult").otherwise("other")
+        assert isinstance(e, WhenThenOtherwise)
+        cond, _ = e.cases[0]
+        assert isinstance(cond, BinOp)
+
+    def test_when_with_or_condition(self) -> None:
+        e = when((Users.age > 65) | (Users.score > 90)).then("special").otherwise("normal")
+        assert isinstance(e, WhenThenOtherwise)
+        names = collect_column_names(e)
+        assert names == {"age", "score"}
+
+    def test_when_with_not_condition(self) -> None:
+        e = when(~(Users.age < 18)).then("adult").otherwise("minor")
+        assert isinstance(e, WhenThenOtherwise)
+
+    def test_when_with_expression_values(self) -> None:
+        e = when(Users.age > 65).then(Users.age * 2).otherwise(Users.age)
+        assert isinstance(e, WhenThenOtherwise)
+        _, val = e.cases[0]
+        assert isinstance(val, BinOp)
+        assert isinstance(e.otherwise_expr, ColumnRef)
+
+    def test_double_otherwise_replaces(self) -> None:
+        e = when(Users.age > 65).then("a").otherwise("b").otherwise("c")
+        assert isinstance(e, WhenThenOtherwise)
+        assert isinstance(e.otherwise_expr, Literal)
+        assert e.otherwise_expr.value == "c"
+
+    def test_collect_column_names_otherwise_column(self) -> None:
+        e = when(Users.age > 65).then(lit("senior")).otherwise(Users.name)
+        names = collect_column_names(e)
+        assert names == {"age", "name"}
+
+    def test_many_chained_branches(self) -> None:
+        e = (
+            when(Users.score > 90)
+            .then("A")
+            .when(Users.score > 80)
+            .then("B")
+            .when(Users.score > 70)
+            .then("C")
+            .when(Users.score > 60)
+            .then("D")
+            .otherwise("F")
+        )
+        assert isinstance(e, WhenThenOtherwise)
+        assert len(e.cases) == 4

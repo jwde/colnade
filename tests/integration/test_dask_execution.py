@@ -526,3 +526,67 @@ class TestWhenThenOtherwise:
         names = result._data.compute()["name"].tolist()
         # Alice=30→adult, Bob=25→young, Charlie=35→adult, Diana=28→adult, Eve=40→senior
         assert names == ["adult", "young", "adult", "adult", "senior"]
+
+    def test_when_without_otherwise_produces_null(self) -> None:
+        df = _users_ddf()
+        result = df.with_columns(when(Users.age > 35).then(lit("old")).alias(Users.name))
+        computed = result._data.compute()
+        names = computed["name"]
+        # Alice=30→null, Bob=25→null, Charlie=35→null, Diana=28→null, Eve=40→old
+        assert pd.isna(names.iloc[0])
+        assert pd.isna(names.iloc[1])
+        assert pd.isna(names.iloc[2])
+        assert pd.isna(names.iloc[3])
+        assert names.iloc[4] == "old"
+
+    def test_when_with_complex_condition(self) -> None:
+        df = _users_ddf()
+        result = df.with_columns(
+            when((Users.age > 25) & (Users.age < 35))
+            .then(lit("mid"))
+            .otherwise(lit("other"))
+            .alias(Users.name)
+        )
+        names = result._data.compute()["name"].tolist()
+        # Alice=30→mid, Bob=25→other, Charlie=35→other, Diana=28→mid, Eve=40→other
+        assert names == ["mid", "other", "other", "mid", "other"]
+
+    def test_when_with_expression_values(self) -> None:
+        df = _users_ddf()
+        result = df.with_columns(
+            when(Users.age > 30).then(Users.age * 2).otherwise(Users.age).alias(Users.age)
+        )
+        ages = result._data.compute()["age"].tolist()
+        # Alice=30→30, Bob=25→25, Charlie=35→70, Diana=28→28, Eve=40→80
+        assert ages == [30, 25, 70, 28, 80]
+
+    def test_when_null_in_condition_column(self) -> None:
+        data = pd.DataFrame(
+            {
+                "id": pd.array([1, 2, 3], dtype=pd.UInt64Dtype()),
+                "name": ["Alice", "Bob", "Eve"],
+                "age": pd.array([70, pd.NA, 25], dtype=pd.UInt64Dtype()),
+            }
+        )
+        ddf = dd.from_pandas(data, npartitions=2)
+        df = DataFrame(_data=ddf, _schema=Users, _backend=DaskBackend())
+        result = df.with_columns(
+            when(Users.age > 65).then(lit("senior")).otherwise(lit("other")).alias(Users.name)
+        )
+        names = result._data.compute()["name"].tolist()
+        assert names == ["senior", "other", "other"]
+
+    def test_when_empty_dataframe(self) -> None:
+        data = pd.DataFrame(
+            {
+                "id": pd.array([], dtype=pd.UInt64Dtype()),
+                "name": pd.Series([], dtype=str),
+                "age": pd.array([], dtype=pd.UInt64Dtype()),
+            }
+        )
+        ddf = dd.from_pandas(data, npartitions=1)
+        df = DataFrame(_data=ddf, _schema=Users, _backend=DaskBackend())
+        result = df.with_columns(
+            when(Users.age > 65).then(lit("senior")).otherwise(lit("other")).alias(Users.name)
+        )
+        assert result._data.compute()["name"].tolist() == []

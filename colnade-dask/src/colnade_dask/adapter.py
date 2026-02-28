@@ -153,7 +153,9 @@ class DaskBackend:
                 _cases: Any = case_fns,
                 _other: Any = otherwise_fn,
             ) -> Any:
-                condlist = [c(df) for c, v in _cases]
+                condlist = [
+                    np.asarray(pd.array(c(df)).fillna(False), dtype=bool) for c, v in _cases
+                ]
                 choicelist = [v(df) for c, v in _cases]
                 default = _other(df)
                 return pd.Series(

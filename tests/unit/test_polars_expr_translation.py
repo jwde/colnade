@@ -579,6 +579,64 @@ class TestWhenThenOtherwise:
         result = df.select(backend.translate_expr(expr)).to_series()
         assert result.to_list() == ["senior", None, "senior"]
 
+    def test_complex_condition(self, df: pl.DataFrame) -> None:
+        expr = when((Users.age > 20) & (Users.age < 70)).then("mid").otherwise("extreme")
+        result = df.select(backend.translate_expr(expr)).to_series()
+        assert result.to_list() == ["extreme", "mid", "extreme"]
+
+    def test_expression_in_then(self, df: pl.DataFrame) -> None:
+        expr = when(Users.age > 65).then(Users.age * 2).otherwise(Users.age)
+        result = df.select(backend.translate_expr(expr)).to_series()
+        assert result.to_list() == [140, 25, 160]
+
+    def test_null_in_condition_column(self) -> None:
+        df = pl.DataFrame(
+            {
+                "id": pl.Series([1, 2, 3], dtype=pl.UInt64),
+                "name": ["Alice", "Bob", "Eve"],
+                "age": pl.Series([70, None, 25], dtype=pl.UInt64),
+            }
+        )
+        expr = when(Users.age > 65).then("senior").otherwise("standard")
+        result = df.select(backend.translate_expr(expr)).to_series()
+        assert result.to_list() == ["senior", "standard", "standard"]
+
+    def test_all_rows_match(self, df: pl.DataFrame) -> None:
+        expr = when(Users.age > 0).then("yes").otherwise("no")
+        result = df.select(backend.translate_expr(expr)).to_series()
+        assert result.to_list() == ["yes", "yes", "yes"]
+
+    def test_no_rows_match(self, df: pl.DataFrame) -> None:
+        expr = when(Users.age > 100).then("yes").otherwise("no")
+        result = df.select(backend.translate_expr(expr)).to_series()
+        assert result.to_list() == ["no", "no", "no"]
+
+    def test_empty_dataframe(self) -> None:
+        df = pl.DataFrame(
+            {
+                "id": pl.Series([], dtype=pl.UInt64),
+                "name": pl.Series([], dtype=pl.Utf8),
+                "age": pl.Series([], dtype=pl.UInt64),
+            }
+        )
+        expr = when(Users.age > 65).then("senior").otherwise("standard")
+        result = df.select(backend.translate_expr(expr)).to_series()
+        assert result.to_list() == []
+
+    def test_many_branches(self, df: pl.DataFrame) -> None:
+        expr = (
+            when(Users.age > 75)
+            .then("very old")
+            .when(Users.age > 65)
+            .then("old")
+            .when(Users.age > 20)
+            .then("adult")
+            .otherwise("young")
+        )
+        result = df.select(backend.translate_expr(expr)).to_series()
+        # 70→old, 25→adult, 80→very old
+        assert result.to_list() == ["old", "adult", "very old"]
+
 
 # ---------------------------------------------------------------------------
 # Error cases
