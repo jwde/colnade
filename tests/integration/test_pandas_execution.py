@@ -5,7 +5,18 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from colnade import Column, DataFrame, LazyFrame, Schema, SchemaError, UInt64, Utf8, mapped_from
+from colnade import (
+    Column,
+    DataFrame,
+    LazyFrame,
+    Schema,
+    SchemaError,
+    UInt64,
+    Utf8,
+    lit,
+    mapped_from,
+    when,
+)
 from colnade_pandas.adapter import PandasBackend
 
 # ---------------------------------------------------------------------------
@@ -458,3 +469,33 @@ class TestIterRowsAs:
         rows = list(df.iter_rows_as(Users.Row))
         assert len(rows) == 1
         assert rows[0].name == "Eve"
+
+
+# ---------------------------------------------------------------------------
+# when/then/otherwise
+# ---------------------------------------------------------------------------
+
+
+class TestWhenThenOtherwise:
+    def test_when_in_with_columns(self) -> None:
+        df = _users_df()
+        result = df.with_columns(
+            when(Users.age > 30).then(Users.age).otherwise(lit(0)).alias(Users.age)
+        )
+        ages = result._data["age"].tolist()
+        # Alice=30 → 0, Bob=25 → 0, Charlie=35 → 35, Diana=28 → 0, Eve=40 → 40
+        assert ages == [0, 0, 35, 0, 40]
+
+    def test_when_chained_branches(self) -> None:
+        df = _users_df()
+        result = df.with_columns(
+            when(Users.age > 35)
+            .then(lit("senior"))
+            .when(Users.age > 27)
+            .then(lit("adult"))
+            .otherwise(lit("young"))
+            .alias(Users.name)
+        )
+        names = result._data["name"].tolist()
+        # Alice=30→adult, Bob=25→young, Charlie=35→adult, Diana=28→adult, Eve=40→senior
+        assert names == ["adult", "young", "adult", "adult", "senior"]

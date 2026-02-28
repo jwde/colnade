@@ -147,6 +147,31 @@ Cast a column to a different type:
 Users.id.cast(Float64)                # cast UInt64 → Float64
 ```
 
+## Conditional expressions
+
+Build if/else logic with `when/then/otherwise`:
+
+```python
+from colnade import when
+
+# Simple condition
+when(Users.age > 65).then("senior").otherwise("standard")
+
+# Multi-branch (chained when)
+when(Users.score > 90).then("A").when(Users.score > 80).then("B").otherwise("C")
+
+# Use in with_columns
+df.with_columns(
+    when(Users.age > 65).then(lit("senior")).otherwise(lit("standard")).alias(Users.tier)
+)
+```
+
+Unmatched rows default to `null` if `.otherwise()` is omitted:
+
+```python
+when(Users.age > 65).then("senior")  # non-seniors get null
+```
+
 ## Window functions
 
 Apply an aggregation within each partition and broadcast the result back to every row:

@@ -298,6 +298,89 @@ class ListOp(Expr[DType]):
 
 
 # ---------------------------------------------------------------------------
+# Conditional expression
+# ---------------------------------------------------------------------------
+
+
+class WhenThenOtherwise(Expr[DType]):
+    """Conditional expression: ``when(c1).then(v1).when(c2).then(v2).otherwise(default)``.
+
+    Stores an ordered list of ``(condition, value)`` pairs and a default value.
+    Backend adapters translate this to engine-native conditionals
+    (e.g. ``pl.when().then().otherwise()`` for Polars, ``numpy.select`` for Pandas).
+    """
+
+    __slots__ = ("cases", "otherwise_expr")
+
+    def __init__(
+        self,
+        cases: tuple[tuple[Expr[Any], Expr[Any]], ...],
+        otherwise_expr: Expr[Any],
+    ) -> None:
+        self.cases = cases
+        self.otherwise_expr = otherwise_expr
+
+    def when(self, condition: Any) -> _ChainedWhenBuilder[Any]:
+        """Add another conditional branch."""
+        return _ChainedWhenBuilder(prior=self, condition=_wrap(condition))
+
+    def otherwise(self, value: Any) -> WhenThenOtherwise[DType]:
+        """Set the default value for unmatched rows."""
+        return WhenThenOtherwise(cases=self.cases, otherwise_expr=_wrap(value))
+
+    def __repr__(self) -> str:
+        cases_str = ", ".join(f"({c!r}, {v!r})" for c, v in self.cases)
+        return f"WhenThenOtherwise([{cases_str}], otherwise={self.otherwise_expr!r})"
+
+
+class _WhenBuilder(Generic[DType]):
+    """Builder returned by ``when(condition)``. Call ``.then(value)`` to continue."""
+
+    __slots__ = ("_condition",)
+
+    def __init__(self, condition: Expr[Any]) -> None:
+        self._condition = condition
+
+    def then(self, value: Any) -> WhenThenOtherwise[Any]:
+        """Provide the value for this branch."""
+        return WhenThenOtherwise(
+            cases=((self._condition, _wrap(value)),),
+            otherwise_expr=Literal(value=None),
+        )
+
+
+class _ChainedWhenBuilder(Generic[DType]):
+    """Builder for chained when. Call ``.then(value)`` to continue."""
+
+    __slots__ = ("_prior", "_condition")
+
+    def __init__(self, prior: WhenThenOtherwise[Any], condition: Expr[Any]) -> None:
+        self._prior = prior
+        self._condition = condition
+
+    def then(self, value: Any) -> WhenThenOtherwise[Any]:
+        """Provide the value for this branch."""
+        return WhenThenOtherwise(
+            cases=self._prior.cases + ((self._condition, _wrap(value)),),
+            otherwise_expr=Literal(value=None),
+        )
+
+
+def when(condition: Any) -> _WhenBuilder[Any]:
+    """Start a conditional expression.
+
+    Usage::
+
+        when(Users.age > 65).then("senior").otherwise("minor")
+
+        when(Users.score > 90).then("A")
+            .when(Users.score > 80).then("B")
+            .otherwise("C")
+    """
+    return _WhenBuilder(condition=_wrap(condition))
+
+
+# ---------------------------------------------------------------------------
 # Join condition (not an Expr — a join predicate)
 # ---------------------------------------------------------------------------
 
@@ -378,6 +461,11 @@ def collect_column_names(*args: Any) -> set[str]:
             _walk(node.struct_expr)
         elif isinstance(node, ListOp):
             _walk(node.list_expr)
+        elif isinstance(node, WhenThenOtherwise):
+            for cond, val in node.cases:
+                _walk(cond)
+                _walk(val)
+            _walk(node.otherwise_expr)
         elif isinstance(node, Column):
             names.add(node.name)
 

@@ -19,6 +19,7 @@ from colnade.expr import (
     SortExpr,
     StructFieldAccess,
     UnaryOp,
+    WhenThenOtherwise,
 )
 from colnade.schema import Column, Schema, SchemaError
 from colnade_polars.conversion import map_colnade_dtype, map_polars_dtype
@@ -102,6 +103,13 @@ class PolarsBackend:
 
         if isinstance(expr, ListOp):
             return self._translate_list_op(expr)
+
+        if isinstance(expr, WhenThenOtherwise):
+            cond, val = expr.cases[0]
+            result = pl.when(self.translate_expr(cond)).then(self.translate_expr(val))
+            for cond, val in expr.cases[1:]:
+                result = result.when(self.translate_expr(cond)).then(self.translate_expr(val))
+            return result.otherwise(self.translate_expr(expr.otherwise_expr))
 
         msg = f"Unsupported expression type: {type(expr).__name__}"
         raise TypeError(msg)

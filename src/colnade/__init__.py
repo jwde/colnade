@@ -53,7 +53,9 @@ from colnade.expr import (
     SortExpr,
     StructFieldAccess,
     UnaryOp,
+    WhenThenOtherwise,
     lit,
+    when,
 )
 from colnade.schema import Column, ListAccessor, Row, Schema, SchemaError, mapped_from
 from colnade.validation import (
@@ -94,8 +96,10 @@ __all__ = [
     "SortExpr",
     "StructFieldAccess",
     "ListOp",
+    "WhenThenOtherwise",
     "JoinCondition",
     "lit",
+    "when",
     # Type categories
     "NumericType",
     "IntegerType",
