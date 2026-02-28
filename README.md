@@ -141,7 +141,7 @@ result = df.group_by(Users.name).agg(
 ### Conditional expressions
 
 ```python
-from colnade import when
+from colnade import when, lit
 
 df.with_columns(
     when(Users.age > 65).then(lit("senior")).otherwise(lit("standard")).alias(Users.tier)

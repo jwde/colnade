@@ -386,3 +386,35 @@ def check_when_supports_alias() -> None:
     _: AliasedExpr[object] = (
         when(Users.age > 65).then("senior").otherwise("minor").alias(Users.name)
     )
+
+
+def check_when_chained_is_when_then_otherwise() -> None:
+    """Chained when().then().when().then() returns WhenThenOtherwise."""
+    _: WhenThenOtherwise[object] = (
+        when(Users.age > 65).then("senior").when(Users.age > 18).then("adult").otherwise("minor")
+    )
+
+
+# ---------------------------------------------------------------------------
+# WhenThenOtherwise negative type tests
+# ---------------------------------------------------------------------------
+
+
+def check_neg_when_rejects_uint64_column() -> None:
+    """when() requires Bool condition, not UInt64 column."""
+    when(Users.id)  # type: ignore[arg-type]
+
+
+def check_neg_when_rejects_utf8_column() -> None:
+    """when() requires Bool condition, not Utf8 column."""
+    when(Users.name)  # type: ignore[arg-type]
+
+
+def check_neg_when_rejects_arithmetic_expr() -> None:
+    """when() requires Bool expression, not arithmetic result."""
+    when(Users.id + 1)  # type: ignore[arg-type]
+
+
+def check_neg_chained_when_rejects_non_bool() -> None:
+    """Chained .when() also requires Bool condition."""
+    when(Users.id > 1).then("a").when(Users.name)  # type: ignore[arg-type]

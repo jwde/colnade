@@ -556,3 +556,22 @@ class TestWhenThenOtherwise:
             when(Users.age > 65).then(lit("senior")).otherwise(lit("other")).alias(Users.name)
         )
         assert result._data["name"].to_list() == []
+
+    def test_when_string_equality_condition(self) -> None:
+        df = _users_df()
+        result = df.with_columns(
+            when(Users.name == "Alice").then(lit("found")).otherwise(lit("other")).alias(Users.name)
+        )
+        names = result._data["name"].to_list()
+        assert names == ["found", "other", "other", "other", "other"]
+
+    def test_multiple_when_in_with_columns(self) -> None:
+        df = _users_df()
+        result = df.with_columns(
+            when(Users.age > 30).then(lit("old")).otherwise(lit("young")).alias(Users.name),
+            when(Users.age > 30).then(Users.age * 2).otherwise(Users.age).alias(Users.age),
+        )
+        names = result._data["name"].to_list()
+        ages = result._data["age"].to_list()
+        assert names == ["young", "young", "old", "young", "old"]
+        assert ages == [30, 25, 70, 28, 80]

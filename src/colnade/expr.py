@@ -320,7 +320,7 @@ class WhenThenOtherwise(Expr[DType]):
         self.cases = cases
         self.otherwise_expr = otherwise_expr
 
-    def when(self, condition: Expr[Bool]) -> _ChainedWhenBuilder:
+    def when(self, condition: Expr[Bool] | Column[Bool]) -> _ChainedWhenBuilder:
         """Add another conditional branch."""
         return _ChainedWhenBuilder(prior=self, condition=_wrap(condition))
 
@@ -338,8 +338,8 @@ class _WhenBuilder:
 
     __slots__ = ("_condition",)
 
-    def __init__(self, condition: Expr[Bool]) -> None:
-        self._condition = condition
+    def __init__(self, condition: Expr[Bool] | Column[Bool]) -> None:
+        self._condition: Expr[Bool] = _wrap(condition)
 
     def then(self, value: Any) -> WhenThenOtherwise[Any]:
         """Provide the value for this branch."""
@@ -354,9 +354,9 @@ class _ChainedWhenBuilder:
 
     __slots__ = ("_prior", "_condition")
 
-    def __init__(self, prior: WhenThenOtherwise[Any], condition: Expr[Bool]) -> None:
+    def __init__(self, prior: WhenThenOtherwise[Any], condition: Expr[Bool] | Column[Bool]) -> None:
         self._prior = prior
-        self._condition = condition
+        self._condition: Expr[Bool] = _wrap(condition)
 
     def then(self, value: Any) -> WhenThenOtherwise[Any]:
         """Provide the value for this branch."""
@@ -366,7 +366,7 @@ class _ChainedWhenBuilder:
         )
 
 
-def when(condition: Expr[Bool]) -> _WhenBuilder:
+def when(condition: Expr[Bool] | Column[Bool]) -> _WhenBuilder:
     """Start a conditional expression.
 
     Usage::

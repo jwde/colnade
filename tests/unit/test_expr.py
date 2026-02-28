@@ -720,3 +720,26 @@ class TestWhenThenOtherwise:
         )
         assert isinstance(e, WhenThenOtherwise)
         assert len(e.cases) == 4
+
+    def test_otherwise_returns_new_object(self) -> None:
+        """Calling .otherwise() returns a new WhenThenOtherwise; the original is unchanged."""
+        original = when(Users.age > 65).then("senior")
+        modified = original.otherwise("other")
+        assert original is not modified
+        assert original.otherwise_expr.value is None  # type: ignore[union-attr]
+        assert modified.otherwise_expr.value == "other"  # type: ignore[union-attr]
+
+    def test_chained_when_resets_otherwise(self) -> None:
+        """Chaining .when().then() after .otherwise() resets the default to None."""
+        e = when(Users.age > 65).then("senior").otherwise("default")
+        chained = e.when(Users.age > 18).then("adult")
+        # The otherwise from the first expression is NOT preserved
+        assert isinstance(chained.otherwise_expr, Literal)
+        assert chained.otherwise_expr.value is None
+
+    def test_string_equality_condition(self) -> None:
+        e = when(Users.name == "Alice").then("VIP").otherwise("standard")
+        assert isinstance(e, WhenThenOtherwise)
+        cond, _ = e.cases[0]
+        assert isinstance(cond, BinOp)
+        assert cond.op == "=="
