@@ -694,3 +694,78 @@ class TestConcat:
         df2 = DataFrame(_data=ddf_empty, _schema=Users, _backend=DaskBackend())
         result = concat(df1, df2)
         assert len(result._data.compute()) == 5
+
+
+class TestItem:
+    def test_item_no_arg(self) -> None:
+        """Extract scalar from a 1×1 DataFrame."""
+        df = _users_ddf()
+        one_cell = df.select(Users.id).head(1)
+        value = one_cell.item()
+        assert value == 1
+        assert isinstance(value, int)
+
+    def test_item_with_column(self) -> None:
+        """Extract a named column from a 1-row DataFrame."""
+        df = _users_ddf().head(1)
+        value = df.item(Users.name)
+        assert value == "Alice"
+        assert isinstance(value, str)
+
+    def test_item_numeric_type(self) -> None:
+        """item() returns a Python int, not a backend-specific type."""
+        df = _users_ddf().head(1)
+        value = df.item(Users.age)
+        assert value == 30
+        assert type(value) is int
+
+    def test_item_too_many_rows_raises(self) -> None:
+        df = _users_ddf().select(Users.id)
+        with pytest.raises(ValueError, match="1.1"):
+            df.item()
+
+    def test_item_too_many_columns_raises(self) -> None:
+        df = _users_ddf().head(1)
+        with pytest.raises(ValueError, match="1.1"):
+            df.item()
+
+    def test_item_with_column_too_many_rows_raises(self) -> None:
+        df = _users_ddf()
+        with pytest.raises(ValueError, match="1 row"):
+            df.item(Users.name)
+
+    def test_item_after_agg(self) -> None:
+        """Primary use case: extract scalar from aggregation result."""
+        df = _users_ddf()
+        result = df.agg(Users.age.sum().alias(AgeStats.total_age))
+        value = result.item()
+        assert value == 158
+        assert isinstance(value, int)
+
+    def test_item_float_type(self) -> None:
+        """item() returns Python float for floating-point results."""
+        df = _users_ddf()
+        result = df.agg(Users.age.mean().alias(Users.age))
+        value = result.item()
+        assert isinstance(value, float)
+        assert value == pytest.approx(31.6)
+
+    def test_item_none_value(self) -> None:
+        """item() returns None when cell value is null."""
+        data = pd.DataFrame(
+            {
+                "id": pd.array([1], dtype=pd.UInt64Dtype()),
+                "name": pd.array([None], dtype=pd.StringDtype()),
+                "age": pd.array([30], dtype=pd.UInt64Dtype()),
+            }
+        )
+        ddf = dd.from_pandas(data, npartitions=1)
+        df = DataFrame(_data=ddf, _schema=Users, _backend=DaskBackend())
+        value = df.item(Users.name)
+        assert value is None
+
+    def test_item_empty_dataframe_raises(self) -> None:
+        """item() raises ValueError on empty DataFrame."""
+        df = _users_ddf().filter(Users.age > 999).select(Users.id)
+        with pytest.raises(ValueError, match="1.1"):
+            df.item()

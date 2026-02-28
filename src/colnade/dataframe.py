@@ -23,12 +23,55 @@ from colnade.schema import S2, S3, Column, Row, S, Schema, SchemaError
 R = TypeVar("R")
 
 if TYPE_CHECKING:
+    from datetime import date, datetime, time, timedelta
     from typing import Literal
 
     from colnade._protocols import BackendProtocol
     from colnade.arrow import ArrowBatch
-    from colnade.dtypes import Bool
+    from colnade.dtypes import (
+        Binary,
+        Bool,
+        Date,
+        Datetime,
+        Duration,
+        Float32,
+        Float64,
+        Int8,
+        Int16,
+        Int32,
+        Int64,
+        Time,
+        UInt8,
+        UInt16,
+        UInt32,
+        UInt64,
+        Utf8,
+    )
     from colnade.expr import AliasedExpr, Expr, JoinCondition, SortExpr
+
+    # Column-type aliases for .item() overloads
+    _IntCol = (
+        Column[UInt8]
+        | Column[UInt16]
+        | Column[UInt32]
+        | Column[UInt64]
+        | Column[Int8]
+        | Column[Int16]
+        | Column[Int32]
+        | Column[Int64]
+    )
+    _IntColN = (
+        Column[UInt8 | None]
+        | Column[UInt16 | None]
+        | Column[UInt32 | None]
+        | Column[UInt64 | None]
+        | Column[Int8 | None]
+        | Column[Int16 | None]
+        | Column[Int32 | None]
+        | Column[Int64 | None]
+    )
+    _FloatCol = Column[Float32] | Column[Float64]
+    _FloatColN = Column[Float32 | None] | Column[Float64 | None]
 
 
 # ---------------------------------------------------------------------------
@@ -338,6 +381,67 @@ class DataFrame(Generic[S]):
         backend = _require_backend(self._backend)
         for d in backend.iter_row_dicts(self._data):
             yield row_type(**d)
+
+    # --- Scalar extraction ---
+
+    @overload
+    def item(self, column: _IntCol) -> int: ...
+    @overload
+    def item(self, column: _IntColN) -> int | None: ...
+    @overload
+    def item(self, column: _FloatCol) -> float: ...
+    @overload
+    def item(self, column: _FloatColN) -> float | None: ...
+    @overload
+    def item(self, column: Column[Utf8]) -> str: ...
+    @overload
+    def item(self, column: Column[Utf8 | None]) -> str | None: ...
+    @overload
+    def item(self, column: Column[Bool]) -> bool: ...
+    @overload
+    def item(self, column: Column[Bool | None]) -> bool | None: ...
+    @overload
+    def item(self, column: Column[Binary]) -> bytes: ...
+    @overload
+    def item(self, column: Column[Binary | None]) -> bytes | None: ...
+    @overload
+    def item(self, column: Column[Date]) -> date: ...
+    @overload
+    def item(self, column: Column[Date | None]) -> date | None: ...
+    @overload
+    def item(self, column: Column[Datetime]) -> datetime: ...
+    @overload
+    def item(self, column: Column[Datetime | None]) -> datetime | None: ...
+    @overload
+    def item(self, column: Column[Duration]) -> timedelta: ...
+    @overload
+    def item(self, column: Column[Duration | None]) -> timedelta | None: ...
+    @overload
+    def item(self, column: Column[Time]) -> time: ...
+    @overload
+    def item(self, column: Column[Time | None]) -> time | None: ...
+    @overload
+    def item(self, column: Column[Any]) -> Any: ...
+    @overload
+    def item(self) -> Any: ...
+
+    def item(self, column: Column[Any] | None = None) -> Any:
+        """Extract a scalar value from a single-row DataFrame.
+
+        Args:
+            column: Column to extract.  If ``None``, the DataFrame must
+                have exactly 1 row **and** 1 column.
+
+        Returns:
+            A plain Python scalar whose type corresponds to the column dtype
+            (e.g. ``int`` for integer columns, ``str`` for ``Utf8``).
+
+        Raises:
+            ValueError: If the shape constraint is not met (1×1 when
+                *column* is ``None``, or 1 row when *column* is given).
+        """
+        col_name = column.name if column is not None else None
+        return _require_backend(self._backend).item(self._data, col_name)
 
     # --- Schema-preserving operations (return DataFrame[S]) ---
 
@@ -723,6 +827,69 @@ class LazyFrame(Generic[S]):
         backend = _require_backend(self._backend)
         for raw_batch in backend.to_arrow_batches(self._data, batch_size):
             yield ArrowBatch(_batch=raw_batch, _schema=self._schema)
+
+    # --- Scalar extraction ---
+
+    @overload
+    def item(self, column: _IntCol) -> int: ...
+    @overload
+    def item(self, column: _IntColN) -> int | None: ...
+    @overload
+    def item(self, column: _FloatCol) -> float: ...
+    @overload
+    def item(self, column: _FloatColN) -> float | None: ...
+    @overload
+    def item(self, column: Column[Utf8]) -> str: ...
+    @overload
+    def item(self, column: Column[Utf8 | None]) -> str | None: ...
+    @overload
+    def item(self, column: Column[Bool]) -> bool: ...
+    @overload
+    def item(self, column: Column[Bool | None]) -> bool | None: ...
+    @overload
+    def item(self, column: Column[Binary]) -> bytes: ...
+    @overload
+    def item(self, column: Column[Binary | None]) -> bytes | None: ...
+    @overload
+    def item(self, column: Column[Date]) -> date: ...
+    @overload
+    def item(self, column: Column[Date | None]) -> date | None: ...
+    @overload
+    def item(self, column: Column[Datetime]) -> datetime: ...
+    @overload
+    def item(self, column: Column[Datetime | None]) -> datetime | None: ...
+    @overload
+    def item(self, column: Column[Duration]) -> timedelta: ...
+    @overload
+    def item(self, column: Column[Duration | None]) -> timedelta | None: ...
+    @overload
+    def item(self, column: Column[Time]) -> time: ...
+    @overload
+    def item(self, column: Column[Time | None]) -> time | None: ...
+    @overload
+    def item(self, column: Column[Any]) -> Any: ...
+    @overload
+    def item(self) -> Any: ...
+
+    def item(self, column: Column[Any] | None = None) -> Any:
+        """Extract a scalar value from a single-row LazyFrame.
+
+        This triggers computation on lazy backends.
+
+        Args:
+            column: Column to extract.  If ``None``, the LazyFrame must
+                have exactly 1 row **and** 1 column.
+
+        Returns:
+            A plain Python scalar whose type corresponds to the column dtype
+            (e.g. ``int`` for integer columns, ``str`` for ``Utf8``).
+
+        Raises:
+            ValueError: If the shape constraint is not met (1×1 when
+                *column* is ``None``, or 1 row when *column* is given).
+        """
+        col_name = column.name if column is not None else None
+        return _require_backend(self._backend).item(self._data, col_name)
 
     # --- Schema-preserving operations (return LazyFrame[S]) ---
 

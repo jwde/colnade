@@ -201,6 +201,22 @@ df.is_empty()  # True if zero rows
 
 `width` raises `TypeError` on `DataFrame[Any]` (schema erased) — use `cast_schema()` first.
 
+## Scalar extraction
+
+Extract a single Python value from a DataFrame with `item()`:
+
+```python
+# No-arg form: 1×1 DataFrame (e.g. from agg)
+mean_score = df.agg(Users.score.mean().alias(Stats.avg_score)).item()
+
+# Column form: 1-row DataFrame, pick column
+name = df.head(1).item(Users.name)  # → str
+```
+
+The return type is inferred from the column dtype — `item(Column[UInt64])` returns `int`, `item(Column[Utf8])` returns `str`, etc. The no-arg form returns `Any`.
+
+Raises `ValueError` if the shape constraint is not met (1×1 for no-arg, 1 row for column form). Available on both `DataFrame` and `LazyFrame` (triggers computation on lazy backends).
+
 ## Typed row iteration
 
 `iter_rows_as(row_type)` iterates rows as typed Python objects:
