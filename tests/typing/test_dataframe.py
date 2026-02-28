@@ -369,3 +369,44 @@ def check_neg_concat_lazyframe_not_dataframe() -> None:
     lf2: LazyFrame[Users] = LazyFrame(_schema=Users)
     result = concat(lf1, lf2)
     _: DataFrame[Users] = result  # type: ignore[invalid-assignment]
+
+
+# ---------------------------------------------------------------------------
+# .item() type tests
+# ---------------------------------------------------------------------------
+
+
+def check_item_int(df: DataFrame[Users]) -> int:
+    """item(Column[UInt8]) returns int."""
+    return df.item(Users.age)
+
+
+def check_item_str(df: DataFrame[Users]) -> str:
+    """item(Column[Utf8]) returns str."""
+    return df.item(Users.name)
+
+
+def check_item_no_arg_is_any(df: DataFrame[Users]) -> None:
+    """item() with no column returns Any — assignable to anything."""
+    _int: int = df.item()
+    _str: str = df.item()
+    _ = (_int, _str)  # use variables
+
+
+def check_lazyframe_item_int(lf: LazyFrame[Users]) -> int:
+    """LazyFrame.item(Column[UInt8]) returns int."""
+    return lf.item(Users.age)
+
+
+def check_neg_item_int_not_str() -> None:
+    """item(Users.age) returns int, NOT str."""
+    df: DataFrame[Users] = DataFrame(_schema=Users)
+    result = df.item(Users.age)
+    _: str = result  # type: ignore[invalid-assignment]
+
+
+def check_neg_item_str_not_int() -> None:
+    """item(Users.name) returns str, NOT int."""
+    df: DataFrame[Users] = DataFrame(_schema=Users)
+    result = df.item(Users.name)
+    _: int = result  # type: ignore[invalid-assignment]

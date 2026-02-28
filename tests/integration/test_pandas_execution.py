@@ -653,3 +653,42 @@ class TestConcat:
         df2 = DataFrame(_data=empty, _schema=Users, _backend=PandasBackend())
         result = concat(df1, df2)
         assert len(result._data) == 5
+
+
+class TestItem:
+    def test_item_no_arg(self) -> None:
+        """Extract scalar from a 1×1 DataFrame."""
+        df = _users_df()
+        one_cell = df.select(Users.id).head(1)
+        value = one_cell.item()
+        assert value == 1
+        assert isinstance(value, int)
+
+    def test_item_with_column(self) -> None:
+        """Extract a named column from a 1-row DataFrame."""
+        df = _users_df().head(1)
+        value = df.item(Users.name)
+        assert value == "Alice"
+        assert isinstance(value, str)
+
+    def test_item_numeric_type(self) -> None:
+        """item() returns a Python int, not a backend-specific type."""
+        df = _users_df().head(1)
+        value = df.item(Users.age)
+        assert value == 30
+        assert type(value) is int
+
+    def test_item_too_many_rows_raises(self) -> None:
+        df = _users_df().select(Users.id)
+        with pytest.raises(ValueError, match="1.1"):
+            df.item()
+
+    def test_item_too_many_columns_raises(self) -> None:
+        df = _users_df().head(1)
+        with pytest.raises(ValueError, match="1.1"):
+            df.item()
+
+    def test_item_with_column_too_many_rows_raises(self) -> None:
+        df = _users_df()
+        with pytest.raises(ValueError, match="1 row"):
+            df.item(Users.name)

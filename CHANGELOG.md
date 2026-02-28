@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`when/then/otherwise` conditional expressions** — build multi-branch if/else logic in the expression DSL: `when(Users.age > 65).then("senior").otherwise("standard")`. Supports chained conditions and works with all three backends (#159)
 - **`concat()` for vertical concatenation** — stack DataFrames or LazyFrames vertically with type-safe schema preservation: `concat(df1, df2, df3)`. Validates all inputs share the same schema (#160)
+- **`.item()` for scalar extraction** — extract a Python scalar from a 1-row DataFrame or LazyFrame: `df.agg(...).item()` or `df.head(1).item(Users.name)`. Return type is inferred from the column dtype via overloads (#161)
 
 ## [0.7.0] - 2026-02-24
 

@@ -677,6 +677,18 @@ class DaskBackend:
     def iter_row_dicts(self, source: Any) -> Iterator[dict[str, Any]]:
         return source.compute().to_dict(orient="records")
 
+    def item(self, source: Any, column: str | None = None) -> Any:
+        computed = source.compute()
+        if column is not None:
+            if len(computed) != 1:
+                msg = f"item() requires exactly 1 row, got {len(computed)}"
+                raise ValueError(msg)
+            return computed[column].to_list()[0]
+        if computed.shape != (1, 1):
+            msg = f"item() requires a 1\u00d71 DataFrame, got shape {computed.shape}"
+            raise ValueError(msg)
+        return computed.iloc[:, 0].to_list()[0]
+
     # --- Arrow boundary ---
 
     def to_arrow_batches(

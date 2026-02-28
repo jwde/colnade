@@ -665,6 +665,17 @@ class PandasBackend:
     def iter_row_dicts(self, source: Any) -> Iterator[dict[str, Any]]:
         return source.to_dict(orient="records")
 
+    def item(self, source: Any, column: str | None = None) -> Any:
+        if column is not None:
+            if len(source) != 1:
+                msg = f"item() requires exactly 1 row, got {len(source)}"
+                raise ValueError(msg)
+            return source[column].to_list()[0]
+        if source.shape != (1, 1):
+            msg = f"item() requires a 1\u00d71 DataFrame, got shape {source.shape}"
+            raise ValueError(msg)
+        return source.iloc[:, 0].to_list()[0]
+
     # --- Arrow boundary ---
 
     def to_arrow_batches(

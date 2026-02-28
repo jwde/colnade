@@ -50,6 +50,9 @@ class _MockBackend:
     def iter_row_dicts(self, source: object) -> list[dict[str, object]]:  # noqa: ANN001
         return []
 
+    def item(self, source: object, column: str | None = None) -> object:  # noqa: ANN001
+        return ("item_called", source, column)
+
     def __getattr__(self, name: str):  # noqa: ANN204
         def _method(*args, **kwargs):  # noqa: ANN002, ANN003, ANN202
             return args[0] if args else None
@@ -848,3 +851,30 @@ class TestConcat:
         df2 = DataFrame(_data="b", _schema=Users)
         with pytest.raises(RuntimeError, match="requires a backend"):
             concat(df1, df2)
+
+
+# ---------------------------------------------------------------------------
+# .item() — scalar extraction
+# ---------------------------------------------------------------------------
+
+
+class TestItem:
+    def test_item_no_column(self) -> None:
+        df = DataFrame(_data="src", _schema=Users, _backend=_BACKEND)
+        result = df.item()
+        assert result == ("item_called", "src", None)
+
+    def test_item_with_column(self) -> None:
+        df = DataFrame(_data="src", _schema=Users, _backend=_BACKEND)
+        result = df.item(Users.name)
+        assert result == ("item_called", "src", "name")
+
+    def test_item_on_lazyframe(self) -> None:
+        lf = LazyFrame(_data="src", _schema=Users, _backend=_BACKEND)
+        result = lf.item()
+        assert result == ("item_called", "src", None)
+
+    def test_item_with_column_on_lazyframe(self) -> None:
+        lf = LazyFrame(_data="src", _schema=Users, _backend=_BACKEND)
+        result = lf.item(Users.age)
+        assert result == ("item_called", "src", "age")

@@ -516,6 +516,17 @@ class PolarsBackend:
     def iter_row_dicts(self, source: Any) -> Iterator[dict[str, Any]]:
         return source.iter_rows(named=True)
 
+    def item(self, source: Any, column: str | None = None) -> Any:
+        if column is not None:
+            if source.shape[0] != 1:
+                msg = f"item() requires exactly 1 row, got {source.shape[0]}"
+                raise ValueError(msg)
+            return source[column].item()
+        if source.shape != (1, 1):
+            msg = f"item() requires a 1\u00d71 DataFrame, got shape {source.shape}"
+            raise ValueError(msg)
+        return source.item()
+
     # --- Arrow boundary ---
 
     def to_arrow_batches(
