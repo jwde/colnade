@@ -8,30 +8,30 @@ This tutorial demonstrates a complete ETL pipeline: read data, clean nulls, filt
 ## Define schemas
 
 ```python
-from colnade import Column, Schema, UInt64, Float64, Utf8, mapped_from
+import colnade as cn
 
-class Users(Schema):
-    id: Column[UInt64]
-    name: Column[Utf8]
-    age: Column[UInt64]
-    score: Column[Float64]
+class Users(cn.Schema):
+    id: cn.Column[cn.UInt64]
+    name: cn.Column[cn.Utf8]
+    age: cn.Column[cn.UInt64]
+    score: cn.Column[cn.Float64]
 
-class Orders(Schema):
-    id: Column[UInt64]
-    user_id: Column[UInt64]
-    amount: Column[Float64]
+class Orders(cn.Schema):
+    id: cn.Column[cn.UInt64]
+    user_id: cn.Column[cn.UInt64]
+    amount: cn.Column[cn.Float64]
 
-class UserOrders(Schema):
+class UserOrders(cn.Schema):
     """Intermediate schema after joining users with orders."""
-    user_name: Column[Utf8] = mapped_from(Users.name)
-    user_id: Column[UInt64] = mapped_from(Users.id)
-    amount: Column[Float64] = mapped_from(Orders.amount)
+    user_name: cn.Column[cn.Utf8] = cn.mapped_from(Users.name)
+    user_id: cn.Column[cn.UInt64] = cn.mapped_from(Users.id)
+    amount: cn.Column[cn.Float64] = cn.mapped_from(Orders.amount)
 
-class UserRevenue(Schema):
+class UserRevenue(cn.Schema):
     """Output schema: per-user revenue summary."""
-    user_name: Column[Utf8]
-    user_id: Column[UInt64]
-    total_amount: Column[Float64]
+    user_name: cn.Column[cn.Utf8]
+    user_id: cn.Column[cn.UInt64]
+    total_amount: cn.Column[cn.Float64]
 ```
 
 ## Step 1: Read typed data

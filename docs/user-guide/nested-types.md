@@ -7,15 +7,15 @@ Colnade supports struct and list columns with typed access to nested data.
 Define a struct column by parameterizing `Struct` with a schema:
 
 ```python
-from colnade import Column, Schema, Struct, Utf8
+import colnade as cn
 
-class Address(Schema):
-    city: Column[Utf8]
-    zip_code: Column[Utf8]
+class Address(cn.Schema):
+    city: cn.Column[cn.Utf8]
+    zip_code: cn.Column[cn.Utf8]
 
-class Users(Schema):
-    name: Column[Utf8]
-    address: Column[Struct[Address]]
+class Users(cn.Schema):
+    name: cn.Column[cn.Utf8]
+    address: cn.Column[cn.Struct[Address]]
 ```
 
 ### Accessing struct fields
@@ -37,11 +37,9 @@ The `.field()` method returns a `StructFieldAccess` expression node that support
 Define a list column by parameterizing `List` with an element type:
 
 ```python
-from colnade import Column, Schema, List, Float64, Utf8
-
-class Users(Schema):
-    tags: Column[List[Utf8]]
-    scores: Column[List[Float64]]
+class Users(cn.Schema):
+    tags: cn.Column[cn.List[cn.Utf8]]
+    scores: cn.Column[cn.List[cn.Float64]]
 ```
 
 ### List operations
@@ -83,7 +81,7 @@ df.with_columns(Users.scores.list.sum().alias(Users.scores))
 Mark nested columns as nullable with `| None`:
 
 ```python
-class Users(Schema):
-    address: Column[Struct[Address] | None]   # nullable struct
-    tags: Column[List[Utf8] | None]           # nullable list
+class Users(cn.Schema):
+    address: cn.Column[cn.Struct[Address] | None]   # nullable struct
+    tags: cn.Column[cn.List[cn.Utf8] | None]           # nullable list
 ```

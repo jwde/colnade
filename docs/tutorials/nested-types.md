@@ -8,18 +8,18 @@ This tutorial demonstrates working with struct and list columns.
 ## Define schemas with nested types
 
 ```python
-from colnade import Column, Schema, Struct, List, UInt32, UInt64, Float64, Utf8
+import colnade as cn
 
-class Address(Schema):
-    city: Column[Utf8]
-    zip_code: Column[Utf8]
+class Address(cn.Schema):
+    city: cn.Column[cn.Utf8]
+    zip_code: cn.Column[cn.Utf8]
 
-class UserProfile(Schema):
-    id: Column[UInt64]
-    name: Column[Utf8]
-    address: Column[Struct[Address]]
-    tags: Column[List[Utf8]]
-    scores: Column[List[Float64]]
+class UserProfile(cn.Schema):
+    id: cn.Column[cn.UInt64]
+    name: cn.Column[cn.Utf8]
+    address: cn.Column[cn.Struct[Address]]
+    tags: cn.Column[cn.List[cn.Utf8]]
+    scores: cn.Column[cn.List[cn.Float64]]
 ```
 
 ## Struct field access
@@ -50,9 +50,9 @@ python_users = df.filter(
 
 # Compute list aggregations into new columns
 class ProfileWithStats(UserProfile):
-    tag_count: Column[UInt32]
-    first_tag: Column[Utf8]
-    total_score: Column[Float64]
+    tag_count: cn.Column[cn.UInt32]
+    first_tag: cn.Column[cn.Utf8]
+    total_score: cn.Column[cn.Float64]
 
 enriched = df.with_columns(
     UserProfile.tags.list.len().alias(ProfileWithStats.tag_count),

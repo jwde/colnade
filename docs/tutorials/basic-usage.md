@@ -8,17 +8,17 @@ This tutorial demonstrates the core Colnade workflow: define a schema, read data
 ## Define schemas
 
 ```python
-from colnade import Column, Schema, UInt64, Float64, Utf8
+import colnade as cn
 
-class Users(Schema):
-    id: Column[UInt64]
-    name: Column[Utf8]
-    age: Column[UInt64]
-    score: Column[Float64]
+class Users(cn.Schema):
+    id: cn.Column[cn.UInt64]
+    name: cn.Column[cn.Utf8]
+    age: cn.Column[cn.UInt64]
+    score: cn.Column[cn.Float64]
 
-class UserSummary(Schema):
-    name: Column[Utf8]
-    score: Column[Float64]
+class UserSummary(cn.Schema):
+    name: cn.Column[cn.Utf8]
+    score: cn.Column[cn.Float64]
 ```
 
 ## Read typed data

@@ -59,11 +59,11 @@ This applies to numeric aggregations (`sum`, `mean`, `std`, `var`), NaN methods 
 ### Nullability mismatch in mapped_from
 
 ```python
-class Users(Schema):
-    age: Column[UInt8 | None]  # nullable
+class Users(cn.Schema):
+    age: cn.Column[cn.UInt8 | None]  # nullable
 
-class Bad(Schema):
-    age: Column[UInt8] = mapped_from(Users.age)  # non-nullable target
+class Bad(cn.Schema):
+    age: cn.Column[cn.UInt8] = cn.mapped_from(Users.age)  # non-nullable target
 ```
 
 ```
@@ -94,10 +94,9 @@ This is a fundamental limitation — Python lacks type-level functions to map `C
 **Runtime alternative:** Enable validation and these mismatches are caught at expression construction time:
 
 ```python
-import colnade
-from colnade import ValidationLevel
+import colnade as cn
 
-colnade.set_validation(ValidationLevel.STRUCTURAL)
+cn.set_validation(cn.ValidationLevel.STRUCTURAL)
 # or: COLNADE_VALIDATE=structural
 
 Users.age.fill_null(1.0)
@@ -121,10 +120,10 @@ This is a fundamental limitation of the current type system. Column descriptors 
 **Runtime alternative:** When validation is enabled (`STRUCTURAL` or `FULL`), DataFrame and LazyFrame operations validate that all column references in an expression belong to the frame's schema. The example above raises `SchemaError` at runtime:
 
 ```python
-colnade.set_validation(ValidationLevel.STRUCTURAL)
+cn.set_validation(cn.ValidationLevel.STRUCTURAL)
 
 df.filter(Orders.amount > 100)
-# SchemaError: Missing columns: amount
+# cn.SchemaError: Missing columns: amount
 ```
 
 This guard covers `filter`, `sort`, `with_columns`, `select`, `unique`, `drop_nulls`, `group_by`, and `agg`. On `JoinedDataFrame`/`JoinedLazyFrame`, columns from either schema are accepted.

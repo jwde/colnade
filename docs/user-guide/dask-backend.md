@@ -44,11 +44,10 @@ Structural validation checks column names, dtypes, and nullability. With Dask:
 - **Null checks** require computation — Dask must scan data to determine if non-nullable columns contain nulls.
 
 ```python
-import colnade
-from colnade import ValidationLevel
+import colnade as cn
 from colnade_dask import scan_parquet
 
-colnade.set_validation(ValidationLevel.STRUCTURAL)
+cn.set_validation(cn.ValidationLevel.STRUCTURAL)
 
 # This triggers partial computation for null checks:
 lf = scan_parquet("users.parquet", Users)
@@ -59,7 +58,7 @@ lf = scan_parquet("users.parquet", Users)
 Full validation adds value-level constraint checks (`Field()` constraints, `@schema_check`). With Dask, this **materializes the entire DataFrame** because constraints like `ge=0`, `pattern=...`, and `unique=True` must inspect actual data values.
 
 ```python
-colnade.set_validation(ValidationLevel.FULL)
+cn.set_validation(cn.ValidationLevel.FULL)
 
 # This triggers full computation:
 lf = scan_parquet("users.parquet", Users)
@@ -104,9 +103,9 @@ However, this means the entire dataset must fit in memory on a single worker dur
 `cast_schema()` applies column renames and selection lazily — no computation is triggered. The column mapping is resolved and applied as Dask task graph operations.
 
 ```python
-class UserSummary(Schema):
-    user_name: Column[Utf8] = mapped_from(Users.name)
-    user_id: Column[UInt64] = mapped_from(Users.id)
+class UserSummary(cn.Schema):
+    user_name: cn.Column[cn.Utf8] = cn.mapped_from(Users.name)
+    user_id: cn.Column[cn.UInt64] = cn.mapped_from(Users.id)
 
 # No computation — just builds rename tasks:
 summary = lf.cast_schema(UserSummary)

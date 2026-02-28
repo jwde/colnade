@@ -22,10 +22,12 @@ graph TD
 Schemas define the structure of your data. They are Python classes that extend `Schema`:
 
 ```python
-class Users(Schema):
-    id: Column[UInt64]
-    name: Column[Utf8]
-    age: Column[UInt64]
+import colnade as cn
+
+class Users(cn.Schema):
+    id: cn.Column[cn.UInt64]
+    name: cn.Column[cn.Utf8]
+    age: cn.Column[cn.UInt64]
 ```
 
 The metaclass (`SchemaMeta`) converts each `Column[DType]` annotation into a descriptor object. `Users.age` is a `Column[UInt64]` instance — not a string, not an integer. The type checker can verify attribute access.
@@ -95,20 +97,18 @@ When validation is enabled, data boundaries (`read_parquet`, `from_batches`, `ca
 - **Null violations** — non-nullable columns containing null values
 - **Expression column membership** — operations like `filter`, `sort`, `select` verify that all column references in expressions belong to the frame's schema (e.g., using `Orders.amount` on a `DataFrame[Users]` raises `SchemaError`)
 
-Enable with `colnade.set_validation(ValidationLevel.STRUCTURAL)` or `COLNADE_VALIDATE=structural`. See [DataFrames: Validation](dataframes.md#validation) for details.
+Enable with `cn.set_validation(cn.ValidationLevel.STRUCTURAL)` or `COLNADE_VALIDATE=structural`. See [DataFrames: Validation](dataframes.md#validation) for details.
 
 ### 3. On your data values
 
 Value-level constraints validate domain invariants using `Field()` metadata:
 
 ```python
-from colnade.constraints import Field, schema_check
-
-class Users(Schema):
-    id: Column[UInt64] = Field(unique=True)
-    age: Column[UInt64] = Field(ge=0, le=150)
-    email: Column[Utf8] = Field(pattern=r"^[^@]+@[^@]+\.[^@]+$")
-    status: Column[Utf8] = Field(isin=["active", "inactive"])
+class Users(cn.Schema):
+    id: cn.Column[cn.UInt64] = cn.Field(unique=True)
+    age: cn.Column[cn.UInt64] = cn.Field(ge=0, le=150)
+    email: cn.Column[cn.Utf8] = cn.Field(pattern=r"^[^@]+@[^@]+\.[^@]+$")
+    status: cn.Column[cn.Utf8] = cn.Field(isin=["active", "inactive"])
 ```
 
 Checked by `df.validate()` (always) and by auto-validation at the `FULL` level. See [DataFrames: Value-level constraints](dataframes.md#level-3-on-your-data-values-value-level-constraints) for the full constraint reference.
