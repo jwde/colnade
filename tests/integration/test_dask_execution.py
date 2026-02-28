@@ -14,6 +14,7 @@ from colnade import (
     SchemaError,
     UInt64,
     Utf8,
+    concat,
     lit,
     mapped_from,
     when,
@@ -609,3 +610,87 @@ class TestWhenThenOtherwise:
         ages = result._data.compute()["age"].tolist()
         assert names == ["young", "young", "old", "young", "old"]
         assert ages == [30, 25, 70, 28, 80]
+
+
+# ---------------------------------------------------------------------------
+# concat
+# ---------------------------------------------------------------------------
+
+
+class TestConcat:
+    def test_concat_two(self) -> None:
+        df1 = _users_ddf()
+        df2 = _users_ddf()
+        result = concat(df1, df2)
+        assert isinstance(result, DataFrame)
+        computed = result._data.compute()
+        assert len(computed) == 10
+        ids = computed["id"].to_list()
+        assert ids == [1, 2, 3, 4, 5, 1, 2, 3, 4, 5]
+
+    def test_concat_preserves_row_order(self) -> None:
+        """First frame's rows come before second frame's rows."""
+        data_a = pd.DataFrame(
+            {
+                "id": pd.array([10, 20], dtype=pd.UInt64Dtype()),
+                "name": pd.array(["X", "Y"], dtype=pd.StringDtype()),
+                "age": pd.array([1, 2], dtype=pd.UInt64Dtype()),
+            }
+        )
+        data_b = pd.DataFrame(
+            {
+                "id": pd.array([30, 40], dtype=pd.UInt64Dtype()),
+                "name": pd.array(["Z", "W"], dtype=pd.StringDtype()),
+                "age": pd.array([3, 4], dtype=pd.UInt64Dtype()),
+            }
+        )
+        df_a = DataFrame(
+            _data=dd.from_pandas(data_a, npartitions=1),
+            _schema=Users,
+            _backend=DaskBackend(),
+        )
+        df_b = DataFrame(
+            _data=dd.from_pandas(data_b, npartitions=1),
+            _schema=Users,
+            _backend=DaskBackend(),
+        )
+        result = concat(df_a, df_b)
+        computed = result._data.compute()
+        assert computed["id"].to_list() == [10, 20, 30, 40]
+        assert computed["name"].to_list() == ["X", "Y", "Z", "W"]
+
+    def test_concat_three(self) -> None:
+        df1 = _users_ddf()
+        df2 = _users_ddf()
+        df3 = _users_ddf()
+        result = concat(df1, df2, df3)
+        assert len(result._data.compute()) == 15
+
+    def test_concat_preserves_schema(self) -> None:
+        df1 = _users_ddf()
+        df2 = _users_ddf()
+        result = concat(df1, df2)
+        assert result._schema is Users
+
+    def test_concat_result_supports_filter(self) -> None:
+        """Concat result can be used in downstream operations."""
+        df1 = _users_ddf()
+        df2 = _users_ddf()
+        result = concat(df1, df2).filter(Users.age > 30)
+        ages = result._data.compute()["age"].to_list()
+        assert all(a > 30 for a in ages)
+        assert len(ages) == 4
+
+    def test_concat_empty_and_nonempty(self) -> None:
+        df1 = _users_ddf()
+        empty = pd.DataFrame(
+            {
+                "id": pd.array([], dtype=pd.UInt64Dtype()),
+                "name": pd.Series([], dtype=str),
+                "age": pd.array([], dtype=pd.UInt64Dtype()),
+            }
+        )
+        ddf_empty = dd.from_pandas(empty, npartitions=1)
+        df2 = DataFrame(_data=ddf_empty, _schema=Users, _backend=DaskBackend())
+        result = concat(df1, df2)
+        assert len(result._data.compute()) == 5

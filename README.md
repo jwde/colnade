@@ -148,6 +148,14 @@ df.with_columns(
 )
 ```
 
+### Vertical concatenation
+
+```python
+from colnade import concat
+
+combined = concat(df_jan, df_feb, df_mar)  # DataFrame[Sales]
+```
+
 ### Null handling
 
 ```python

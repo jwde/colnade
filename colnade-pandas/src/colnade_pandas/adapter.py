@@ -419,6 +419,9 @@ class PandasBackend:
     def join(self, left: Any, right: Any, on: Any, how: str) -> Any:
         return left.merge(right, left_on=on.left.name, right_on=on.right.name, how=how)
 
+    def concat(self, sources: Sequence[Any]) -> Any:
+        return pd.concat(list(sources), ignore_index=True)
+
     def cast_schema(self, source: Any, column_mapping: dict[str, str]) -> Any:
         # column_mapping is {target_name: source_name}
         # Build the reverse mapping for rename, then select target columns

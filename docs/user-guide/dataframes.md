@@ -82,6 +82,24 @@ df.with_columns(                             # add/overwrite columns
 )
 ```
 
+## Concatenation
+
+Stack DataFrames vertically with `concat()`:
+
+```python
+from colnade import concat
+
+combined = concat(df_jan, df_feb, df_mar)  # DataFrame[Sales]
+```
+
+All inputs must share the **same schema class** — this is an identity check (`is`), not structural equality. Two different schema classes with identical fields will be rejected. Works with both `DataFrame` and `LazyFrame` (but you cannot mix them in one call):
+
+```python
+combined = concat(lazy_jan, lazy_feb)  # LazyFrame[Sales]
+```
+
+Rows appear in input order: all rows from the first frame, then all rows from the second, and so on. At least 2 frames are required.
+
 ## Schema-transforming operations
 
 These change the column set and return `DataFrame[Any]`:

@@ -25,3 +25,7 @@ DataFrame, LazyFrame, GroupBy, JoinedDataFrame, and JoinedLazyFrame.
 ## JoinedLazyFrame
 
 ::: colnade.dataframe.JoinedLazyFrame
+
+## concat
+
+::: colnade.dataframe.concat

@@ -60,6 +60,67 @@ def rows_to_dict(
     return result
 
 
+@overload
+def concat(*frames: DataFrame[S]) -> DataFrame[S]: ...
+
+
+@overload
+def concat(*frames: LazyFrame[S]) -> LazyFrame[S]: ...
+
+
+def concat(*frames: DataFrame[S] | LazyFrame[S]) -> DataFrame[S] | LazyFrame[S]:
+    """Concatenate DataFrames or LazyFrames vertically (stack rows).
+
+    All inputs must share the **same schema class** (identity check, not
+    structural equality) and the same frame type (all ``DataFrame`` or all
+    ``LazyFrame``).  The backend is taken from the first frame.
+
+    Args:
+        *frames: Two or more frames to stack.  All must be parameterised by
+            the same ``Schema`` subclass and be the same frame type.
+
+    Returns:
+        A new ``DataFrame[S]`` or ``LazyFrame[S]`` containing all rows from
+        the input frames, in order.
+
+    Raises:
+        ValueError: If fewer than 2 frames are provided, or if any frame's
+            schema does not match the first frame's schema.
+        TypeError: If frames mix ``DataFrame`` and ``LazyFrame``.
+        RuntimeError: If the first frame has no backend attached.
+
+    Usage::
+
+        combined = concat(df_jan, df_feb, df_mar)  # DataFrame[Sales]
+        combined = concat(lazy_jan, lazy_feb)       # LazyFrame[Sales]
+    """
+    if len(frames) < 2:
+        msg = f"concat() requires at least 2 frames, got {len(frames)}"
+        raise ValueError(msg)
+
+    first = frames[0]
+    is_lazy = isinstance(first, LazyFrame)
+
+    for i, frame in enumerate(frames[1:], start=1):
+        if isinstance(frame, LazyFrame) != is_lazy:
+            msg = "concat() cannot mix DataFrame and LazyFrame"
+            raise TypeError(msg)
+        if frame._schema is not first._schema:
+            msg = (
+                f"Schema mismatch at frame {i}: "
+                f"expected {first._schema.__name__}, "
+                f"got {frame._schema.__name__}"
+            )
+            raise ValueError(msg)
+
+    backend = _require_backend(first._backend)
+    result = backend.concat([f._data for f in frames])
+
+    if is_lazy:
+        return LazyFrame(_data=result, _schema=first._schema, _backend=backend)
+    return DataFrame(_data=result, _schema=first._schema, _backend=backend)
+
+
 def _require_backend(backend: BackendProtocol | None) -> BackendProtocol:
     """Return *backend* or raise ``RuntimeError`` if ``None``."""
     if backend is None:
