@@ -288,6 +288,9 @@ class PolarsBackend:
     def join(self, left: Any, right: Any, on: Any, how: str) -> Any:
         return left.join(right, left_on=on.left.name, right_on=on.right.name, how=how)
 
+    def concat(self, sources: Sequence[Any]) -> Any:
+        return pl.concat(list(sources))
+
     def cast_schema(self, source: Any, column_mapping: dict[str, str]) -> Any:
         return source.select([pl.col(src).alias(tgt) for tgt, src in column_mapping.items()])
 

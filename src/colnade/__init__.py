@@ -14,6 +14,7 @@ from colnade.dataframe import (
     JoinedLazyFrame,
     LazyFrame,
     LazyGroupBy,
+    concat,
 )
 from colnade.dtypes import (
     Binary,
@@ -84,6 +85,7 @@ __all__ = [
     "LazyGroupBy",
     "JoinedDataFrame",
     "JoinedLazyFrame",
+    "concat",
     # Expression DSL
     "Expr",
     "ColumnRef",

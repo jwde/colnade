@@ -20,6 +20,7 @@ from colnade import (
     UInt8,
     UInt64,
     Utf8,
+    concat,
 )
 
 # --- Schema definitions ---
@@ -308,3 +309,26 @@ def check_neg_lazyframe_width_not_str() -> None:
     """LazyFrame.width returns int, NOT str."""
     lf: LazyFrame[Users] = LazyFrame(_schema=Users)
     _: str = lf.width  # type: ignore[invalid-assignment]
+
+
+# ---------------------------------------------------------------------------
+# concat() type tests
+# ---------------------------------------------------------------------------
+
+
+def check_concat_dataframe(df1: DataFrame[Users], df2: DataFrame[Users]) -> DataFrame[Users]:
+    """concat(DataFrame, DataFrame) returns DataFrame[S]."""
+    return concat(df1, df2)
+
+
+def check_concat_lazyframe(lf1: LazyFrame[Users], lf2: LazyFrame[Users]) -> LazyFrame[Users]:
+    """concat(LazyFrame, LazyFrame) returns LazyFrame[S]."""
+    return concat(lf1, lf2)
+
+
+def check_neg_concat_preserves_exact_schema() -> None:
+    """concat() returns DataFrame[Users], NOT DataFrame[AgeStats]."""
+    df1: DataFrame[Users] = DataFrame(_schema=Users)
+    df2: DataFrame[Users] = DataFrame(_schema=Users)
+    result = concat(df1, df2)
+    _: DataFrame[AgeStats] = result  # type: ignore[invalid-assignment]

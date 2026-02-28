@@ -13,6 +13,7 @@ from colnade import (
     SchemaError,
     UInt64,
     Utf8,
+    concat,
     lit,
     mapped_from,
     when,
@@ -575,3 +576,51 @@ class TestWhenThenOtherwise:
         ages = result._data["age"].to_list()
         assert names == ["young", "young", "old", "young", "old"]
         assert ages == [30, 25, 70, 28, 80]
+
+
+# ---------------------------------------------------------------------------
+# concat
+# ---------------------------------------------------------------------------
+
+
+class TestConcat:
+    def test_concat_two(self) -> None:
+        df1 = _users_df()
+        df2 = _users_df()
+        result = concat(df1, df2)
+        assert isinstance(result, DataFrame)
+        assert result._data.shape[0] == 10
+
+    def test_concat_three(self) -> None:
+        df1 = _users_df()
+        df2 = _users_df()
+        df3 = _users_df()
+        result = concat(df1, df2, df3)
+        assert result._data.shape[0] == 15
+
+    def test_concat_preserves_schema(self) -> None:
+        df1 = _users_df()
+        df2 = _users_df()
+        result = concat(df1, df2)
+        assert result._schema is Users
+
+    def test_concat_empty_and_nonempty(self) -> None:
+        df1 = _users_df()
+        empty = pl.DataFrame(
+            {
+                "id": pl.Series([], dtype=pl.UInt64),
+                "name": pl.Series([], dtype=pl.Utf8),
+                "age": pl.Series([], dtype=pl.UInt64),
+            }
+        )
+        df2 = DataFrame(_data=empty, _schema=Users, _backend=PolarsBackend())
+        result = concat(df1, df2)
+        assert result._data.shape[0] == 5
+
+    def test_concat_lazyframes(self) -> None:
+        df1 = _users_df().lazy()
+        df2 = _users_df().lazy()
+        result = concat(df1, df2)
+        assert isinstance(result, LazyFrame)
+        collected = result.collect()
+        assert collected._data.shape[0] == 10

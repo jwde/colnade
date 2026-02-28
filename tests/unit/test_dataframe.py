@@ -17,6 +17,7 @@ from colnade import (
     UInt8,
     UInt64,
     Utf8,
+    concat,
 )
 
 # ---------------------------------------------------------------------------
@@ -793,3 +794,57 @@ class TestNoBackendRaisesRuntimeError:
         lgb._backend = None
         with pytest.raises(RuntimeError, match="requires a backend"):
             lgb.agg(Users.id.count().alias("count"))
+
+
+# ---------------------------------------------------------------------------
+# concat()
+# ---------------------------------------------------------------------------
+
+
+class TestConcat:
+    def test_concat_two_dataframes(self) -> None:
+        df1 = DataFrame(_data="a", _schema=Users, _backend=_BACKEND)
+        df2 = DataFrame(_data="b", _schema=Users, _backend=_BACKEND)
+        result = concat(df1, df2)
+        assert isinstance(result, DataFrame)
+        assert result._schema is Users
+        assert result._backend is _BACKEND
+
+    def test_concat_three_dataframes(self) -> None:
+        df1 = DataFrame(_data="a", _schema=Users, _backend=_BACKEND)
+        df2 = DataFrame(_data="b", _schema=Users, _backend=_BACKEND)
+        df3 = DataFrame(_data="c", _schema=Users, _backend=_BACKEND)
+        result = concat(df1, df2, df3)
+        assert isinstance(result, DataFrame)
+
+    def test_concat_lazyframes(self) -> None:
+        lf1 = LazyFrame(_data="a", _schema=Users, _backend=_BACKEND)
+        lf2 = LazyFrame(_data="b", _schema=Users, _backend=_BACKEND)
+        result = concat(lf1, lf2)
+        assert isinstance(result, LazyFrame)
+        assert result._schema is Users
+
+    def test_concat_fewer_than_two_raises(self) -> None:
+        df1 = DataFrame(_data="a", _schema=Users, _backend=_BACKEND)
+        with pytest.raises(ValueError, match="at least 2"):
+            concat(df1)
+        with pytest.raises(ValueError, match="at least 2"):
+            concat()
+
+    def test_concat_mismatched_schemas_raises(self) -> None:
+        df1 = DataFrame(_data="a", _schema=Users, _backend=_BACKEND)
+        df2 = DataFrame(_data="b", _schema=AgeStats, _backend=_BACKEND)
+        with pytest.raises(ValueError, match="Schema mismatch"):
+            concat(df1, df2)
+
+    def test_concat_mixed_frame_types_raises(self) -> None:
+        df = DataFrame(_data="a", _schema=Users, _backend=_BACKEND)
+        lf = LazyFrame(_data="b", _schema=Users, _backend=_BACKEND)
+        with pytest.raises(TypeError, match="cannot mix"):
+            concat(df, lf)  # type: ignore[call-overload]
+
+    def test_concat_no_backend_raises(self) -> None:
+        df1 = DataFrame(_data="a", _schema=Users)
+        df2 = DataFrame(_data="b", _schema=Users)
+        with pytest.raises(RuntimeError, match="requires a backend"):
+            concat(df1, df2)
