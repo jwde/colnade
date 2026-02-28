@@ -62,10 +62,10 @@ Users.name.n_unique()   # unique count (returns UInt32)
 Use `.alias()` to bind aggregation results to output columns:
 
 ```python
-class Stats(Schema):
-    name: Column[Utf8]
-    avg_score: Column[Float64]
-    user_count: Column[UInt32]
+class Stats(cn.Schema):
+    name: cn.Column[cn.Utf8]
+    avg_score: cn.Column[cn.Float64]
+    user_count: cn.Column[cn.UInt32]
 
 df.group_by(Users.name).agg(
     Users.score.mean().alias(Stats.avg_score),
@@ -152,25 +152,23 @@ Users.id.cast(Float64)                # cast UInt64 → Float64
 Build if/else logic with `when/then/otherwise`:
 
 ```python
-from colnade import when, lit
-
 # Simple condition
-when(Users.age > 65).then("senior").otherwise("standard")
+cn.when(Users.age > 65).then("senior").otherwise("standard")
 
 # Multi-branch (chained when)
-when(Users.score > 90).then("A").when(Users.score > 80).then("B").otherwise("C")
+cn.when(Users.score > 90).then("A").when(Users.score > 80).then("B").otherwise("C")
 
 # Use in with_columns
 df.with_columns(
-    when(Users.age > 65).then(lit("senior")).otherwise(lit("standard")).alias(Users.tier)
+    cn.when(Users.age > 65).then(cn.lit("senior")).otherwise(cn.lit("standard")).alias(Users.tier)
 )
 ```
 
 Conditions can use any boolean expression, including combined conditions:
 
 ```python
-when((Users.age > 25) & (Users.age < 65)).then("working_age").otherwise("other")
-when(Users.name == "Alice").then("found").otherwise("not_found")
+cn.when((Users.age > 25) & (Users.age < 65)).then("working_age").otherwise("other")
+cn.when(Users.name == "Alice").then("found").otherwise("not_found")
 ```
 
 Branch values can be column references or expressions, not just literals:

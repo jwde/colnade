@@ -38,11 +38,11 @@ uv sync
 ## Verify installation
 
 ```python
-from colnade import Column, Schema, UInt64, Utf8
+import colnade as cn
 
-class TestSchema(Schema):
-    id: Column[UInt64]
-    name: Column[Utf8]
+class TestSchema(cn.Schema):
+    id: cn.Column[cn.UInt64]
+    name: cn.Column[cn.Utf8]
 
 print("Colnade installed successfully!")
 ```

@@ -5,13 +5,13 @@ Schemas are the foundation of Colnade's type safety. They declare the structure 
 ## Defining a schema
 
 ```python
-from colnade import Column, Schema, UInt64, Float64, Utf8
+import colnade as cn
 
-class Users(Schema):
-    id: Column[UInt64]
-    name: Column[Utf8]
-    age: Column[UInt64]
-    score: Column[Float64]
+class Users(cn.Schema):
+    id: cn.Column[cn.UInt64]
+    name: cn.Column[cn.Utf8]
+    age: cn.Column[cn.UInt64]
+    score: cn.Column[cn.Float64]
 ```
 
 Each annotation creates a `Column` descriptor on the class. After class creation:
@@ -38,9 +38,9 @@ Colnade provides types that map to backend-native types:
 Use `T | None` to mark a column as nullable:
 
 ```python
-class Users(Schema):
-    age: Column[UInt64 | None]    # nullable integer
-    tags: Column[List[Utf8] | None]  # nullable list
+class Users(cn.Schema):
+    age: cn.Column[cn.UInt64 | None]    # nullable integer
+    tags: cn.Column[cn.List[cn.Utf8] | None]  # nullable list
 ```
 
 ## Schema inheritance
@@ -48,12 +48,12 @@ class Users(Schema):
 Schemas support standard Python inheritance:
 
 ```python
-class BaseRecord(Schema):
-    id: Column[UInt64]
-    created_at: Column[Datetime]
+class BaseRecord(cn.Schema):
+    id: cn.Column[cn.UInt64]
+    created_at: cn.Column[cn.Datetime]
 
 class Users(BaseRecord):
-    name: Column[Utf8]
+    name: cn.Column[cn.Utf8]
     # Inherits id and created_at
 ```
 
@@ -62,16 +62,16 @@ class Users(BaseRecord):
 Combine multiple schemas via multiple inheritance:
 
 ```python
-class Timestamped(Schema):
-    created_at: Column[Datetime]
-    updated_at: Column[Datetime]
+class Timestamped(cn.Schema):
+    created_at: cn.Column[cn.Datetime]
+    updated_at: cn.Column[cn.Datetime]
 
-class SoftDeletable(Schema):
-    deleted_at: Column[Datetime | None]
+class SoftDeletable(cn.Schema):
+    deleted_at: cn.Column[cn.Datetime | None]
 
 class Users(Timestamped, SoftDeletable):
-    id: Column[UInt64]
-    name: Column[Utf8]
+    id: cn.Column[cn.UInt64]
+    name: cn.Column[cn.Utf8]
     # Has: id, name, created_at, updated_at, deleted_at
 ```
 
@@ -80,11 +80,9 @@ class Users(Timestamped, SoftDeletable):
 Use `mapped_from` to declare how columns map between schemas during `cast_schema`:
 
 ```python
-from colnade import mapped_from
-
-class UserSummary(Schema):
-    user_name: Column[Utf8] = mapped_from(Users.name)
-    user_id: Column[UInt64] = mapped_from(Users.id)
+class UserSummary(cn.Schema):
+    user_name: cn.Column[cn.Utf8] = cn.mapped_from(Users.name)
+    user_id: cn.Column[cn.UInt64] = cn.mapped_from(Users.id)
 ```
 
 When you call `df.cast_schema(UserSummary)`, the `user_name` column is populated from `Users.name` and `user_id` from `Users.id`.
@@ -97,15 +95,14 @@ When you call `df.cast_schema(UserSummary)`, the `user_name` column is populated
 `Field()` adds domain invariants to columns. These are checked by `df.validate()` or automatically at the `FULL` validation level:
 
 ```python
-from colnade import Column, Schema, UInt64, Utf8, Float64
-from colnade.constraints import Field, schema_check
+import colnade as cn
 
-class Users(Schema):
-    id: Column[UInt64] = Field(unique=True)
-    age: Column[UInt64] = Field(ge=0, le=150)
-    email: Column[Utf8] = Field(pattern=r"^[^@]+@[^@]+\.[^@]+$")
-    status: Column[Utf8] = Field(isin=["active", "inactive"])
-    score: Column[Float64] = Field(ge=0.0, le=100.0)
+class Users(cn.Schema):
+    id: cn.Column[cn.UInt64] = cn.Field(unique=True)
+    age: cn.Column[cn.UInt64] = cn.Field(ge=0, le=150)
+    email: cn.Column[cn.Utf8] = cn.Field(pattern=r"^[^@]+@[^@]+\.[^@]+$")
+    status: cn.Column[cn.Utf8] = cn.Field(isin=["active", "inactive"])
+    score: cn.Column[cn.Float64] = cn.Field(ge=0.0, le=100.0)
 ```
 
 Available constraints:
@@ -128,7 +125,7 @@ Constraints are inherited by schema subclasses and can be overridden:
 
 ```python
 class AdminUsers(Users):
-    age: Column[UInt64] = Field(ge=18, le=150)  # tighter lower bound
+    age: cn.Column[cn.UInt64] = cn.Field(ge=18, le=150)  # tighter lower bound
 ```
 
 ### Cross-column checks with @schema_check
@@ -136,11 +133,11 @@ class AdminUsers(Users):
 `@schema_check` defines constraints that span multiple columns:
 
 ```python
-class Events(Schema):
-    start: Column[Datetime]
-    end: Column[Datetime]
+class Events(cn.Schema):
+    start: cn.Column[cn.Datetime]
+    end: cn.Column[cn.Datetime]
 
-    @schema_check
+    @cn.schema_check
     def end_after_start(cls):
         return Events.end >= Events.start
 ```
@@ -154,10 +151,10 @@ See [DataFrames: Value-level constraints](dataframes.md#level-3-on-your-data-val
 Each schema with at least one column automatically generates a frozen dataclass called `Row` for typed row access:
 
 ```python
-class Users(Schema):
-    id: Column[UInt64]
-    name: Column[Utf8]
-    age: Column[UInt64]
+class Users(cn.Schema):
+    id: cn.Column[cn.UInt64]
+    name: cn.Column[cn.Utf8]
+    age: cn.Column[cn.UInt64]
 
 # Users.Row is a frozen dataclass:
 row = Users.Row(id=1, name="Alice", age=30)
@@ -200,11 +197,9 @@ Nullable columns (`Column[UInt64 | None]`) produce `int | None` fields.
 Schema validation raises `SchemaError` with structured information:
 
 ```python
-from colnade import SchemaError
-
 try:
     df.validate()
-except SchemaError as e:
+except cn.SchemaError as e:
     # Structural violations
     print(e.missing_columns)   # columns in schema but not in data
     print(e.type_mismatches)   # {column: (expected, actual)}

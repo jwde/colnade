@@ -8,14 +8,14 @@ This tutorial demonstrates how to work with nullable data in Colnade.
 ## Setup
 
 ```python
-from colnade import Column, Float64, Schema, UInt64, Utf8
+import colnade as cn
 from colnade_polars import from_dict
 
-class Users(Schema):
-    id: Column[UInt64]
-    name: Column[Utf8]
-    age: Column[UInt64 | None]
-    score: Column[Float64 | None]
+class Users(cn.Schema):
+    id: cn.Column[cn.UInt64]
+    name: cn.Column[cn.Utf8]
+    age: cn.Column[cn.UInt64 | None]
+    score: cn.Column[cn.Float64 | None]
 
 df = from_dict(Users, {
     "id": [1, 2, 3, 4, 5],

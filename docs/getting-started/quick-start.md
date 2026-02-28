@@ -7,13 +7,13 @@ This guide walks through Colnade's core workflow in 5 minutes.
 Schemas declare the shape of your data with typed columns:
 
 ```python
-from colnade import Column, Schema, UInt64, Float64, Utf8
+import colnade as cn
 
-class Users(Schema):
-    id: Column[UInt64]
-    name: Column[Utf8]
-    age: Column[UInt64]
-    score: Column[Float64]
+class Users(cn.Schema):
+    id: cn.Column[cn.UInt64]
+    name: cn.Column[cn.Utf8]
+    age: cn.Column[cn.UInt64]
+    score: cn.Column[cn.Float64]
 ```
 
 Each `Column[DType]` annotation creates a typed descriptor. `Users.age` is a `Column[UInt64]` that the type checker can verify.
@@ -49,9 +49,9 @@ All these operations return `DataFrame[Users]` — the schema type is preserved.
 Operations like `filter` and `sort` keep all columns, so they preserve `DataFrame[Users]`. But `select` changes which columns exist, so it returns `DataFrame[Any]`. Use `cast_schema()` to bind the result to a new schema:
 
 ```python
-class UserSummary(Schema):
-    name: Column[Utf8]
-    score: Column[Float64]
+class UserSummary(cn.Schema):
+    name: cn.Column[cn.Utf8]
+    score: cn.Column[cn.Float64]
 
 summary = df.select(Users.name, Users.score).cast_schema(UserSummary)
 # summary is DataFrame[UserSummary]

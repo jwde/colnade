@@ -8,22 +8,22 @@ This tutorial demonstrates joining DataFrames from different schemas and flatten
 ## Define schemas
 
 ```python
-from colnade import Column, Schema, UInt64, Float64, Utf8, mapped_from
+import colnade as cn
 
-class Users(Schema):
-    id: Column[UInt64]
-    name: Column[Utf8]
-    age: Column[UInt64]
+class Users(cn.Schema):
+    id: cn.Column[cn.UInt64]
+    name: cn.Column[cn.Utf8]
+    age: cn.Column[cn.UInt64]
 
-class Orders(Schema):
-    id: Column[UInt64]
-    user_id: Column[UInt64]
-    amount: Column[Float64]
+class Orders(cn.Schema):
+    id: cn.Column[cn.UInt64]
+    user_id: cn.Column[cn.UInt64]
+    amount: cn.Column[cn.Float64]
 
-class UserOrders(Schema):
-    user_name: Column[Utf8] = mapped_from(Users.name)
-    user_id: Column[UInt64] = mapped_from(Users.id)
-    amount: Column[Float64]
+class UserOrders(cn.Schema):
+    user_name: cn.Column[cn.Utf8] = cn.mapped_from(Users.name)
+    user_id: cn.Column[cn.UInt64] = cn.mapped_from(Users.id)
+    amount: cn.Column[cn.Float64]
 ```
 
 The `UserOrders` output schema uses `mapped_from` to disambiguate — both `Users` and `Orders` have an `id` column.

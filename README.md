@@ -36,13 +36,13 @@ Colnade requires Python 3.10+. Install the backend adapter for your engine:
 ### 1. Define a schema
 
 ```python
-from colnade import Column, Schema, UInt64, Float64, Utf8
+import colnade as cn
 
-class Users(Schema):
-    id: Column[UInt64]
-    name: Column[Utf8]
-    age: Column[UInt64]
-    score: Column[Float64]
+class Users(cn.Schema):
+    id: cn.Column[cn.UInt64]
+    name: cn.Column[cn.Utf8]
+    age: cn.Column[cn.UInt64]
+    score: cn.Column[cn.Float64]
 ```
 
 ### 2. Create or read typed data
@@ -75,9 +75,9 @@ result = (
 ### 4. Bind to an output schema
 
 ```python
-class UserSummary(Schema):
-    name: Column[Utf8]
-    score: Column[Float64]
+class UserSummary(cn.Schema):
+    name: cn.Column[cn.Utf8]
+    score: cn.Column[cn.Float64]
 
 output = result.cast_schema(UserSummary)
 # output is DataFrame[UserSummary]
@@ -127,10 +127,10 @@ Users.name.str_starts_with("A")        # Expr[Bool] — string method
 ### Aggregations
 
 ```python
-class UserStats(Schema):
-    name: Column[Utf8]
-    avg_score: Column[Float64]
-    user_count: Column[UInt64]
+class UserStats(cn.Schema):
+    name: cn.Column[cn.Utf8]
+    avg_score: cn.Column[cn.Float64]
+    user_count: cn.Column[cn.UInt64]
 
 result = df.group_by(Users.name).agg(
     Users.score.mean().alias(UserStats.avg_score),
@@ -141,19 +141,15 @@ result = df.group_by(Users.name).agg(
 ### Conditional expressions
 
 ```python
-from colnade import when, lit
-
 df.with_columns(
-    when(Users.age > 65).then(lit("senior")).otherwise(lit("standard")).alias(Users.tier)
+    cn.when(Users.age > 65).then(cn.lit("senior")).otherwise(cn.lit("standard")).alias(Users.tier)
 )
 ```
 
 ### Vertical concatenation
 
 ```python
-from colnade import concat
-
-combined = concat(df_jan, df_feb, df_mar)  # DataFrame[Sales]
+combined = cn.concat(df_jan, df_feb, df_mar)  # DataFrame[Sales]
 ```
 
 ### Null handling
@@ -172,9 +168,9 @@ joined = users.join(orders, on=Users.id == Orders.user_id)
 # JoinedDataFrame[Users, Orders] — both schemas accessible
 
 # mapped_from tells cast_schema which source column maps to each target column
-class UserOrders(Schema):
-    user_name: Column[Utf8] = mapped_from(Users.name)
-    amount: Column[Float64]  # same name as Orders.amount — matched automatically
+class UserOrders(cn.Schema):
+    user_name: cn.Column[cn.Utf8] = cn.mapped_from(Users.name)
+    amount: cn.Column[cn.Float64]  # same name as Orders.amount — matched automatically
 
 result = joined.cast_schema(UserOrders)
 ```
@@ -186,25 +182,25 @@ Write generic functions that work with any schema:
 ```python
 from colnade.schema import S
 
-def first_n(df: DataFrame[S], n: int) -> DataFrame[S]:
+def first_n(df: cn.DataFrame[S], n: int) -> cn.DataFrame[S]:
     return df.head(n)
 
 # Works with any schema — type preserved
-users_subset: DataFrame[Users] = first_n(users_df, 10)
+users_subset: cn.DataFrame[Users] = first_n(users_df, 10)
 ```
 
 ### Struct and List support
 
 ```python
-class Address(Schema):
-    city: Column[Utf8]
-    zip_code: Column[Utf8]
+class Address(cn.Schema):
+    city: cn.Column[cn.Utf8]
+    zip_code: cn.Column[cn.Utf8]
 
-class UserProfile(Schema):
-    name: Column[Utf8]
-    address: Column[Struct[Address]]
-    tags: Column[List[Utf8]]
-    tag_count: Column[UInt32]
+class UserProfile(cn.Schema):
+    name: cn.Column[cn.Utf8]
+    address: cn.Column[cn.Struct[Address]]
+    tags: cn.Column[cn.List[cn.Utf8]]
+    tag_count: cn.Column[cn.UInt32]
 
 # Access nested data
 df.filter(UserProfile.address.field(Address.city) == "New York")
@@ -214,22 +210,20 @@ df.with_columns(UserProfile.tags.list.len().alias(UserProfile.tag_count))
 ### Value-level constraints
 
 ```python
-from colnade import Column, Schema, UInt64, Utf8, Float64, ValidationLevel
-from colnade.constraints import Field, schema_check
+import colnade as cn
 
-class Users(Schema):
-    id: Column[UInt64] = Field(unique=True)
-    age: Column[UInt64] = Field(ge=0, le=150)
-    email: Column[Utf8] = Field(pattern=r"^[^@]+@[^@]+\.[^@]+$")
-    status: Column[Utf8] = Field(isin=["active", "inactive"])
+class Users(cn.Schema):
+    id: cn.Column[cn.UInt64] = cn.Field(unique=True)
+    age: cn.Column[cn.UInt64] = cn.Field(ge=0, le=150)
+    email: cn.Column[cn.Utf8] = cn.Field(pattern=r"^[^@]+@[^@]+\.[^@]+$")
+    status: cn.Column[cn.Utf8] = cn.Field(isin=["active", "inactive"])
 
-    @schema_check
+    @cn.schema_check
     def adult(cls):
         return Users.age >= 18
 
 # Validate with df.validate() or auto-validate at the FULL level
-from colnade import set_validation
-set_validation(ValidationLevel.FULL)
+cn.set_validation(cn.ValidationLevel.FULL)
 ```
 
 ### Lazy execution

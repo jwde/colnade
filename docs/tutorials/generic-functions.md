@@ -10,7 +10,7 @@ This tutorial demonstrates how to write schema-polymorphic utility functions tha
 Import the schema-bound TypeVar `S`:
 
 ```python
-from colnade import DataFrame
+import colnade as cn
 from colnade.schema import S
 ```
 
@@ -19,15 +19,15 @@ from colnade.schema import S
 ## Writing generic functions
 
 ```python
-def first_n(df: DataFrame[S], n: int) -> DataFrame[S]:
+def first_n(df: cn.DataFrame[S], n: int) -> cn.DataFrame[S]:
     """Return the first n rows. Works with any schema."""
     return df.head(n)
 
-def drop_null_rows(df: DataFrame[S]) -> DataFrame[S]:
+def drop_null_rows(df: cn.DataFrame[S]) -> cn.DataFrame[S]:
     """Drop all rows with any null values."""
     return df.drop_nulls()
 
-def count_rows(df: DataFrame[S]) -> int:
+def count_rows(df: cn.DataFrame[S]) -> int:
     """Count rows in any typed DataFrame."""
     return len(df)
 ```
@@ -37,8 +37,8 @@ def count_rows(df: DataFrame[S]) -> int:
 The type checker knows the concrete schema at each call site:
 
 ```python
-users: DataFrame[Users] = read_parquet("users.parquet", Users)
-products: DataFrame[Products] = read_parquet("products.parquet", Products)
+users: cn.DataFrame[Users] = read_parquet("users.parquet", Users)
+products: cn.DataFrame[Products] = read_parquet("products.parquet", Products)
 
 # first_n preserves the input schema
 top_users = first_n(users, 10)          # DataFrame[Users]
@@ -54,7 +54,7 @@ clean_products = drop_null_rows(products)  # DataFrame[Products]
 Generic functions compose naturally in pipelines:
 
 ```python
-def standard_cleanup(df: DataFrame[S]) -> DataFrame[S]:
+def standard_cleanup(df: cn.DataFrame[S]) -> cn.DataFrame[S]:
     """Standard cleanup: drop nulls, deduplicate, sort by first column."""
     return df.drop_nulls()
 

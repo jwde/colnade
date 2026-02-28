@@ -87,15 +87,13 @@ df.with_columns(                             # add/overwrite columns
 Stack DataFrames vertically with `concat()`:
 
 ```python
-from colnade import concat
-
-combined = concat(df_jan, df_feb, df_mar)  # DataFrame[Sales]
+combined = cn.concat(df_jan, df_feb, df_mar)  # DataFrame[Sales]
 ```
 
 All inputs must share the **same schema class** — this is an identity check (`is`), not structural equality. Two different schema classes with identical fields will be rejected. Works with both `DataFrame` and `LazyFrame` (but you cannot mix them in one call):
 
 ```python
-combined = concat(lazy_jan, lazy_feb)  # LazyFrame[Sales]
+combined = cn.concat(lazy_jan, lazy_feb)  # LazyFrame[Sales]
 ```
 
 Rows appear in input order: all rows from the first frame, then all rows from the second, and so on. At least 2 frames are required.
@@ -127,9 +125,9 @@ After a schema-transforming operation, use `cast_schema()` to bind to a named ou
 `cast_schema` binds data to a new schema by resolving column mappings:
 
 ```python
-class UserSummary(Schema):
-    name: Column[Utf8]
-    score: Column[Float64]
+class UserSummary(cn.Schema):
+    name: cn.Column[cn.Utf8]
+    score: cn.Column[cn.Float64]
 
 summary = df.select(Users.name, Users.score).cast_schema(UserSummary)
 # summary is DataFrame[UserSummary]
@@ -155,10 +153,10 @@ The `extra` parameter controls extra columns in the source:
 - **Use `mapped_from`** on output schema fields to create static links between input and output columns. The more fields that declare their provenance, the narrower the trust gap:
 
     ```python
-    class UserRevenue(Schema):
-        user_name: Column[Utf8] = mapped_from(Users.name)
-        user_id: Column[UInt64] = mapped_from(Users.id)
-        total_amount: Column[Float64]  # only this field is "trust me"
+    class UserRevenue(cn.Schema):
+        user_name: cn.Column[cn.Utf8] = cn.mapped_from(Users.name)
+        user_id: cn.Column[cn.UInt64] = cn.mapped_from(Users.id)
+        total_amount: cn.Column[cn.Float64]  # only this field is "trust me"
     ```
 
 - **Use `extra="forbid"`** to catch unexpected columns that might indicate a wrong select.
@@ -260,13 +258,12 @@ Checks column existence, data types, and nullability constraints.
 Enable auto-validation at data boundaries:
 
 ```python
-import colnade
-from colnade import ValidationLevel
+import colnade as cn
 
-colnade.set_validation(ValidationLevel.STRUCTURAL)  # or FULL
+cn.set_validation(cn.ValidationLevel.STRUCTURAL)  # or FULL
 # Strings and booleans still work for convenience:
-colnade.set_validation("structural")
-colnade.set_validation(True)  # → STRUCTURAL
+cn.set_validation("structural")
+cn.set_validation(True)  # → STRUCTURAL
 ```
 
 Or via environment variable:
@@ -307,16 +304,15 @@ When validation is enabled, data boundaries and `df.validate()` check:
 Value-level constraints validate domain invariants using `Field()` metadata:
 
 ```python
-from colnade import Column, Schema, UInt64, Utf8, Float64
-from colnade.constraints import Field, schema_check
+import colnade as cn
 
-class Users(Schema):
-    id: Column[UInt64] = Field(unique=True)
-    age: Column[UInt64] = Field(ge=0, le=150)
-    name: Column[Utf8] = Field(min_length=1)
-    email: Column[Utf8] = Field(pattern=r"^[^@]+@[^@]+\.[^@]+$")
-    score: Column[Float64] = Field(ge=0.0, le=100.0)
-    status: Column[Utf8] = Field(isin=["active", "inactive"])
+class Users(cn.Schema):
+    id: cn.Column[cn.UInt64] = cn.Field(unique=True)
+    age: cn.Column[cn.UInt64] = cn.Field(ge=0, le=150)
+    name: cn.Column[cn.Utf8] = cn.Field(min_length=1)
+    email: cn.Column[cn.Utf8] = cn.Field(pattern=r"^[^@]+@[^@]+\.[^@]+$")
+    score: cn.Column[cn.Float64] = cn.Field(ge=0.0, le=100.0)
+    status: cn.Column[cn.Utf8] = cn.Field(isin=["active", "inactive"])
 ```
 
 Available constraints:
@@ -338,11 +334,11 @@ Available constraints:
 Cross-column constraints use `@schema_check`:
 
 ```python
-class Events(Schema):
-    start: Column[UInt64]
-    end: Column[UInt64]
+class Events(cn.Schema):
+    start: cn.Column[cn.UInt64]
+    end: cn.Column[cn.UInt64]
 
-    @schema_check
+    @cn.schema_check
     def start_before_end(cls):
         return Events.start <= Events.end
 ```
@@ -361,7 +357,7 @@ Use `with_columns` to add a computed column, then `cast_schema` to transition to
 
 ```python
 class EnrichedUsers(Users):
-    risk_score: Column[Float64]
+    risk_score: cn.Column[cn.Float64]
 
 result = df.with_columns(
     (Users.age * 0.1 + Users.score * 0.9).alias(EnrichedUsers.risk_score)
