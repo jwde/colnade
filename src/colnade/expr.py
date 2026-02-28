@@ -314,13 +314,13 @@ class WhenThenOtherwise(Expr[DType]):
 
     def __init__(
         self,
-        cases: tuple[tuple[Expr[Any], Expr[Any]], ...],
+        cases: tuple[tuple[Expr[Bool], Expr[Any]], ...],
         otherwise_expr: Expr[Any],
     ) -> None:
         self.cases = cases
         self.otherwise_expr = otherwise_expr
 
-    def when(self, condition: Any) -> _ChainedWhenBuilder[Any]:
+    def when(self, condition: Expr[Bool]) -> _ChainedWhenBuilder:
         """Add another conditional branch."""
         return _ChainedWhenBuilder(prior=self, condition=_wrap(condition))
 
@@ -333,12 +333,12 @@ class WhenThenOtherwise(Expr[DType]):
         return f"WhenThenOtherwise([{cases_str}], otherwise={self.otherwise_expr!r})"
 
 
-class _WhenBuilder(Generic[DType]):
+class _WhenBuilder:
     """Builder returned by ``when(condition)``. Call ``.then(value)`` to continue."""
 
     __slots__ = ("_condition",)
 
-    def __init__(self, condition: Expr[Any]) -> None:
+    def __init__(self, condition: Expr[Bool]) -> None:
         self._condition = condition
 
     def then(self, value: Any) -> WhenThenOtherwise[Any]:
@@ -349,12 +349,12 @@ class _WhenBuilder(Generic[DType]):
         )
 
 
-class _ChainedWhenBuilder(Generic[DType]):
+class _ChainedWhenBuilder:
     """Builder for chained when. Call ``.then(value)`` to continue."""
 
     __slots__ = ("_prior", "_condition")
 
-    def __init__(self, prior: WhenThenOtherwise[Any], condition: Expr[Any]) -> None:
+    def __init__(self, prior: WhenThenOtherwise[Any], condition: Expr[Bool]) -> None:
         self._prior = prior
         self._condition = condition
 
@@ -366,7 +366,7 @@ class _ChainedWhenBuilder(Generic[DType]):
         )
 
 
-def when(condition: Any) -> _WhenBuilder[Any]:
+def when(condition: Expr[Bool]) -> _WhenBuilder:
     """Start a conditional expression.
 
     Usage::

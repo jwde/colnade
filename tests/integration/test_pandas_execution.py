@@ -503,9 +503,13 @@ class TestWhenThenOtherwise:
     def test_when_without_otherwise_produces_null(self) -> None:
         df = _users_df()
         result = df.with_columns(when(Users.age > 35).then(lit("old")).alias(Users.name))
-        names = result._data["name"].tolist()
+        names = result._data["name"]
         # Alice=30→null, Bob=25→null, Charlie=35→null, Diana=28→null, Eve=40→old
-        assert names == [None, None, None, None, "old"]
+        assert pd.isna(names.iloc[0])
+        assert pd.isna(names.iloc[1])
+        assert pd.isna(names.iloc[2])
+        assert pd.isna(names.iloc[3])
+        assert names.iloc[4] == "old"
 
     def test_when_with_complex_condition(self) -> None:
         df = _users_df()
