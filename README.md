@@ -5,14 +5,14 @@
 | Name                                               |    Stmts |     Miss |   Cover |   Missing |
 |--------------------------------------------------- | -------: | -------: | ------: | --------: |
 | colnade-dask/src/colnade\_dask/\_\_init\_\_.py     |        5 |        0 |    100% |           |
-| colnade-dask/src/colnade\_dask/adapter.py          |      408 |       16 |     96% |132-134, 174, 369-370, 389-390, 399-400, 405, 424-425, 439, 445, 519 |
+| colnade-dask/src/colnade\_dask/adapter.py          |      410 |       16 |     96% |132-134, 174, 369-370, 389-390, 399-400, 405, 424-425, 439, 445, 522 |
 | colnade-dask/src/colnade\_dask/io.py               |       44 |        0 |    100% |           |
 | colnade-pandas/src/colnade\_pandas/\_\_init\_\_.py |        6 |        0 |    100% |           |
-| colnade-pandas/src/colnade\_pandas/adapter.py      |      400 |       11 |     97% |358-359, 378-379, 391-392, 398, 416-417, 452, 507 |
+| colnade-pandas/src/colnade\_pandas/adapter.py      |      402 |       11 |     97% |358-359, 378-379, 391-392, 398, 416-417, 455, 510 |
 | colnade-pandas/src/colnade\_pandas/conversion.py   |       28 |        0 |    100% |           |
 | colnade-pandas/src/colnade\_pandas/io.py           |       39 |        0 |    100% |           |
 | colnade-polars/src/colnade\_polars/\_\_init\_\_.py |        6 |        0 |    100% |           |
-| colnade-polars/src/colnade\_polars/adapter.py      |      318 |        1 |     99% |       356 |
+| colnade-polars/src/colnade\_polars/adapter.py      |      320 |        1 |     99% |       359 |
 | colnade-polars/src/colnade\_polars/conversion.py   |       37 |        0 |    100% |           |
 | colnade-polars/src/colnade\_polars/io.py           |       48 |        0 |    100% |           |
 | src/colnade/\_\_init\_\_.py                        |       11 |        0 |    100% |           |
@@ -20,12 +20,12 @@
 | src/colnade/\_types.py                             |        7 |        0 |    100% |           |
 | src/colnade/arrow.py                               |       30 |        0 |    100% |           |
 | src/colnade/constraints.py                         |       54 |        0 |    100% |           |
-| src/colnade/dataframe.py                           |      468 |        3 |     99% |   577-579 |
+| src/colnade/dataframe.py                           |      486 |        3 |     99% |   638-640 |
 | src/colnade/dtypes.py                              |       27 |        0 |    100% |           |
 | src/colnade/expr.py                                |      214 |        0 |    100% |           |
 | src/colnade/schema.py                              |      326 |        1 |     99% |       192 |
 | src/colnade/validation.py                          |       93 |        1 |     99% |       196 |
-| **TOTAL**                                          | **2575** |   **33** | **99%** |           |
+| **TOTAL**                                          | **2599** |   **33** | **99%** |           |
 
 
 ## Setup coverage badge
