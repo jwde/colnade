@@ -83,8 +83,8 @@ df.filter(Users.age > 25)                    # filter rows
 df.sort(Users.score.desc())                  # sort rows
 df.sort(Users.name, Users.age)               # sort by multiple columns
 df.limit(100)                                # first n rows
-df.head(10)                                  # first n rows (eager only)
-df.tail(10)                                  # last n rows (eager only)
+df.head(10)                                  # first n rows
+df.tail(10)                                  # last n rows
 df.sample(50)                                # random sample (eager only)
 df.unique(Users.name)                        # deduplicate by columns
 df.drop_nulls(Users.age, Users.score)        # drop null rows

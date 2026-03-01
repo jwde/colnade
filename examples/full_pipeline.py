@@ -9,7 +9,7 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
-from colnade import Column, Float64, Schema, UInt64, Utf8, mapped_from
+import colnade as cn
 from colnade_polars import from_dict, read_parquet, write_parquet
 
 # ---------------------------------------------------------------------------
@@ -17,33 +17,33 @@ from colnade_polars import from_dict, read_parquet, write_parquet
 # ---------------------------------------------------------------------------
 
 
-class Users(Schema):
-    id: Column[UInt64]
-    name: Column[Utf8]
-    age: Column[UInt64]
-    score: Column[Float64]
+class Users(cn.Schema):
+    id: cn.Column[cn.UInt64]
+    name: cn.Column[cn.Utf8]
+    age: cn.Column[cn.UInt64]
+    score: cn.Column[cn.Float64 | None]
 
 
-class Orders(Schema):
-    id: Column[UInt64]
-    user_id: Column[UInt64]
-    amount: Column[Float64]
+class Orders(cn.Schema):
+    id: cn.Column[cn.UInt64]
+    user_id: cn.Column[cn.UInt64]
+    amount: cn.Column[cn.Float64]
 
 
-class UserOrders(Schema):
+class UserOrders(cn.Schema):
     """Intermediate schema after joining users with orders."""
 
-    user_name: Column[Utf8] = mapped_from(Users.name)
-    user_id: Column[UInt64] = mapped_from(Users.id)
-    amount: Column[Float64] = mapped_from(Orders.amount)
+    user_name: cn.Column[cn.Utf8] = cn.mapped_from(Users.name)
+    user_id: cn.Column[cn.UInt64] = cn.mapped_from(Users.id)
+    amount: cn.Column[cn.Float64] = cn.mapped_from(Orders.amount)
 
 
-class UserRevenue(Schema):
+class UserRevenue(cn.Schema):
     """Output schema: per-user revenue summary."""
 
-    user_name: Column[Utf8]
-    user_id: Column[UInt64]
-    total_amount: Column[Float64]
+    user_name: cn.Column[cn.Utf8]
+    user_id: cn.Column[cn.UInt64]
+    total_amount: cn.Column[cn.Float64]
 
 
 # ---------------------------------------------------------------------------
@@ -135,7 +135,7 @@ revenue = (
 )
 
 # Step 6: Sort by revenue descending
-result = revenue.sort(UserRevenue.total_amount, descending=True)
+result = revenue.sort(UserRevenue.total_amount.desc())
 print("Step 5-6: Aggregated and sorted by revenue")
 print()
 

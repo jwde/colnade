@@ -6,7 +6,7 @@ The type checker preserves the concrete schema through generic function calls.
 
 from __future__ import annotations
 
-from colnade import Column, DataFrame, Float64, Schema, UInt64, Utf8
+import colnade as cn
 from colnade.schema import S
 from colnade_polars import from_rows
 
@@ -15,16 +15,16 @@ from colnade_polars import from_rows
 # ---------------------------------------------------------------------------
 
 
-class Users(Schema):
-    id: Column[UInt64]
-    name: Column[Utf8]
-    score: Column[Float64]
+class Users(cn.Schema):
+    id: cn.Column[cn.UInt64]
+    name: cn.Column[cn.Utf8]
+    score: cn.Column[cn.Float64]
 
 
-class Products(Schema):
-    id: Column[UInt64]
-    name: Column[Utf8]
-    price: Column[Float64]
+class Products(cn.Schema):
+    id: cn.Column[cn.UInt64]
+    name: cn.Column[cn.Utf8]
+    price: cn.Column[cn.Float64]
 
 
 # ---------------------------------------------------------------------------
@@ -32,7 +32,7 @@ class Products(Schema):
 # ---------------------------------------------------------------------------
 
 
-def first_n(df: DataFrame[S], n: int) -> DataFrame[S]:
+def first_n(df: cn.DataFrame[S], n: int) -> cn.DataFrame[S]:
     """Return the first n rows. Works with any schema.
 
     The type checker knows:
@@ -42,12 +42,12 @@ def first_n(df: DataFrame[S], n: int) -> DataFrame[S]:
     return df.head(n)
 
 
-def drop_null_rows(df: DataFrame[S]) -> DataFrame[S]:
+def drop_null_rows(df: cn.DataFrame[S]) -> cn.DataFrame[S]:
     """Drop all rows with any null values. Works with any schema."""
     return df.drop_nulls()
 
 
-def count_rows(df: DataFrame[S]) -> int:
+def count_rows(df: cn.DataFrame[S]) -> int:
     """Count rows in any typed DataFrame."""
     return len(df)
 
