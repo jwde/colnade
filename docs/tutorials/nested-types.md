@@ -49,16 +49,16 @@ python_users = df.filter(
 )
 
 # Compute list aggregations into new columns
-class ProfileWithStats(UserProfile):
+class ProfileWithCounts(UserProfile):
     tag_count: cn.Column[cn.UInt32]
     first_tag: cn.Column[cn.Utf8]
     total_score: cn.Column[cn.Float64]
 
 enriched = df.with_columns(
-    UserProfile.tags.list.len().alias(ProfileWithStats.tag_count),
-    UserProfile.tags.list.get(0).alias(ProfileWithStats.first_tag),
-    UserProfile.scores.list.sum().alias(ProfileWithStats.total_score),
-).cast_schema(ProfileWithStats)
+    UserProfile.tags.list.len().alias(ProfileWithCounts.tag_count),
+    UserProfile.tags.list.get(0).alias(ProfileWithCounts.first_tag),
+    UserProfile.scores.list.sum().alias(ProfileWithCounts.total_score),
+).cast_schema(ProfileWithCounts)
 ```
 
 ## Available list methods

@@ -14,7 +14,7 @@ class Users(cn.Schema):
     id: cn.Column[cn.UInt64]
     name: cn.Column[cn.Utf8]
     age: cn.Column[cn.UInt64]
-    score: cn.Column[cn.Float64]
+    score: cn.Column[cn.Float64 | None]
 
 class Orders(cn.Schema):
     id: cn.Column[cn.UInt64]
