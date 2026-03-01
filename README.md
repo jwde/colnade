@@ -303,7 +303,6 @@ Runnable examples are in the [`examples/`](examples/) directory:
 Colnade provides static type safety for the most common DataFrame operations, but it is not a complete static type system for DataFrames. Know these limitations before adopting:
 
 - **`select()` and `group_by().agg()` return `DataFrame[Any]`** — these operations change the column set, so the output schema must be asserted via `cast_schema()`. A type checker plugin could infer output schemas, but Colnade intentionally avoids plugin coupling.
-- **`with_columns` is optimistic** — it returns `DataFrame[S]` even when adding columns not in `S`. Use `cast_schema()` to a child schema when adding new columns.
 - **Joins require `cast_schema()`** — `JoinedDataFrame` is a transitional type. You must `cast_schema()` to a flat output schema before further operations like `group_by`.
 - **Runtime validation is OFF by default** — set `cn.set_validation("structural")` or `COLNADE_VALIDATE=structural` to enable. Validation adds overhead and is designed for development/CI.
 - **List accessor returns `Any`** — `.list` operations produce `ListOp[Any]` due to a ty limitation with property self-types. The annotations are in place and will become precise in a future ty release.

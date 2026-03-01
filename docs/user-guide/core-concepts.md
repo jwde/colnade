@@ -53,9 +53,7 @@ See [Expressions](expressions.md) for the full DSL reference.
 `DataFrame[S]` is a typed container parameterized by a schema. Operations are divided into two categories:
 
 **Schema-preserving** — return `DataFrame[S]` (same schema):
-`filter`, `sort`, `limit`, `head`, `tail`, `sample`, `unique`, `drop_nulls`, `with_columns`¹
-
-¹ `with_columns` is *optimistic* — it returns `DataFrame[S]` even when adding columns not declared in `S`. When adding new columns, use `cast_schema()` to transition to a child schema that declares those columns.
+`filter`, `sort`, `limit`, `head`, `tail`, `sample`, `unique`, `drop_nulls`, `with_columns`
 
 **Schema-transforming** — return `DataFrame[Any]` (schema changes):
 `select`, `group_by().agg()`
