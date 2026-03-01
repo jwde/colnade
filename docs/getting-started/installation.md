@@ -13,11 +13,13 @@ pip install colnade colnade-polars
 
 `colnade` provides the core abstraction layer. Install the backend adapter for your engine:
 
-| Backend | Install |
-|---------|---------|
-| Polars | `pip install colnade-polars` |
-| Pandas | `pip install colnade-pandas` |
-| Dask | `pip install colnade-dask` |
+| Backend | Install | Engine version |
+|---------|---------|----------------|
+| Polars | `pip install colnade-polars` | Polars >= 1.0 |
+| Pandas | `pip install colnade-pandas` | Pandas >= 2.0 |
+| Dask | `pip install colnade-dask` | Dask >= 2024.1 |
+
+All backends require PyArrow >= 12.0 (installed automatically as a dependency).
 
 ## Install with uv
 

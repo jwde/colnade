@@ -45,6 +45,17 @@ from colnade_polars import read_parquet
 df = read_parquet("users.parquet", Users)
 ```
 
+### From Arrow batches
+
+`DataFrame.from_batches()` creates a DataFrame from an iterator of typed `ArrowBatch[S]` objects. This is useful for streaming or inter-process data transfer:
+
+```python
+batches = df.to_batches()  # Iterator[ArrowBatch[Users]]
+restored = cn.DataFrame.from_batches(batches, Users, backend)
+```
+
+`to_batches()` and `from_batches()` form a round-trip through Arrow record batches. Validation is applied on `from_batches()` when enabled.
+
 ## DataFrame vs LazyFrame
 
 | | DataFrame | LazyFrame |

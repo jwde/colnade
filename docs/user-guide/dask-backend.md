@@ -114,13 +114,18 @@ summary = lf.cast_schema(UserSummary)
 result = summary.collect()
 ```
 
-## I/O API
+## I/O and Construction API
 
-Since Dask is always lazy, only `scan_*` functions are provided:
+Since Dask is always lazy, all construction functions return `LazyFrame`:
 
 | Function | Returns | Notes |
 |----------|---------|-------|
 | `scan_parquet` | `LazyFrame[S]` | Lazy scan with optional validation |
 | `scan_csv` | `LazyFrame[S]` | Lazy scan with optional validation |
+| `from_dict` | `LazyFrame[S]` | Create from columnar dict (returns lazy) |
+| `from_rows` | `LazyFrame[S]` | Create from `Row[S]` instances (returns lazy) |
 | `write_parquet` | `None` | Writes from DataFrame or LazyFrame |
 | `write_csv` | `None` | Writes from DataFrame or LazyFrame |
+
+!!! note
+    Unlike the Polars and Pandas backends where `from_dict` and `from_rows` return eager `DataFrame`, the Dask backend returns `LazyFrame` to match Dask's lazy semantics. Use `.collect()` to materialize.

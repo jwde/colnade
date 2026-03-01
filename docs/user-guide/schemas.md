@@ -142,6 +142,8 @@ class Events(cn.Schema):
         return Events.end >= Events.start
 ```
 
+`cls` receives the schema class at validation time, following the `@classmethod` convention. Most checks reference columns directly by schema name (e.g. `Events.end`), but `cls` is useful for writing checks that work polymorphically across subclasses.
+
 `@schema_check` methods are inherited by subclasses.
 
 See [DataFrames: Value-level constraints](dataframes.md#level-3-on-your-data-values-value-level-constraints) for validation details.
@@ -202,10 +204,19 @@ try:
 except cn.SchemaError as e:
     # Structural violations
     print(e.missing_columns)   # columns in schema but not in data
-    print(e.type_mismatches)   # {column: (expected, actual)}
     print(e.extra_columns)     # columns in data but not in schema
+    print(e.type_mismatches)   # {column: (expected, actual)}
+    print(e.null_violations)   # non-nullable columns containing nulls
     # Value violations (from Field() and @schema_check)
     print(e.value_violations)  # list of ValueViolation objects
 ```
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `missing_columns` | `list[str]` | Columns declared in the schema but absent from the data |
+| `extra_columns` | `list[str]` | Columns present in the data but not in the schema |
+| `type_mismatches` | `dict[str, tuple[str, str]]` | Column name → `(expected_type, actual_type)` |
+| `null_violations` | `list[str]` | Non-nullable columns that contain null values |
+| `value_violations` | `list[ValueViolation]` | Constraint violations from `Field()` and `@schema_check` |
 
 Each `ValueViolation` contains the column name, constraint description, violation count, and up to 5 sample values.
