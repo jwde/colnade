@@ -142,7 +142,7 @@ class Events(cn.Schema):
         return Events.end >= Events.start
 ```
 
-The `cls` parameter receives the schema class (like `@classmethod`). It is not used in most checks — you reference columns directly via the schema name — but it is required by the decorator signature.
+`cls` receives the schema class at validation time, following the `@classmethod` convention. Most checks reference columns directly by schema name (e.g. `Events.end`), but `cls` is useful for writing checks that work polymorphically across subclasses.
 
 `@schema_check` methods are inherited by subclasses.
 
