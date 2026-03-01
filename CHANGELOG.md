@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-03-01
+
+### Fixed
+
+- Examples now use `import colnade as cn` convention, matching tutorials (#170)
+- `full_pipeline.py` score column correctly declared nullable (#171)
+- Tutorial/example class name mismatch: `ProfileWithStats` → `ProfileWithCounts` (#171)
+- Stale "eager only" comments removed for `head()`/`tail()` (#171)
+- Comparison table: acknowledge Pandera's Polars support and StaticFrame's `CallGuard` (#173)
+
+### Added
+
+- README: Limitations section documenting type coverage gaps (#172)
+- Quick-start: "Enable runtime validation" and "Handling validation errors" sections (#172, #174)
+- Installation: backend engine version requirements (#174)
+- `SchemaError.null_violations` documented with full attribute table (#174)
+- `DataFrame.from_batches()` documented in user guide (#174)
+- Dask `from_dict`/`from_rows` documented (#174)
+
 ## [0.8.0] - 2026-02-28
 
 ### Added
@@ -135,7 +154,8 @@ First public release.
 - **Untyped escape hatch** — `df.untyped()` drops to string-based columns, `untyped.to_typed(Schema)` re-binds
 - **Documentation site** — tutorials, user guide, API reference, comparison page at colnade.com
 
-[Unreleased]: https://github.com/jwde/colnade/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/jwde/colnade/compare/v0.8.1...HEAD
+[0.8.1]: https://github.com/jwde/colnade/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/jwde/colnade/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/jwde/colnade/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/jwde/colnade/compare/v0.5.5...v0.6.0
