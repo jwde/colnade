@@ -84,6 +84,23 @@ process_orders(users_df)  # DataFrame[Users] ≠ DataFrame[Orders]
 # ty error: Object of type `DataFrame[Users]` is not assignable to `DataFrame[Orders]`
 ```
 
+## Enable runtime validation
+
+By default, runtime validation is **off** for zero overhead. Enable it in development to catch schema mismatches at data boundaries:
+
+```python
+import colnade as cn
+cn.set_validation("structural")  # check columns, dtypes, nullability
+```
+
+Or via environment variable:
+
+```bash
+COLNADE_VALIDATE=structural pytest tests/
+```
+
+See [Validation](../user-guide/dataframes.md#validation) for details on validation levels.
+
 ## Handling validation errors
 
 When validation is enabled, schema mismatches raise `SchemaError` with structured information:

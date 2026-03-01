@@ -48,6 +48,8 @@ young_users = joined.filter(Users.age < 30)
 
 ## Flatten to output schema
 
+`JoinedDataFrame` is a transitional type — it has limited operations (`filter`, `sort`, `cast_schema`) because the column set is ambiguous (both schemas may have columns with the same name). To get back to a regular `DataFrame`, flatten with `cast_schema`:
+
 ```python
 result = joined.cast_schema(UserOrders)
 ```
