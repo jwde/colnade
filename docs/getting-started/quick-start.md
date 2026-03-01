@@ -84,6 +84,25 @@ process_orders(users_df)  # DataFrame[Users] ≠ DataFrame[Orders]
 # ty error: Object of type `DataFrame[Users]` is not assignable to `DataFrame[Orders]`
 ```
 
+## Handling validation errors
+
+When validation is enabled, schema mismatches raise `SchemaError` with structured information:
+
+```python
+import colnade as cn
+
+cn.set_validation("structural")
+
+try:
+    df = read_parquet("data.parquet", Users)
+except cn.SchemaError as e:
+    print(e.missing_columns)   # e.g. ["score"]
+    print(e.type_mismatches)   # e.g. {"age": ("UInt64", "Utf8")}
+    print(e.null_violations)   # e.g. ["name"]
+```
+
+See [SchemaError](../user-guide/schemas.md#schemaerror) for the full list of attributes.
+
 ## Next steps
 
 - [User Guide](../user-guide/core-concepts.md) — understand the architecture
