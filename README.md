@@ -261,19 +261,19 @@ Colnade catches real errors at lint time. Here are actual error messages from `t
 | Feature | Colnade | Pandera | StaticFrame | Patito | Narwhals |
 |---------|---------|---------|-------------|--------|----------|
 | Column refs checked statically | Named attrs | No | Positional types | No | No |
-| Schema preserved through ops | Through ops¹ | At boundaries² | No | No | No |
+| Schema preserved through ops | Through ops¹ | At boundaries² | Positional | No | No |
 | Works with existing engines | Polars, Pandas, Dask | Pandas, Polars, others | Own engine | Polars only | Many engines |
 | No plugins or code gen | Yes | Optional mypy plugin | Yes | Yes | Yes |
 | Generic utility functions | Yes | No | No | No | No |
 | Struct/List typed access | Yes | No | No | No | No |
 | Lazy execution support | Yes | No | No | No | Yes |
-| Value-level constraints | `Field()` | `Check` | No | Pydantic validators | No |
-| Maturity / ecosystem | New (v0.7) | Mature, large community | Mature | Small | Growing fast |
+| Value-level constraints | `Field()` | `Check` | `CallGuard` | Pydantic validators | No |
+| Maturity / ecosystem | New (v0.8) | Mature, large community | Mature | Small | Growing fast |
 | Engine breadth | 3 backends | 4+ backends | Own engine | 1 backend | 6+ backends |
 | select/group_by output typing | `DataFrame[Any]`³ | Decorator-checked | Positional types | No | No |
 
 ¹ Schema-preserving ops (filter, sort, with_columns) retain `DataFrame[S]`. Schema-transforming ops (select, group_by) return `DataFrame[Any]` — use `cast_schema()` to bind.
-² Pandera's `@check_types` validates schemas at function boundaries via decorator, but column references within function bodies remain unchecked strings.
+² Pandera supports Polars (since v0.19), Pandas, and others. `@check_types` validates schemas at function boundaries, but column references within function bodies remain unchecked strings.
 ³ `cast_schema()` re-binds at runtime. A type checker plugin could theoretically infer output schemas, but Colnade intentionally avoids plugin coupling.
 
 See [Detailed Comparisons](https://colnade.com/comparison/) for a fuller discussion of tradeoffs.

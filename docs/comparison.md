@@ -5,22 +5,22 @@
 | Feature | Colnade | Pandera | StaticFrame | Patito | Narwhals |
 |---------|---------|---------|-------------|--------|----------|
 | Column refs checked statically | Named attrs | No | Positional types¹ | No | No |
-| Schema preserved through ops | Through ops² | At boundaries³ | No | No | No |
+| Schema preserved through ops | Through ops² | At boundaries³ | Positional | No | No |
 | Works with existing engines | Polars, Pandas, Dask | Pandas, Polars, others | Own engine | Polars only | Many engines |
 | No plugins or code gen | Yes | Optional mypy plugin | Yes | Yes | Yes |
 | Generic utility functions | Yes | No | No | No | No |
 | Struct/List typed access | Yes | No | No | No | No |
 | Lazy execution support | Yes | No | No | No | Yes |
-| Value-level constraints | `Field()` | `Check` | No | Pydantic validators | No |
-| Maturity / ecosystem | New (v0.7) | Mature, large community | Mature | Small | Growing fast |
+| Value-level constraints | `Field()` | `Check` | `CallGuard` | Pydantic validators | No |
+| Maturity / ecosystem | New (v0.8) | Mature, large community | Mature | Small | Growing fast |
 | Engine breadth | 3 backends | 4+ backends | Own engine | 1 backend | 6+ backends |
 | select/group_by output typing | `DataFrame[Any]`⁴ | Decorator-checked | Positional types | No | No |
 
-¹ StaticFrame encodes column *types* positionally via `TypeVarTuple`, but column *names* are not part of the type signature.
+¹ StaticFrame encodes column *types* positionally via `TypeVarTuple` and supports static analysis + runtime validation via `CallGuard`. Column *names* are not part of the type signature (types are positional, not named).
 
 ² Schema-preserving ops (filter, sort, with_columns) retain `DataFrame[S]`. Schema-transforming ops (select, group_by) return `DataFrame[Any]` — use `cast_schema()` to bind to the output schema, which validates column names and types at runtime.
 
-³ Pandera's `@check_types` decorator validates schemas at function entry/exit, but column references within function bodies remain unchecked strings (`pa.Column("age")`).
+³ Pandera's `@check_types` decorator validates schemas at function entry/exit. Pandera supports Polars (since v0.19), Pandas, and others. Column references within function bodies remain unchecked strings (`pa.Column("age")`).
 
 ⁴ `cast_schema()` re-binds at runtime. A type checker plugin could theoretically infer output schemas, but Colnade intentionally avoids plugin coupling.
 
@@ -28,15 +28,15 @@
 
 ### Pandera
 
-Pandera provides runtime schema validation with a mypy plugin for basic static checking. Its `@check_types` decorator validates that `DataFrame[InputSchema]` is passed where expected and that outputs match `DataFrame[OutputSchema]`, providing nominal schema tracking at function boundaries. However, column references within function bodies are unchecked strings — `pa.Column("misspelled")` passes the type checker.
+Pandera provides runtime schema validation with a mypy plugin for basic static checking. It supports Pandas, Polars (since v0.19), and other backends. Its `@check_types` decorator validates that `DataFrame[InputSchema]` is passed where expected and that outputs match `DataFrame[OutputSchema]`, providing nominal schema tracking at function boundaries. However, column references within function bodies are unchecked strings — `pa.Column("misspelled")` passes the type checker.
 
 **Colnade's approach:** Column references are class attributes (`Users.age` not `"age"`), so misspellings are caught at lint time. Schema types track through operations, not just at function boundaries. The tradeoff is that schema-transforming operations (select, group_by) erase the schema — `cast_schema()` is needed to re-bind, which Pandera's decorator approach avoids for simple input→output schemas.
 
 ### StaticFrame
 
-StaticFrame uses PEP 646 `TypeVarTuple` to encode column types as variadic generic parameters. This gives static type checking of column *types* (you know the frame has an `int` column, a `str` column, etc.), but types are positional, not named — there's no way to express "has a column called `age` of type `UInt8`." It requires adopting StaticFrame's own DataFrame engine rather than working with Polars/Pandas.
+StaticFrame uses PEP 646 `TypeVarTuple` to encode column types as variadic generic parameters, and provides `CallGuard` decorators for runtime type and data validation. This gives static type checking of column *types* (you know the frame has an `int` column, a `str` column, etc.), but types are positional, not named — there's no way to express "has a column called `age` of type `UInt8`." It requires adopting StaticFrame's own DataFrame engine rather than working with Polars/Pandas.
 
-**Colnade's approach:** Named columns with full type information. Works with existing engines. The tradeoff is that Colnade requires a separate schema class definition, while StaticFrame infers types from data.
+**Colnade's approach:** Named columns with full type information. Works with existing engines. The tradeoff is that Colnade requires a separate schema class definition, while StaticFrame infers types from data. StaticFrame's `CallGuard` provides similar runtime validation to Colnade's `validate()`, but Colnade's static checking is name-based rather than positional.
 
 ### Patito
 
