@@ -6,7 +6,7 @@ requires-python = ">=3.10"
 license = "MIT"
 readme = "README.md"
 authors = [
-    { name = "jwde" },
+    { name = "jwde", email = "jay@colnade.com" },
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",

@@ -309,6 +309,10 @@ Colnade provides static type safety for the most common DataFrame operations, bu
 
 See [Type Checker Integration](https://colnade.com/user-guide/type-checking/) for the full list of what is and isn't checked statically.
 
+## Contact
+
+Bug reports and feature requests: [GitHub Issues](https://github.com/jwde/colnade/issues). For anything else: [jay@colnade.com](mailto:jay@colnade.com).
+
 ## License
 
 MIT
