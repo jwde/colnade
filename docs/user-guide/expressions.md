@@ -32,11 +32,12 @@ Reverse operators work too: `1 + Users.age` produces the same tree as `Users.age
 
 ## Logical operators
 
-Combine boolean expressions with `&` (and) and `|` (or):
+Combine boolean expressions with `&` (and), `|` (or), and `~` (not):
 
 ```python
 (Users.age > 25) & (Users.score > 80)     # and
 Users.name.str_starts_with("A") | Users.name.str_starts_with("E")  # or
+~(Users.age > 65)                          # not
 ```
 
 !!! warning "Use parentheses"
