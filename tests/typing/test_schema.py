@@ -8,7 +8,7 @@ With the Column[DType] annotation pattern, type checkers see schema
 attributes as Column instances with full access to expression methods.
 """
 
-from colnade import Column, Datetime, Float64, Schema, UInt8, UInt64, Utf8
+from colnade import Column, Datetime, Float64, Row, Schema, UInt8, UInt64, Utf8
 
 # --- Schema definition compiles cleanly ---
 
@@ -63,3 +63,13 @@ def check_schema_typevars() -> None:
     _ = S
     _ = S2
     _ = S3
+
+
+# --- Row keyword construction type-checks (issue #184 C) ---
+
+
+def check_row_kwargs_construction() -> None:
+    # Auto-generated ``Schema.Row`` must accept keyword arguments without the
+    # type checker rejecting them as unknown parameters of ``object``.
+    row = Users.Row(id=1, name="Alice", age=30, score=9.5)
+    _: Row[Users] = row

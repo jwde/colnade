@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Type-checker false positives on `filter()`, `&`/`|`, and `Schema.Row(...)`** — `Column.__eq__` is now overloaded so `col == value` is typed as `BinOp[Bool]` (accepted by `filter()` and combinable with `&`/`|`) while `col == col` stays a `JoinCondition` for `.join(on=...)`. `Schema.Row(...)` now accepts keyword arguments under static checking instead of resolving to `object()`. Idiomatic Colnade code no longer needs `# ty: ignore` on these (#184)
+
 ## [0.8.1] - 2026-03-01
 
 ### Fixed
