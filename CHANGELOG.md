@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.2] - 2026-06-27
+
 ### Fixed
 
 - **Type-checker false positives on `filter()`, `&`/`|`, and `Schema.Row(...)`** — `Column.__eq__` is now overloaded so `col == value` is typed as `BinOp[Bool]` (accepted by `filter()` and combinable with `&`/`|`) while `col == col` stays a `JoinCondition` for `.join(on=...)`. `Schema.Row(...)` now accepts keyword arguments under static checking instead of resolving to `object()`. Idiomatic Colnade code no longer needs `# ty: ignore` on these (#184)
@@ -158,7 +160,8 @@ First public release.
 - **Untyped escape hatch** — `df.untyped()` drops to string-based columns, `untyped.to_typed(Schema)` re-binds
 - **Documentation site** — tutorials, user guide, API reference, comparison page at colnade.com
 
-[Unreleased]: https://github.com/jwde/colnade/compare/v0.8.1...HEAD
+[Unreleased]: https://github.com/jwde/colnade/compare/v0.8.2...HEAD
+[0.8.2]: https://github.com/jwde/colnade/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/jwde/colnade/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/jwde/colnade/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/jwde/colnade/compare/v0.6.0...v0.7.0
