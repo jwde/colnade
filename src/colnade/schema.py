@@ -9,7 +9,7 @@ Defines the foundational layer that makes column references statically verifiabl
 from __future__ import annotations
 
 import typing
-from typing import TYPE_CHECKING, Any, Generic, Protocol, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, Protocol, TypeVar, overload
 
 from colnade._types import DType, T
 
@@ -218,6 +218,18 @@ class Column(Generic[DType]):
     def __le__(self, other: Any) -> BinOp[Bool]:
         return self._binop(other, "<=")
 
+    # Overloads disambiguate the two roles of ``==`` for type checkers:
+    #   Column == Column  → JoinCondition  (a join key; see .join(on=...))
+    #   Column == value   → BinOp[Bool]    (a filter predicate)
+    # Without them, every ``==`` is typed as the union ``BinOp[Bool] |
+    # JoinCondition``, which makes ``filter(Schema.col == value)`` and
+    # ``&``/``|`` chaining fail to type-check (see issue #184). Statically,
+    # any column-to-column ``==`` is treated as a JoinCondition even though
+    # the runtime returns BinOp[Bool] for same-schema comparisons.
+    @overload
+    def __eq__(self, other: Column[Any]) -> JoinCondition: ...
+    @overload
+    def __eq__(self, other: object) -> BinOp[Bool]: ...
     def __eq__(self, other: Any) -> BinOp[Bool] | JoinCondition:  # type: ignore[override]
         if isinstance(other, Column) and self.schema is not other.schema:
             from colnade.expr import JoinCondition as _JoinCondition
@@ -607,6 +619,16 @@ class Row(Generic[S]):
 
         Users.Row(id=1, name="Alice", age=30)  # type is Row[Users]
     """
+
+    if TYPE_CHECKING:
+        # The per-schema Row dataclass is generated at runtime by
+        # ``_build_row_class`` (via ``make_dataclass``), so type checkers
+        # only ever see this base class. Without a constructor here, static
+        # checkers resolve ``Users.Row(name=..., age=...)`` to ``object()``
+        # and reject every keyword argument (see issue #184). Accepting
+        # ``**fields`` keeps keyword construction type-checking; per-field
+        # value types are still validated at runtime by the dataclass.
+        def __init__(self, **fields: Any) -> None: ...
 
 
 def _build_row_class(schema_name: str, schema_cls: type, columns: dict[str, Column[Any]]) -> type:

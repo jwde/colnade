@@ -50,6 +50,22 @@ def check_filter_preserves_schema(df: DataFrame[Users]) -> DataFrame[Users]:
     return df.filter(Users.age > 18)
 
 
+def check_filter_equality_predicate(df: DataFrame[Users]) -> DataFrame[Users]:
+    # ``col == value`` must type-check as a filter predicate (issue #184 A).
+    # Without overloaded ``Column.__eq__`` it is ``BinOp[Bool] | JoinCondition``
+    # and ``filter`` (which expects ``Expr[Bool]``) rejects the union.
+    return df.filter(Users.age == 30)
+
+
+def check_filter_combined_predicate(df: DataFrame[Users]) -> DataFrame[Users]:
+    # ``&``/``|`` over equality predicates must type-check (issue #184 B).
+    return df.filter((Users.age == 30) & (Users.name == "Alice"))
+
+
+def check_filter_or_predicate(df: DataFrame[Users]) -> DataFrame[Users]:
+    return df.filter((Users.age == 30) | (Users.age == 40))
+
+
 def check_sort_preserves_schema(df: DataFrame[Users]) -> DataFrame[Users]:
     return df.sort(Users.name)
 

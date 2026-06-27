@@ -43,6 +43,19 @@ class Orders(Schema):
 # --- Join return types ---
 
 
+def check_cross_schema_eq_is_join_condition() -> None:
+    # ``Column == Column`` must be typed as a JoinCondition so it can be passed
+    # straight to ``.join(on=...)`` (issue #184 — the overloaded ``__eq__``).
+    cond: JoinCondition = Users.id == Orders.user_id
+    _ = cond
+
+
+def check_join_with_inline_condition(
+    df: DataFrame[Users], orders: DataFrame[Orders]
+) -> JoinedDataFrame[Users, Orders]:
+    return df.join(orders, on=Users.id == Orders.user_id)
+
+
 def check_dataframe_join(
     df: DataFrame[Users], orders: DataFrame[Orders], cond: JoinCondition
 ) -> JoinedDataFrame[Users, Orders]:

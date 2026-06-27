@@ -138,13 +138,17 @@ UserProfile.tags.list.sum()   # NOT caught — tags is List[Utf8], sum makes no 
 
 This is a current limitation of Python type checkers — property-based self-narrowing (needed to restrict `.list` to `Column[List[...]]`) is not yet supported. The annotations are in place and will become precise when type checker support improves.
 
-### Cross-schema equality return type
+### Column-to-column equality is treated as a join key
 
-`Column.__eq__` returns `BinOp[Bool] | JoinCondition` (union type) because it produces a `JoinCondition` for cross-schema comparisons and `BinOp[Bool]` for same-schema comparisons. The `join()` method expects `JoinCondition`, so a `type: ignore[invalid-argument-type]` comment is needed:
+`Column.__eq__` is overloaded so that comparing two columns (`Users.id == Orders.user_id`) is typed as a `JoinCondition`, while comparing a column to a value (`Users.age == 30`) is typed as `BinOp[Bool]`. This means both the common cases type-check without suppressions:
 
 ```python
-users.join(orders, on=Users.id == Orders.user_id)  # type: ignore[invalid-argument-type]
+users.join(orders, on=Users.id == Orders.user_id)   # JoinCondition — accepted by join()
+df.filter(Users.age == 30)                            # BinOp[Bool] — accepted by filter()
+df.filter((Users.age == 30) & (Users.name == "Alice"))
 ```
+
+The one edge case: a *same-schema* column-to-column comparison (`Users.age == Users.score`) returns `BinOp[Bool]` at runtime but is statically typed as `JoinCondition`, so passing it to `filter()` is rejected by the type checker. This is rare; rewrite it as an explicit comparison or add a `type: ignore` at that call site if needed.
 
 ## Supported type checkers
 
